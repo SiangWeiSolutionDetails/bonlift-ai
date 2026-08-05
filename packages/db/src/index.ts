@@ -1,1 +1,1 @@
-export const packageName = "db";
+export { getPool, closePool } from "./pool.js";

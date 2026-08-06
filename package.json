@@ -10,6 +10,11 @@
   },
   "devDependencies": {
     "tsx": "^4.23.6",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^2.0.5"
+  },
+  "optionalDependencies": {
+    "@rolldown/binding-wasm32-wasi": "^1.2.3",
+    "@rolldown/binding-win32-x64": "*"
   }
 }

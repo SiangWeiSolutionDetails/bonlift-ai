@@ -1,1 +1,1 @@
-export const packageName = "api";
+export { buildApp } from "./app.js";

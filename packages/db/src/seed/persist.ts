@@ -1,4 +1,4 @@
-import { Pool } from "pg";
+import { Pool, PoolClient, QueryResult } from "pg";
 import { type GeneratedDataset } from "./types.js";
 
 export async function persistDataset(
@@ -22,127 +22,87 @@ export async function persistDataset(
 
     // brands
 
-    let placeholders: string[] = [];
-    let values: unknown[] = [];
-
-    brands.forEach((brand, i) => {
-      const offset = i * 1;
-      placeholders.push(`($${offset + 1})`);
-      values.push(brand.name);
-    });
-
-    let result = await client.query(
-      `INSERT INTO brands (name) VALUES ${placeholders.join(",")} RETURNING id`,
-      values,
+    let result = await batchInsert(
+      client,
+      "brands",
+      ["name"],
+      brands.map((brand) => [brand.name]),
     );
 
-    const brandIdMap: Map<string, string> = new Map<string, string>();
-
-    result.rows.forEach((row, i) => {
-      brandIdMap.set(brands[i].id, row.id);
-    });
+    const brandIdMap = buildIdMap(
+      brands.map((brand) => brand.id),
+      result.rows,
+    );
 
     // outlets
 
-    placeholders = [];
-    values = [];
-
-    outlets.forEach((outlet, i) => {
-      const offset = i * 2;
-      placeholders.push(`($${offset + 1},$${offset + 2})`);
-      const brandId = brandIdMap.get(outlet.brandId);
-      values.push(outlet.name, brandId);
-    });
-
-    result = await client.query(
-      `INSERT INTO outlets (name,brand_id) VALUES ${placeholders.join(",")} RETURNING id`,
-      values,
+    result = await batchInsert(
+      client,
+      "outlets",
+      ["name", "brand_id"],
+      outlets.map((outlet) => [outlet.name, brandIdMap.get(outlet.brandId)]),
     );
 
-    const outletIdMap: Map<string, string> = new Map<string, string>();
-
-    result.rows.forEach((row, i) => {
-      outletIdMap.set(outlets[i].id, row.id);
-    });
+    const outletIdMap = buildIdMap(
+      outlets.map((outlet) => outlet.id),
+      result.rows,
+    );
 
     // customers
-
-    placeholders = [];
-    values = [];
-
-    customers.forEach((customer, i) => {
-      placeholders.push(`(DEFAULT)`);
-    });
-
+    
+    const customerPlaceholders = customers.map(() => "(DEFAULT)");
     result = await client.query(
-      `INSERT INTO customers (id) VALUES ${placeholders.join(",")} RETURNING id`,
+      `INSERT INTO customers (id) VALUES ${customerPlaceholders.join(",")} RETURNING id`,
     );
 
-    const customerIdMap: Map<string, string> = new Map<string, string>();
-
-    result.rows.forEach((row, i) => {
-      customerIdMap.set(customers[i].id, row.id);
-    });
+    const customerIdMap = buildIdMap(
+      customers.map((customer) => customer.id),
+      result.rows,
+    );
 
     // orders
 
-    placeholders = [];
-    values = [];
-
-    orders.forEach((order, i) => {
-      const offset = i * 3;
-      placeholders.push(`($${offset + 1},$${offset + 2},$${offset + 3})`);
-      const outletId = outletIdMap.get(order.outletId);
-      const customerId = order.customerId
-        ? customerIdMap.get(order.customerId)
-        : null;
-      values.push(outletId, customerId, order.orderedAt);
-    });
-
-    result = await client.query(
-      `INSERT INTO orders (outlet_id,customer_id,ordered_at) VALUES ${placeholders.join(",")} RETURNING id`,
-      values,
+    result = await batchInsert(
+      client,
+      "orders",
+      ["outlet_id", "customer_id", "ordered_at"],
+      orders.map((order) => [
+        outletIdMap.get(order.outletId),
+        order.customerId ? customerIdMap.get(order.customerId) : null,
+        order.orderedAt,
+      ]),
     );
 
-    const orderIdMap: Map<string, string> = new Map<string, string>();
-
-    result.rows.forEach((row, i) => {
-      orderIdMap.set(orders[i].id, row.id);
-    });
+    const orderIdMap = buildIdMap(
+      orders.map((order) => order.id),
+      result.rows,
+    );
 
     // order_lines
 
-    placeholders = [];
-    values = [];
-
-    orders
-      .flatMap((order, i) =>
-        order.lines.map((line) => ({
-          ...line,
-          orderId: order.id,
-          subtotal: Math.round(line.quantity * line.unitPrice * 100) / 100,
-        })),
-      )
-      .forEach((orderLine, i) => {
-        const offset = i * 7;
-        placeholders.push(
-          `($${offset + 1},$${offset + 2},$${offset + 3},$${offset + 4},$${offset + 5},$${offset + 6},$${offset + 7})`,
-        );
-        const orderId = orderIdMap.get(orderLine.orderId);
-        values.push(
-          orderId,
-          orderLine.refId,
-          orderLine.itemName,
-          orderLine.category,
-          orderLine.quantity,
-          orderLine.unitPrice,
-          orderLine.subtotal,
-        );
-      });
-
-    await client.query(
-      `INSERT INTO order_lines (order_id,item_ref_id,item_name,item_category,qty,unit_price,subtotal) VALUES ${placeholders.join(",")}`,
-      values,
+    await batchInsert(
+      client,
+      "order_lines",
+      [
+        "order_id",
+        "item_ref_id",
+        "item_name",
+        "item_category",
+        "qty",
+        "unit_price",
+        "subtotal",
+      ],
+      orders.flatMap((order, i) =>
+        order.lines.map((line) => [
+          orderIdMap.get(order.id),
+          line.refId,
+          line.itemName,
+          line.category,
+          line.quantity,
+          line.unitPrice,
+          Math.round(line.quantity * line.unitPrice * 100) / 100,
+        ]),
+      ),
     );
 
     await client.query("COMMIT");
@@ -152,4 +112,36 @@ export async function persistDataset(
   } finally {
     client.release();
   }
+}
+
+async function batchInsert(
+  client: PoolClient,
+  table: string,
+  columns: string[],
+  rows: unknown[][],
+): Promise<QueryResult> {
+  const columnCount = columns.length;
+  const placeholders = rows.map((_, i) => {
+    const offset = i * columnCount;
+    const cells = Array.from(
+      { length: columnCount },
+      (_, j) => `$${offset + j + 1}`,
+    );
+    return `(${cells.join(",")})`;
+  });
+  const values = rows.flat();
+
+  return await client.query(
+    `INSERT INTO ${table} (${columns.join(",")}) VALUES ${placeholders.join(",")} RETURNING id`,
+    values,
+  );
+}
+
+function buildIdMap(
+  generatorIds: string[],
+  resultRows: { id: string }[],
+): Map<string, string> {
+  const map = new Map<string, string>();
+  resultRows.forEach((row, i) => map.set(generatorIds[i], row.id));
+  return map;
 }

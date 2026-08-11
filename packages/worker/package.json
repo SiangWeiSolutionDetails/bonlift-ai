@@ -8,5 +8,10 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@ai-services/db": "^0.0.1",
+    "bullmq": "^6.0.11",
+    "ioredis": "^6.0.0"
   }
 }

@@ -4,4 +4,4 @@ dist/
 *.log
 .claude/
 .superpowers/
-docs/
+docs/*

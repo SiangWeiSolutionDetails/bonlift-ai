@@ -1,4 +1,6 @@
 import type { FastifyInstance } from "fastify";
+import { getOutletRecommendations } from "../services/recommendationsService.js";
+import { getPool } from "@ai-services/db";
 
 const paramsSchema = {
   type: "object",
@@ -31,14 +33,15 @@ const responseSchema = {
   },
 } as const;
 
-export async function recommendationRoutes(app: FastifyInstance): Promise<void> {
+export async function recommendationRoutes(
+  app: FastifyInstance,
+): Promise<void> {
   app.get<{ Params: { outletId: string } }>(
     "/outlets/:outletId/recommendations",
     { schema: { params: paramsSchema, response: responseSchema } },
-    async (request, reply) => {
-      // TODO(Task 12): read from outlet_item_scores via getPool(), throw NotFoundError
-      // if the outlet doesn't exist, return { outletId, recommendations } on success.
-      throw new Error("not implemented — see Task 12");
-    }
+    (request, reply) => {
+      const pool = getPool();
+      return getOutletRecommendations(pool, request.params.outletId);
+    },
   );
 }

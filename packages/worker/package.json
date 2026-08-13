@@ -7,7 +7,9 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsx --env-file=../../.env src/worker.ts",
+    "rescore": "tsx --env-file=../../.env src/cli/rescoreOutlet.ts"
   },
   "dependencies": {
     "@ai-services/db": "^0.0.1",

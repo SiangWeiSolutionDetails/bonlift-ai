@@ -11,7 +11,7 @@ export async function getOutletRecommendations(pool: Pool, outletId: string) {
   }
 
   result = await pool.query(
-    `SELECT item_ref_id, item_name, item_category, score, computed_at FROM outlet_item_scores WHERE outlet_id = $1 ORDER BY score DESC LIMIT 10`,
+    `SELECT item_ref_id, item_name, item_category, score FROM outlet_item_scores WHERE outlet_id = $1 ORDER BY score DESC LIMIT 10`,
     [outletId],
   );
 

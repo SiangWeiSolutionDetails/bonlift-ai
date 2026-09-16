@@ -10,7 +10,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "migrate": "node-pg-migrate --migration-file-language sql -m migrations -j sql",
     "migrate:up": "npm run migrate up",
-    "migrate:down": "npm run migrate down"
+    "migrate:down": "npm run migrate down",
+    "seed": "docker exec -i ai-services-postgres-1 psql -U ai_services -d ai_services_dev < seed/seed.sql"
   },
   "dependencies": {
     "pg": "^8.22.0"

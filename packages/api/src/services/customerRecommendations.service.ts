@@ -5,7 +5,7 @@ import { getBrand } from "./brand.service.js";
 export async function getCustomerRecommendations(
   pool: Pool,
   customerId: string,
-  brandId: string,
+  brandId?: string,
 ) {
   await getCustomer(pool, customerId);
 

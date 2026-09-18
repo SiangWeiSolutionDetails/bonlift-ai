@@ -1,16 +1,10 @@
-import { NotFoundError } from "../errors.js";
 import { Pool } from "pg";
+import { getOutlet } from "./outlet.service.js";
 
 export async function getOutletRecommendations(pool: Pool, outletId: string) {
-  let result = await pool.query(`SELECT 1 FROM outlets WHERE id = $1`, [
-    outletId,
-  ]);
+  await getOutlet(pool, outletId);
 
-  if (result.rows.length <= 0) {
-    throw new NotFoundError("Outlet does not exist.");
-  }
-
-  result = await pool.query(
+  const result = await pool.query(
     `SELECT item_ref_id, item_name, item_category, score FROM outlet_item_scores WHERE outlet_id = $1 ORDER BY score DESC LIMIT 10`,
     [outletId],
   );

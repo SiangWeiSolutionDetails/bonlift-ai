@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { getOutletRecommendations } from "../services/recommendationsService.js";
+import { getOutletRecommendations } from "../services/recommendations.service.js";
 import { getPool } from "@ai-services/db";
 
 const paramsSchema = {
@@ -33,13 +33,13 @@ const responseSchema = {
   },
 } as const;
 
-export async function recommendationRoutes(
+export async function recommendationsRoutes(
   app: FastifyInstance,
 ): Promise<void> {
   app.get<{ Params: { outletId: string } }>(
     "/outlets/:outletId/recommendations",
     { schema: { params: paramsSchema, response: responseSchema } },
-    (request, reply) => {
+    (request, _reply) => {
       const pool = getPool();
       return getOutletRecommendations(pool, request.params.outletId);
     },

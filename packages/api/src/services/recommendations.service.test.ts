@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { getOutletRecommendations } from "./recommendationsService.js";
+import { getOutletRecommendations } from "./recommendations.service.js";
 import { NotFoundError } from "../errors.js";
 
 const queryMock = vi.fn();

@@ -17,3 +17,8 @@ export class DbError extends AppError {
   readonly statusCode = 500;
   readonly code = "DB_ERROR";
 }
+
+export class ConflictError extends AppError {
+  readonly statusCode = 409;
+  readonly code = "CONFLICT";
+}

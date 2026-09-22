@@ -26,6 +26,22 @@ describe("getOutlet", () => {
     );
   });
 
+  it("throws NotFoundError when the outlet is inactive", async () => {
+    queryMock.mockResolvedValueOnce({ rows: [] });
+
+    await expect(getOutlet(fakePool, genValidUuid())).rejects.toThrow(
+      NotFoundError,
+    );
+  });
+
+  it("throws NotFoundError when the brand of this outlet is inactive", async () => {
+    queryMock.mockResolvedValueOnce({ rows: [] });
+
+    await expect(getOutlet(fakePool, genValidUuid())).rejects.toThrow(
+      NotFoundError,
+    );
+  });
+
   it("returns outlet when outlet id is valid and existed", async () => {
     const outletId = genValidUuid();
 

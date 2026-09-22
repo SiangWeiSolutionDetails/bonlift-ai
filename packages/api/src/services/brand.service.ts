@@ -8,7 +8,7 @@ export async function getBrand(pool: Pool, brandId: string) {
   }
 
   const result = await pool.query(
-    `SELECT b.id FROM brands b WHERE b.id = $1 LIMIT 1;`,
+    `SELECT b.id FROM brands b WHERE b.id = $1 AND b.is_active IS TRUE LIMIT 1;`,
     [brandId],
   );
 

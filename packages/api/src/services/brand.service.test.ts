@@ -26,6 +26,14 @@ describe("getBrand", () => {
     );
   });
 
+  it("throws NotFoundError when the brand is inactive", async () => {
+    queryMock.mockResolvedValueOnce({ rows: [] });
+
+    await expect(getBrand(fakePool, genValidUuid())).rejects.toThrow(
+      NotFoundError,
+    );
+  });
+
   it("returns brand when brand id is valid and existed", async () => {
     const brandId = genValidUuid();
 

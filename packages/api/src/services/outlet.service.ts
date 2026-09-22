@@ -7,7 +7,15 @@ export async function getOutlet(pool: Pool, outletId: string) {
     throw new ValidationError("Outlet id must be a valid UUID.");
   }
   const result = await pool.query(
-    `SELECT o.id FROM outlets o WHERE o.id = $1 LIMIT 1`,
+    `
+    SELECT o.id FROM outlets o 
+    JOIN brands b 
+    ON o.brand_id = b.id
+    WHERE o.id = $1  
+    AND o.is_active IS TRUE
+    AND b.is_active IS TRUE
+    LIMIT 1;
+    `,
     [outletId],
   );
 

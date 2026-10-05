@@ -52,7 +52,7 @@ export async function customerRecommendationsRoutes(
         response: responseSchema,
       },
     },
-    (request, _reply) => {
+    (request) => {
       const pool = getPool();
       return getCustomerRecommendations(
         pool,

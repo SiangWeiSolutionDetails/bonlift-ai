@@ -1,26 +1,40 @@
-import Fastify, { type FastifyInstance } from "fastify";
+import Fastify, { FastifyError, type FastifyInstance } from "fastify";
 import { AppError } from "./errors.js";
 import { healthRoutes } from "./routes/health.route.js";
 import { recommendationsRoutes } from "./routes/recommendations.route.js";
 import { customerRecommendationsRoutes } from "./routes/customerRecommendations.route.js";
+import { brandRoutes } from "./routes/brand.route.js";
 
 export function buildApp(): FastifyInstance {
-  const app = Fastify({ logger: true });
+  const app = Fastify({
+    logger: true,
+    ajv: { customOptions: { removeAdditional: false } },
+  });
 
-  app.setErrorHandler((error, _request, reply) => {
+  app.setErrorHandler<FastifyError>((error, _request, reply) => {
     if (error instanceof AppError) {
       reply
         .status(error.statusCode)
         .send({ error: error.code, message: error.message });
       return;
     }
+
+    if (error.validation) {
+      reply
+        .status(400)
+        .send({ error: "VALIDATION_ERROR", message: error.message });
+      return;
+    }
+
     app.log.error(error);
+
     reply
       .status(500)
       .send({ error: "INTERNAL_ERROR", message: "Unexpected error" });
   });
 
   app.register(healthRoutes);
+  app.register(brandRoutes);
   app.register(recommendationsRoutes);
   app.register(customerRecommendationsRoutes);
 

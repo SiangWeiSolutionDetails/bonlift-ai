@@ -2,8 +2,8 @@ interface PgErrorLike {
   code?: string;
 }
 
-const UNIQUE_VIOLATION = "23505";
-const FOREIGN_KEY_VIOLATION = "23503";
+export const UNIQUE_VIOLATION = "23505";
+export const FOREIGN_KEY_VIOLATION = "23503";
 
 export function isUniqueViolation(err: unknown): boolean {
   return (err as PgErrorLike)?.code === UNIQUE_VIOLATION;

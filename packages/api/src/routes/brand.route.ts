@@ -6,116 +6,76 @@ import {
   getBrands,
   updateBrand,
 } from "../services/brand.service.js";
-
-const listQuerySchema = {
-  type: "object",
-  properties: {
-    includeInactive: { type: "boolean" },
-  },
-} as const;
-
-const paramsSchema = {
-  type: "object",
-  properties: {
-    brandId: { type: "string" },
-  },
-  required: ["brandId"],
-} as const;
-
-const brandRecordSchema = {
-  type: "object",
-  properties: {
-    id: { type: "string" },
-    name: { type: "string" },
-    isActive: { type: "boolean" },
-  },
-} as const;
-
-const createBodySchema = {
-  type: "object",
-  properties: {
-    name: { type: "string", minLength: 1 },
-  },
-  required: ["name"],
-  additionalProperties: false,
-} as const;
-
-const updateBodySchema = {
-  type: "object",
-  properties: {
-    name: { type: "string", minLength: 1 },
-    isActive: { type: "boolean" },
-  },
-  additionalProperties: false,
-  minProperties: 1,
-} as const;
+import {
+  BrandListSchema,
+  BrandParamsSchema,
+  BrandParamsSchemaType,
+  BrandRecordSchema,
+  CreateBrandBodySchema,
+  CreateBrandBodySchemaType,
+  UpdateBrandBodySchema,
+  UpdateBrandBodySchemaType,
+} from "../schemas/brand.schema.js";
 
 export async function brandRoutes(app: FastifyInstance) {
-  app.get<{ Querystring: { includeInactive: boolean } }>(
+  app.get(
     "/brands",
     {
       schema: {
-        querystring: listQuerySchema,
         response: {
-          200: {
-            type: "object",
-            properties: {
-              brands: {
-                type: "array",
-                items: brandRecordSchema,
-              },
-            },
-            required: ["brands"],
-          },
+          200: BrandListSchema,
         },
       },
     },
-    async (request) => {
+    async () => {
       const pool = getPool();
-      const brands = await getBrands(pool, {
-        includeInactive: Boolean(request.query.includeInactive) ?? false,
-      });
+      const brands = await getBrands(pool);
       return {
         brands,
       };
     },
   );
 
-  app.get<{ Params: { brandId: string } }>(
+  app.get<{ Params: BrandParamsSchemaType }>(
     "/brands/:brandId",
     {
       schema: {
-        params: paramsSchema,
-        response: { 200: brandRecordSchema },
+        params: BrandParamsSchema,
+        response: { 200: BrandRecordSchema },
       },
     },
     (request) => {
       const pool = getPool();
-      return getBrand(pool, request.params.brandId, {
-        includeInactive: true,
-      });
+      return getBrand(pool, request.params.brandId);
     },
   );
 
-  app.post<{ Body: { name: string } }>(
+  app.post<{ Body: CreateBrandBodySchemaType }>(
     "/brands",
-    { schema: { body: createBodySchema } },
-    (request) => {
+    {
+      schema: {
+        body: CreateBrandBodySchema,
+        response: { 201: BrandRecordSchema },
+      },
+    },
+    async (request, reply) => {
       const pool = getPool();
-      return createBrand(pool, request.body);
+      const brand = await createBrand(pool, request.body);
+      reply.status(201);
+      return brand;
     },
   );
 
   app.patch<{
-    Params: { brandId: string };
-    Body: { name?: string; isActive?: boolean };
+    Params: BrandParamsSchemaType;
+    Body: UpdateBrandBodySchemaType;
   }>(
     "/brands/:brandId",
     {
       schema: {
-        params: paramsSchema,
-        body: updateBodySchema,
-        response: { 200: brandRecordSchema },
+        params: BrandParamsSchema,
+        body: UpdateBrandBodySchema,
+        response: { 200: BrandRecordSchema },
       },
     },
     (request) => {

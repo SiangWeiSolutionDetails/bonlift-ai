@@ -1,0 +1,19 @@
+$kind: http-request
+url: "{{baseUrl}}/outlets"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "name": "Invalid Brand Outlet",
+      "brandId": "not-a-uuid"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 400', () => pm.response.to.have.status(400));
+      pm.test('Validation error', () => pm.expect(pm.response.json().error).to.eql('VALIDATION_ERROR'));
+    language: text/javascript
+order: 3500

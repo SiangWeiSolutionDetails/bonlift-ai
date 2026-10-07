@@ -1,9 +1,10 @@
 $kind: collection
-description: "Brands and Outlets modules. Run the folders top-to-bottom: create requests store `brandId` / `outletId` / `brandName` into collection variables for later requests."
+description: "Brands and Outlets modules. Run the folders top-to-bottom: create requests store `brandId` / `brandName` / `outletId` / `outletName` into collection variables for later requests."
 variables:
   brandId: ""
   brandName: ""
   outletId: ""
+  outletName: ""
   unknownUuid: 00000000-0000-4000-8000-000000000000
 scripts:
   - type: http:afterResponse

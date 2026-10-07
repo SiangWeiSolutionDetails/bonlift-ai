@@ -1,3 +1,0 @@
-$kind: collection
-description: Deactivating a brand should cascade into its outlets' effective status. Runs last because it deactivates the test brand.
-order: 3000

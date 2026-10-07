@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{baseUrl}}/brands/{{unknownUuid}}"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "name": "Ghost Brand"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test('Status 404', () => pm.response.to.have.status(404));
+    language: text/javascript
+order: 11000

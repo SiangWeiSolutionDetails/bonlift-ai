@@ -1,0 +1,19 @@
+$kind: http-request
+url: "{{baseUrl}}/outlets?brandId={{brandId}}"
+method: GET
+queryParams:
+  brandId: "{{brandId}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', () => pm.response.to.have.status(200));
+      const { outlets } = pm.response.json();
+      const brandId = pm.collectionVariables.get('brandId');
+      pm.test('All outlets belong to brand', () => {
+        outlets.forEach((o) => pm.expect(o.brandId).to.eql(brandId));
+      });
+      pm.test('Contains created outlet', () => {
+        pm.expect(outlets.map((o) => o.id)).to.include(pm.collectionVariables.get('outletId'));
+      });
+    language: text/javascript
+order: 5000

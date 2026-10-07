@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{baseUrl}}/outlets/{{outletId}}"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', () => pm.response.to.have.status(200));
+      pm.test('Outlet effectively inactive', () => pm.expect(pm.response.json().isActive).to.eql(false));
+    language: text/javascript
+order: 3000

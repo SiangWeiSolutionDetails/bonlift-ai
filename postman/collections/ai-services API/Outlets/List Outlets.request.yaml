@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{baseUrl}}/outlets"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', () => pm.response.to.have.status(200));
+      pm.test('Returns outlets array', () => pm.expect(pm.response.json().outlets).to.be.an('array'));
+    language: text/javascript
+order: 4000

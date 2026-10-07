@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/brands"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', () => pm.response.to.have.status(200));
+      const { brands } = pm.response.json();
+      pm.test('Returns brands array', () => pm.expect(brands).to.be.an('array'));
+      pm.test('Contains created brand', () => {
+        pm.expect(brands.map((b) => b.id)).to.include(pm.collectionVariables.get('brandId'));
+      });
+    language: text/javascript
+order: 5000

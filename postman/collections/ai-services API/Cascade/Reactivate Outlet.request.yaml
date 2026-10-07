@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/outlets/{{outletId}}"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "isActive": true
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status 200', () => pm.response.to.have.status(200));
+      pm.test('Outlet active', () => pm.expect(pm.response.json().isActive).to.eql(true));
+    language: text/javascript
+order: 1000

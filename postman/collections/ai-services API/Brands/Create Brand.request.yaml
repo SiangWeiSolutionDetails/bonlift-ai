@@ -1,0 +1,27 @@
+$kind: http-request
+url: "{{baseUrl}}/brands"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "name": "{{brandName}}"
+    }
+scripts:
+  - type: beforeRequest
+    code: pm.collectionVariables.set('brandName', `Brand ${Date.now()}`);
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('Status 201', () => pm.response.to.have.status(201));
+      const body = pm.response.json();
+      pm.test('Returns created brand', () => {
+        pm.expect(body).to.have.keys('id', 'name', 'isActive');
+        pm.expect(body.name).to.eql(pm.collectionVariables.get('brandName'));
+        pm.expect(body.isActive).to.eql(true);
+      });
+      pm.collectionVariables.set('brandId', body.id);
+    language: text/javascript
+order: 1000

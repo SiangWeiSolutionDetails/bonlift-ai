@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { isValidUuid } from "./uuid.js";
-import { genValidUuid } from "./uuid.test-helpers.js";
 
 describe("isValidUuid", () => {
   it("returns false for a segment with the wrong length", () => {
@@ -22,6 +21,8 @@ describe("isValidUuid", () => {
   });
 
   it("returns true for a valid uuid", () => {
-    expect(isValidUuid(genValidUuid())).toEqual(true);
+    expect(isValidUuid("550e8400-e29b-41d4-a716-446655440000")).toEqual(
+      true,
+    );
   });
 });

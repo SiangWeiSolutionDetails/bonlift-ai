@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getCustomer } from "./customer.service.js";
 import { NotFoundError, ValidationError } from "../errors.js";
-import { genValidUuid } from "../utils/uuid.test-helpers.js";
+
+const CUSTOMER_ID = "11111111-1111-1111-1111-111111111111";
 
 const queryMock = vi.fn();
 const fakePool = { query: queryMock } as any;
@@ -21,24 +22,22 @@ describe("getCustomer", () => {
   it("throws NotFoundError when the customer does not exist", async () => {
     queryMock.mockResolvedValueOnce({ rows: [] });
 
-    await expect(getCustomer(fakePool, genValidUuid())).rejects.toThrow(
+    await expect(getCustomer(fakePool, CUSTOMER_ID)).rejects.toThrow(
       NotFoundError,
     );
   });
 
   it("returns customer when customer id is valid and existed", async () => {
-    const customerId = genValidUuid();
-
     queryMock.mockResolvedValueOnce({
       rows: [
         {
-          id: customerId,
+          id: CUSTOMER_ID,
         },
       ],
     });
 
-    const result = await getCustomer(fakePool, customerId);
+    const result = await getCustomer(fakePool, CUSTOMER_ID);
 
-    expect(result).toEqual({ id: customerId });
+    expect(result).toEqual({ id: CUSTOMER_ID });
   });
 });

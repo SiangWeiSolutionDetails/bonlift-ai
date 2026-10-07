@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getCustomerRecommendations } from "./customerRecommendations.service.js";
-import { genValidUuid } from "../utils/uuid.test-helpers.js";
+
+const CUSTOMER_ID = "11111111-1111-1111-1111-111111111111";
+const BRAND_ID = "22222222-2222-2222-2222-222222222222";
 
 const queryMock = vi.fn();
 const fakePool = { query: queryMock } as any;
@@ -11,9 +13,7 @@ describe("getCustomerRecommendations", () => {
   });
 
   it("returns recommendations when the customer exists", async () => {
-    const customerId = genValidUuid();
-
-    queryMock.mockResolvedValueOnce({ rows: [{ id: customerId }] });
+    queryMock.mockResolvedValueOnce({ rows: [{ id: CUSTOMER_ID }] });
 
     queryMock.mockResolvedValueOnce({
       rows: [
@@ -26,15 +26,15 @@ describe("getCustomerRecommendations", () => {
       ],
     });
 
-    const result = await getCustomerRecommendations(fakePool, customerId);
+    const result = await getCustomerRecommendations(fakePool, CUSTOMER_ID);
 
     expect(queryMock).toHaveBeenNthCalledWith(
       2,
       expect.not.stringContaining("cis.brand_id"),
-      [customerId],
+      [CUSTOMER_ID],
     );
     expect(result).toEqual({
-      customerId: customerId,
+      customerId: CUSTOMER_ID,
       recommendations: [
         {
           refId: "1",
@@ -47,12 +47,9 @@ describe("getCustomerRecommendations", () => {
   });
 
   it("returns recommendations when the customer and brand exist", async () => {
-    const customerId = genValidUuid();
-    const brandId = genValidUuid();
+    queryMock.mockResolvedValueOnce({ rows: [{ id: CUSTOMER_ID }] });
 
-    queryMock.mockResolvedValueOnce({ rows: [{ id: customerId }] });
-
-    queryMock.mockResolvedValueOnce({ rows: [{ id: brandId }] });
+    queryMock.mockResolvedValueOnce({ rows: [{ id: BRAND_ID }] });
 
     queryMock.mockResolvedValueOnce({
       rows: [
@@ -67,17 +64,17 @@ describe("getCustomerRecommendations", () => {
 
     const result = await getCustomerRecommendations(
       fakePool,
-      customerId,
-      brandId,
+      CUSTOMER_ID,
+      BRAND_ID,
     );
     expect(queryMock).toHaveBeenNthCalledWith(
       3,
       expect.stringContaining("cis.brand_id = $2"),
-      [customerId, brandId],
+      [CUSTOMER_ID, BRAND_ID],
     );
     expect(result).toEqual({
-      customerId: customerId,
-      brandId: brandId,
+      customerId: CUSTOMER_ID,
+      brandId: BRAND_ID,
       recommendations: [
         {
           refId: "1",

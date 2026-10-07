@@ -12,16 +12,19 @@ import {
   OutletListSchema,
   OutletParamsSchema,
   OutletParamsSchemaType,
+  OutletQuerySchema,
+  OutletQuerySchemaType,
   OutletRecordSchema,
   UpdateOutletBodySchema,
   UpdateOutletBodySchemaType,
 } from "../schemas/outlet.schema.js";
 
 export async function outletRoutes(app: FastifyInstance) {
-  app.get<{ Querystring: { brandId?: string } }>(
+  app.get<{ Querystring: OutletQuerySchemaType }>(
     "/outlets",
     {
       schema: {
+        querystring: OutletQuerySchema,
         response: { 200: OutletListSchema },
       },
     },

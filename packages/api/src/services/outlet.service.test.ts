@@ -90,6 +90,17 @@ describe("getOutlets", () => {
     expect(result).toStrictEqual([DEFAULT_OUTLET]);
   });
 
+  it("orders outlets by name, then id", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([]));
+
+    await getOutlets(fakePool, {});
+
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.stringContaining("ORDER BY o.name, o.id"),
+      [],
+    );
+  });
+
   it("returns an empty array when there are no outlets", async () => {
     queryMock.mockResolvedValueOnce(pgResult([]));
 
@@ -178,6 +189,13 @@ describe("updateOutlet", () => {
     await expect(updateOutlet(fakePool, OUTLET_ID, {})).rejects.toThrow(
       ValidationError,
     );
+    expect(queryMock).not.toHaveBeenCalled();
+  });
+
+  it("throws ValidationError when trying to change the brand id", async () => {
+    await expect(
+      updateOutlet(fakePool, OUTLET_ID, { brandId: BRAND_ID } as any),
+    ).rejects.toThrow(ValidationError);
     expect(queryMock).not.toHaveBeenCalled();
   });
 

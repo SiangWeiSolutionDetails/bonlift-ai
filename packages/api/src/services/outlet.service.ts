@@ -23,7 +23,10 @@ function mapOutletRow(row: any): OutletRecordSchemaType {
   };
 }
 
-export async function getOutlet(pool: Pool, outletId: string) {
+export async function getOutlet(
+  pool: Pool,
+  outletId: string,
+): Promise<OutletRecordSchemaType> {
   assertValid(OutletParamsSchema, { outletId });
 
   const result = await pool.query(
@@ -43,7 +46,10 @@ export async function getOutlet(pool: Pool, outletId: string) {
   return mapOutletRow(result.rows[0]);
 }
 
-export async function getOutlets(pool: Pool, options: OutletQuerySchemaType) {
+export async function getOutlets(
+  pool: Pool,
+  options: OutletQuerySchemaType,
+): Promise<OutletRecordSchemaType[]> {
   const brandId = options?.brandId;
 
   assertValid(OutletQuerySchema, { brandId });
@@ -60,7 +66,8 @@ export async function getOutlets(pool: Pool, options: OutletQuerySchemaType) {
     `
     SELECT o.id, o.name, o.brand_id, o.is_active 
     FROM outlets o
-    ${conditions.length ? `WHERE ${conditions.join(" AND ")}` : ""};
+    ${conditions.length ? `WHERE ${conditions.join(" AND ")}` : ""}
+    ORDER BY o.name, o.id;
     `,
     [...values],
   );
@@ -71,13 +78,13 @@ export async function getOutlets(pool: Pool, options: OutletQuerySchemaType) {
 export async function createOutlet(
   pool: Pool,
   data: CreateOutletBodySchemaType,
-) {
+): Promise<OutletRecordSchemaType> {
   try {
     assertValid(CreateOutletBodySchema, data);
 
     const { columns, placeholders, values } = buildAssignments({
-      name: data?.name,
-      brand_id: data?.brandId,
+      name: data.name,
+      brand_id: data.brandId,
     });
 
     const result = await pool.query(
@@ -90,10 +97,12 @@ export async function createOutlet(
     return mapOutletRow(result.rows[0]);
   } catch (error) {
     if (isUniqueViolation(error)) {
-      throw new ConflictError(`Outlet ${data?.name} already exists`);
+      throw new ConflictError(
+        `Outlet ${data.name} already exists for this brand.`,
+      );
     }
-    if(isForeignKeyViolation(error)){
-      throw new NotFoundError("Brand does not exist")
+    if (isForeignKeyViolation(error)) {
+      throw new NotFoundError("Brand does not exist.");
     }
 
     throw error;
@@ -104,7 +113,7 @@ export async function updateOutlet(
   pool: Pool,
   outletId: string,
   data: UpdateOutletBodySchemaType,
-) {
+): Promise<OutletRecordSchemaType> {
   try {
     assertValid(OutletParamsSchema, { outletId });
     assertValid(UpdateOutletBodySchema, data);
@@ -131,7 +140,9 @@ export async function updateOutlet(
     return mapOutletRow(result.rows[0]);
   } catch (error) {
     if (isUniqueViolation(error)) {
-      throw new ConflictError(`Outlet ${data?.name} already exists`);
+      throw new ConflictError(
+        `Outlet ${data.name} already exists for this brand.`,
+      );
     }
     throw error;
   }

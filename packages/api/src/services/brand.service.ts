@@ -1,5 +1,5 @@
 import type { Pool } from "pg";
-import { ConflictError, NotFoundError, ValidationError } from "../errors.js";
+import { ConflictError, NotFoundError } from "../errors.js";
 import { buildAssignments } from "../utils/sql.js";
 import { isUniqueViolation } from "../utils/pgErrors.js";
 import { assertValid } from "../utils/validate.js";
@@ -44,7 +44,7 @@ export async function getBrand(
 
 export async function getBrands(pool: Pool): Promise<BrandRecordSchemaType[]> {
   const result = await pool.query(
-    `SELECT b.id, b.name, b.is_active FROM brands b;`,
+    `SELECT b.id, b.name, b.is_active FROM brands b ORDER BY b.name;`,
   );
 
   return result.rows.map(mapBrandRow);
@@ -58,7 +58,7 @@ export async function createBrand(
     assertValid(CreateBrandBodySchema, data);
 
     const { columns, placeholders, values } = buildAssignments({
-      name: data?.name,
+      name: data.name,
     });
 
     const result = await pool.query(
@@ -70,8 +70,8 @@ export async function createBrand(
 
     return mapBrandRow(result.rows[0]);
   } catch (error) {
-    if (isUniqueViolation(error) && data?.name) {
-      throw new ConflictError(`Brand ${data?.name} already exists.`);
+    if (isUniqueViolation(error) && data.name) {
+      throw new ConflictError(`Brand ${data.name} already exists.`);
     }
     throw error;
   }
@@ -81,14 +81,14 @@ export async function updateBrand(
   pool: Pool,
   brandId: string,
   data: UpdateBrandBodySchemaType,
-) {
+): Promise<BrandRecordSchemaType> {
   try {
     assertValid(BrandParamsSchema, { brandId });
     assertValid(UpdateBrandBodySchema, data);
 
     const { setClause, values, nextPlaceholder } = buildAssignments({
-      name: data?.name,
-      is_active: data?.isActive,
+      name: data.name,
+      is_active: data.isActive,
     });
 
     const result = await pool.query(
@@ -106,8 +106,8 @@ export async function updateBrand(
 
     return mapBrandRow(result.rows[0]);
   } catch (error) {
-    if (isUniqueViolation(error) && data?.name) {
-      throw new ConflictError(`Brand ${data?.name} already exists.`);
+    if (isUniqueViolation(error) && data.name) {
+      throw new ConflictError(`Brand ${data.name} already exists.`);
     }
     throw error;
   }

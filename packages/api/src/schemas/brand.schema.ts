@@ -17,6 +17,12 @@ export const BrandListSchema = Type.Object({
 });
 export type BrandListSchemaType = Static<typeof BrandListSchema>;
 
+export const BrandQuerySchema = Type.Object(
+  {},
+  { additionalProperties: false },
+);
+export type BrandQuerySchemaType = Static<typeof BrandQuerySchema>;
+
 export const BrandParamsSchema = Type.Object({
   brandId: Type.String({ format: "uuid" }),
 });

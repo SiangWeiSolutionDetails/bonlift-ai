@@ -10,6 +10,7 @@ import {
   BrandListSchema,
   BrandParamsSchema,
   BrandParamsSchemaType,
+  BrandQuerySchema,
   BrandRecordSchema,
   CreateBrandBodySchema,
   CreateBrandBodySchemaType,
@@ -22,6 +23,7 @@ export async function brandRoutes(app: FastifyInstance) {
     "/brands",
     {
       schema: {
+        querystring: BrandQuerySchema,
         response: {
           200: BrandListSchema,
         },

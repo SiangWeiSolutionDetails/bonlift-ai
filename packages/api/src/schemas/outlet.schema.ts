@@ -1,11 +1,14 @@
 import Type, { Static } from "typebox";
 
-export const OutletRecordSchema = Type.Object({
-  id: Type.String({ format: "uuid" }),
-  name: Type.String(),
-  brandId: Type.String({ format: "uuid" }),
-  isActive: Type.Boolean(),
-});
+export const OutletRecordSchema = Type.Object(
+  {
+    id: Type.String({ format: "uuid" }),
+    name: Type.String(),
+    brandId: Type.String({ format: "uuid" }),
+    isActive: Type.Boolean(),
+  },
+  { additionalProperties: false },
+);
 export type OutletRecordSchemaType = Static<typeof OutletRecordSchema>;
 
 export const OutletListSchema = Type.Object({
@@ -18,15 +21,18 @@ export const OutletParamsSchema = Type.Object({
 });
 export type OutletParamsSchemaType = Static<typeof OutletParamsSchema>;
 
-export const OutletQuerySchema = Type.Object({
-  brandId: Type.Optional(Type.String({ format: "uuid" })),
-});
+export const OutletQuerySchema = Type.Object(
+  {
+    brandId: Type.Optional(Type.String({ format: "uuid" })),
+  },
+  { additionalProperties: false },
+);
 export type OutletQuerySchemaType = Static<typeof OutletQuerySchema>;
 
 export const CreateOutletBodySchema = Type.Object(
   {
     name: Type.String({ minLength: 1, maxLength: 255 }),
-    brandId: Type.String({ format: "uuid", minLength: 1 }),
+    brandId: Type.String({ format: "uuid" }),
   },
   {
     additionalProperties: false,

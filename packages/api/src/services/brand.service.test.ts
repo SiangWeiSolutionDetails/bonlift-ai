@@ -58,6 +58,16 @@ describe("getBrands", () => {
     expect(result).toStrictEqual([DEFAULT_BRAND, inactiveBrand]);
   });
 
+  it("orders brands by name", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([]));
+
+    await getBrands(fakePool);
+
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.stringContaining("ORDER BY b.name"),
+    );
+  });
+
   it("returns an empty array when there are no brands", async () => {
     queryMock.mockResolvedValueOnce(pgResult([]));
 

@@ -68,7 +68,9 @@ CREATE TABLE tenants (
     name              text NOT NULL,
     is_active         boolean NOT NULL DEFAULT true,
     created_at        timestamptz NOT NULL DEFAULT now(),
-    updated_at        timestamptz NOT NULL DEFAULT now()
+    updated_at        timestamptz NOT NULL DEFAULT now(),
+    -- Registry names have no leading/trailing whitespace, so they cannot dodge the lower(name) unique indexes.
+    CONSTRAINT tenants_name_check CHECK (name ~ '^\S(.*\S)?$')
 );
 
 CREATE UNIQUE INDEX tenants_name_key ON tenants (lower(name));
@@ -80,6 +82,7 @@ CREATE TABLE brands (
     is_active         boolean NOT NULL DEFAULT true,
     created_at        timestamptz NOT NULL DEFAULT now(),
     updated_at        timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT brands_name_check CHECK (name ~ '^\S(.*\S)?$'),
     -- Target of the outlets (tenant_id, brand_id) composite FK; also serves "brands of a tenant".
     CONSTRAINT brands_tenant_id_id_key UNIQUE (tenant_id, id)
 );
@@ -95,6 +98,7 @@ CREATE TABLE outlets (
     is_active         boolean NOT NULL DEFAULT true,
     created_at        timestamptz NOT NULL DEFAULT now(),
     updated_at        timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT outlets_name_check CHECK (name ~ '^\S(.*\S)?$'),
     CONSTRAINT outlets_tenant_brand_fkey
         FOREIGN KEY (tenant_id, brand_id) REFERENCES brands (tenant_id, id)
 );

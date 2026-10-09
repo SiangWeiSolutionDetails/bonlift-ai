@@ -6,6 +6,7 @@ CREATE TABLE brands (
     is_active           boolean NOT NULL DEFAULT true,
     created_at          timestamptz NOT NULL DEFAULT now(),
     updated_at          timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT brands_name_check CHECK (name ~ '^\S(.*\S)?$'),
     -- Target of the outlets (tenant_id, brand_id) composite FK; also serves "brands of a tenant".
     CONSTRAINT brands_tenant_id_id_key UNIQUE (tenant_id, id)
 );

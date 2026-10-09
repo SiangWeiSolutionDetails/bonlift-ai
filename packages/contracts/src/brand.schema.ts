@@ -2,7 +2,7 @@ import Type, { type Static } from "typebox";
 
 export const BrandRecordSchema = Type.Object(
   {
-    id: Type.String(),
+    id: Type.String({ format: "uuid" }),
     tenantId: Type.String({ format: "uuid" }),
     name: Type.String(),
     isActive: Type.Boolean(),

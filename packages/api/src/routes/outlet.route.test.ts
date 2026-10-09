@@ -7,6 +7,7 @@ import { buildApp } from "../app.js";
 
 const OUTLET_ID = "11111111-1111-1111-1111-111111111111";
 const BRAND_ID = "33333333-3333-3333-3333-333333333333";
+const TENANT_ID = "44444444-4444-4444-4444-444444444444";
 
 let app: FastifyInstance;
 
@@ -32,6 +33,42 @@ describe("GET /outlets", () => {
 
     expect(res.statusCode).toBe(400);
     expect(res.json().message).toContain("brandId");
+  });
+
+  it("rejects a malformed tenant id filter", async () => {
+    const res = await app.inject({ url: "/outlets?tenantId=abc" });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().message).toContain("tenantId");
+  });
+});
+
+describe("POST /outlets", () => {
+  it("rejects a missing external id", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/outlets",
+      payload: { brandId: BRAND_ID, name: "test outlet" },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().message).toContain("externalId");
+  });
+
+  it("rejects a tenantId in the body, since it is derived from the brand", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/outlets",
+      payload: {
+        brandId: BRAND_ID,
+        tenantId: TENANT_ID,
+        externalId: "pos-outlet-1",
+        name: "test outlet",
+      },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().message).toContain("additional properties");
   });
 });
 

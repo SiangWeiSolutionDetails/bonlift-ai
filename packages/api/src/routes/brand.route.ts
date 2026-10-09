@@ -11,6 +11,7 @@ import {
   BrandParamsSchema,
   BrandParamsSchemaType,
   BrandQuerySchema,
+  BrandQuerySchemaType,
   BrandRecordSchema,
   CreateBrandBodySchema,
   CreateBrandBodySchemaType,
@@ -19,7 +20,7 @@ import {
 } from "../schemas/brand.schema.js";
 
 export async function brandRoutes(app: FastifyInstance) {
-  app.get(
+  app.get<{ Querystring: BrandQuerySchemaType }>(
     "/brands",
     {
       schema: {
@@ -29,9 +30,11 @@ export async function brandRoutes(app: FastifyInstance) {
         },
       },
     },
-    async () => {
+    async (request) => {
       const pool = getPool();
-      const brands = await getBrands(pool);
+      const brands = await getBrands(pool, {
+        tenantId: request.query.tenantId,
+      });
       return {
         brands,
       };

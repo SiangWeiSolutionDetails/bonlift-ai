@@ -1,10 +1,16 @@
 import type { Pool } from "pg";
 import { ConflictError, NotFoundError } from "../errors.js";
 import { buildAssignments } from "../utils/sql.js";
-import { isUniqueViolation } from "../utils/pgErrors.js";
+import {
+  isExternalIdViolation,
+  isForeignKeyViolation,
+  isUniqueViolation,
+} from "../utils/pgErrors.js";
 import { assertValid } from "../utils/validate.js";
 import {
   BrandParamsSchema,
+  BrandQuerySchema,
+  BrandQuerySchemaType,
   BrandRecordSchemaType,
   CreateBrandBodySchema,
   CreateBrandBodySchemaType,
@@ -12,12 +18,33 @@ import {
   UpdateBrandBodySchemaType,
 } from "../schemas/brand.schema.js";
 
+const BRAND_COLUMNS = "id, tenant_id, external_id, name, is_active";
+
 function mapBrandRow(row: any): BrandRecordSchemaType {
   return {
     id: row.id,
+    tenantId: row.tenant_id,
+    externalId: row.external_id,
     name: row.name,
     isActive: row.is_active,
   };
+}
+
+function toConflictError(
+  error: unknown,
+  data: { externalId?: string; name?: string },
+) {
+  if (isExternalIdViolation(error)) {
+    return new ConflictError(
+      `Brand with external id ${data.externalId} already exists for this tenant.`,
+    );
+  }
+  if (isUniqueViolation(error)) {
+    return new ConflictError(
+      `Brand ${data.name} already exists for this tenant.`,
+    );
+  }
+  return null;
 }
 
 export async function getBrand(
@@ -28,8 +55,8 @@ export async function getBrand(
 
   const result = await pool.query(
     `
-    SELECT b.id, b.name, b.is_active 
-    FROM brands b 
+    SELECT ${BRAND_COLUMNS}
+    FROM brands b
     WHERE b.id = $1
     LIMIT 1;`,
     [brandId],
@@ -42,9 +69,29 @@ export async function getBrand(
   return mapBrandRow(result.rows[0]);
 }
 
-export async function getBrands(pool: Pool): Promise<BrandRecordSchemaType[]> {
+export async function getBrands(
+  pool: Pool,
+  options: BrandQuerySchemaType = {},
+): Promise<BrandRecordSchemaType[]> {
+  const tenantId = options?.tenantId;
+
+  assertValid(BrandQuerySchema, { tenantId });
+
+  const conditions = [];
+  const values = [];
+
+  if (tenantId) {
+    conditions.push("b.tenant_id = $1");
+    values.push(tenantId);
+  }
+
   const result = await pool.query(
-    `SELECT b.id, b.name, b.is_active FROM brands b ORDER BY b.name;`,
+    `
+    SELECT ${BRAND_COLUMNS}
+    FROM brands b
+    ${conditions.length ? `WHERE ${conditions.join(" AND ")}` : ""}
+    ORDER BY b.name, b.id;`,
+    values,
   );
 
   return result.rows.map(mapBrandRow);
@@ -58,22 +105,24 @@ export async function createBrand(
     assertValid(CreateBrandBodySchema, data);
 
     const { columns, placeholders, values } = buildAssignments({
+      tenant_id: data.tenantId,
+      external_id: data.externalId,
       name: data.name,
     });
 
     const result = await pool.query(
       `
-    INSERT INTO brands (${columns}) VALUES (${placeholders}) 
-    RETURNING id, name, is_active`,
+    INSERT INTO brands (${columns}) VALUES (${placeholders})
+    RETURNING ${BRAND_COLUMNS}`,
       values,
     );
 
     return mapBrandRow(result.rows[0]);
   } catch (error) {
-    if (isUniqueViolation(error) && data.name) {
-      throw new ConflictError(`Brand ${data.name} already exists.`);
+    if (isForeignKeyViolation(error)) {
+      throw new NotFoundError("Tenant does not exist.");
     }
-    throw error;
+    throw toConflictError(error, data) ?? error;
   }
 }
 
@@ -93,10 +142,10 @@ export async function updateBrand(
 
     const result = await pool.query(
       `
-    UPDATE brands b 
-    SET ${setClause} 
+    UPDATE brands b
+    SET ${setClause}, updated_at = now()
     WHERE b.id = ${nextPlaceholder}
-    RETURNING id, name, is_active`,
+    RETURNING ${BRAND_COLUMNS}`,
       [...values, brandId],
     );
 
@@ -106,9 +155,6 @@ export async function updateBrand(
 
     return mapBrandRow(result.rows[0]);
   } catch (error) {
-    if (isUniqueViolation(error) && data.name) {
-      throw new ConflictError(`Brand ${data.name} already exists.`);
-    }
-    throw error;
+    throw toConflictError(error, data) ?? error;
   }
 }

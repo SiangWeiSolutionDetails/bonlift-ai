@@ -3,6 +3,8 @@ import Type, { type Static } from "typebox";
 export const BrandRecordSchema = Type.Object(
   {
     id: Type.String(),
+    tenantId: Type.String({ format: "uuid" }),
+    externalId: Type.String(),
     name: Type.String(),
     isActive: Type.Boolean(),
   },
@@ -18,7 +20,9 @@ export const BrandListSchema = Type.Object({
 export type BrandListSchemaType = Static<typeof BrandListSchema>;
 
 export const BrandQuerySchema = Type.Object(
-  {},
+  {
+    tenantId: Type.Optional(Type.String({ format: "uuid" })),
+  },
   { additionalProperties: false },
 );
 export type BrandQuerySchemaType = Static<typeof BrandQuerySchema>;
@@ -30,6 +34,8 @@ export type BrandParamsSchemaType = Static<typeof BrandParamsSchema>;
 
 export const CreateBrandBodySchema = Type.Object(
   {
+    tenantId: Type.String({ format: "uuid" }),
+    externalId: Type.String({ minLength: 1, maxLength: 255 }),
     name: Type.String({ minLength: 1, maxLength: 255 }),
   },
   { additionalProperties: false },

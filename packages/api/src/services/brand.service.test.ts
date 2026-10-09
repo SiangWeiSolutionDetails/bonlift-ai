@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ConflictError, NotFoundError, ValidationError } from "../errors.js";
 import type { BrandRecordSchemaType } from "../schemas/brand.schema.js";
 import { pgResult } from "../utils/pg.test-helpers.js";
-import { UNIQUE_VIOLATION } from "../utils/pgErrors.js";
+import { FOREIGN_KEY_VIOLATION, UNIQUE_VIOLATION } from "../utils/pgErrors.js";
 import {
   createBrand,
   getBrand,
@@ -12,17 +12,35 @@ import {
 
 const BRAND_ID = "11111111-1111-1111-1111-111111111111";
 const OTHER_BRAND_ID = "22222222-2222-2222-2222-222222222222";
-const INVALID_BRAND_ID = "invalid-brand-id";
+const TENANT_ID = "44444444-4444-4444-4444-444444444444";
+const INVALID_ID = "invalid-id";
 
 const DEFAULT_BRAND: BrandRecordSchemaType = {
   id: BRAND_ID,
+  tenantId: TENANT_ID,
+  externalId: "pos-brand-1",
   name: "test brand",
   isActive: true,
+};
+
+const CREATE_DATA = {
+  tenantId: DEFAULT_BRAND.tenantId,
+  externalId: DEFAULT_BRAND.externalId,
+  name: DEFAULT_BRAND.name,
 };
 
 const UPDATE_DATA = {
   name: "modified brand name",
   isActive: false,
+};
+
+const EXTERNAL_ID_VIOLATION = {
+  code: UNIQUE_VIOLATION,
+  constraint: "brands_tenant_external_id_key",
+};
+const NAME_VIOLATION = {
+  code: UNIQUE_VIOLATION,
+  constraint: "brands_tenant_name_key",
 };
 
 const queryMock = vi.fn();
@@ -33,6 +51,8 @@ function fakeBrandRow(overrides: Partial<BrandRecordSchemaType> = {}) {
 
   return {
     id: brand.id,
+    tenant_id: brand.tenantId,
+    external_id: brand.externalId,
     name: brand.name,
     is_active: brand.isActive,
   };
@@ -43,9 +63,18 @@ beforeEach(() => {
 });
 
 describe("getBrands", () => {
-  it("returns all brands regardless of status", async () => {
+  it("throws ValidationError when the tenant id filter is invalid", async () => {
+    await expect(getBrands(fakePool, { tenantId: INVALID_ID })).rejects.toThrow(
+      ValidationError,
+    );
+    expect(queryMock).not.toHaveBeenCalled();
+  });
+
+  it("returns all brands regardless of status when no filter is given", async () => {
     const inactiveBrand = {
+      ...DEFAULT_BRAND,
       id: OTHER_BRAND_ID,
+      externalId: "pos-brand-2",
       name: "inactive brand",
       isActive: false,
     };
@@ -55,16 +84,33 @@ describe("getBrands", () => {
 
     const result = await getBrands(fakePool);
 
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.not.stringContaining("WHERE"),
+      [],
+    );
     expect(result).toStrictEqual([DEFAULT_BRAND, inactiveBrand]);
   });
 
-  it("orders brands by name", async () => {
+  it("filters brands by tenant id", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([fakeBrandRow()]));
+
+    const result = await getBrands(fakePool, { tenantId: TENANT_ID });
+
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.stringContaining("WHERE b.tenant_id = $1"),
+      [TENANT_ID],
+    );
+    expect(result).toStrictEqual([DEFAULT_BRAND]);
+  });
+
+  it("orders brands by name, then id", async () => {
     queryMock.mockResolvedValueOnce(pgResult([]));
 
     await getBrands(fakePool);
 
     expect(queryMock).toHaveBeenCalledWith(
-      expect.stringContaining("ORDER BY b.name"),
+      expect.stringContaining("ORDER BY b.name, b.id"),
+      [],
     );
   });
 
@@ -79,7 +125,7 @@ describe("getBrands", () => {
 
 describe("getBrand", () => {
   it("throws ValidationError when the brand id is invalid", async () => {
-    await expect(getBrand(fakePool, INVALID_BRAND_ID)).rejects.toThrow(
+    await expect(getBrand(fakePool, INVALID_ID)).rejects.toThrow(
       ValidationError,
     );
     expect(queryMock).not.toHaveBeenCalled();
@@ -101,29 +147,64 @@ describe("getBrand", () => {
 });
 
 describe("createBrand", () => {
-  it("throws ValidationError when the name is missing", async () => {
-    await expect(createBrand(fakePool, {} as any)).rejects.toThrow(
+  it.each([
+    {
+      label: "the name is missing",
+      data: { tenantId: TENANT_ID, externalId: "pos-brand-1" },
+    },
+    {
+      label: "the tenant id is missing",
+      data: { externalId: "pos-brand-1", name: "test brand" },
+    },
+    {
+      label: "the tenant id is invalid",
+      data: { tenantId: INVALID_ID, externalId: "pos-brand-1", name: "x" },
+    },
+    {
+      label: "the external id is missing",
+      data: { tenantId: TENANT_ID, name: "test brand" },
+    },
+  ])("throws ValidationError when $label", async ({ data }) => {
+    await expect(createBrand(fakePool, data as any)).rejects.toThrow(
       ValidationError,
     );
     expect(queryMock).not.toHaveBeenCalled();
   });
 
-  it("throws ConflictError when the brand name already exists", async () => {
-    queryMock.mockRejectedValueOnce({ code: UNIQUE_VIOLATION });
+  it("throws NotFoundError when the tenant does not exist", async () => {
+    queryMock.mockRejectedValueOnce({ code: FOREIGN_KEY_VIOLATION });
 
-    await expect(
-      createBrand(fakePool, { name: DEFAULT_BRAND.name }),
-    ).rejects.toThrow(ConflictError);
+    await expect(createBrand(fakePool, CREATE_DATA)).rejects.toThrow(
+      new NotFoundError("Tenant does not exist."),
+    );
+  });
+
+  it("throws ConflictError naming the external id when it already exists in the tenant", async () => {
+    queryMock.mockRejectedValueOnce(EXTERNAL_ID_VIOLATION);
+
+    await expect(createBrand(fakePool, CREATE_DATA)).rejects.toThrow(
+      `external id ${CREATE_DATA.externalId}`,
+    );
+  });
+
+  it("throws ConflictError naming the brand when the name already exists in the tenant", async () => {
+    queryMock.mockRejectedValueOnce(NAME_VIOLATION);
+
+    await expect(createBrand(fakePool, CREATE_DATA)).rejects.toThrow(
+      new ConflictError(
+        `Brand ${CREATE_DATA.name} already exists for this tenant.`,
+      ),
+    );
   });
 
   it("creates and returns the brand", async () => {
     queryMock.mockResolvedValueOnce(pgResult([fakeBrandRow()]));
 
-    const result = await createBrand(fakePool, { name: DEFAULT_BRAND.name });
+    const result = await createBrand(fakePool, CREATE_DATA);
 
     expect(queryMock).toHaveBeenCalledWith(
       expect.stringContaining("INSERT INTO brands"),
-      [DEFAULT_BRAND.name],
+      [CREATE_DATA.tenantId, CREATE_DATA.externalId, CREATE_DATA.name],
     );
     expect(result).toStrictEqual(DEFAULT_BRAND);
   });
@@ -132,7 +213,7 @@ describe("createBrand", () => {
 describe("updateBrand", () => {
   it("throws ValidationError when the brand id is invalid", async () => {
     await expect(
-      updateBrand(fakePool, INVALID_BRAND_ID, UPDATE_DATA),
+      updateBrand(fakePool, INVALID_ID, UPDATE_DATA),
     ).rejects.toThrow(ValidationError);
     expect(queryMock).not.toHaveBeenCalled();
   });
@@ -144,6 +225,16 @@ describe("updateBrand", () => {
     expect(queryMock).not.toHaveBeenCalled();
   });
 
+  it.each([
+    { field: "tenantId", data: { tenantId: TENANT_ID } },
+    { field: "externalId", data: { externalId: "other" } },
+  ])("throws ValidationError when trying to change $field", async ({ data }) => {
+    await expect(
+      updateBrand(fakePool, BRAND_ID, data as any),
+    ).rejects.toThrow(ValidationError);
+    expect(queryMock).not.toHaveBeenCalled();
+  });
+
   it("throws NotFoundError when the brand does not exist", async () => {
     queryMock.mockResolvedValueOnce(pgResult([]));
 
@@ -152,11 +243,22 @@ describe("updateBrand", () => {
     );
   });
 
-  it("throws ConflictError when the brand name already exists", async () => {
-    queryMock.mockRejectedValueOnce({ code: UNIQUE_VIOLATION });
+  it("throws ConflictError when the brand name already exists in the tenant", async () => {
+    queryMock.mockRejectedValueOnce(NAME_VIOLATION);
 
     await expect(updateBrand(fakePool, BRAND_ID, UPDATE_DATA)).rejects.toThrow(
       ConflictError,
+    );
+  });
+
+  it("refreshes updated_at", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([fakeBrandRow()]));
+
+    await updateBrand(fakePool, BRAND_ID, UPDATE_DATA);
+
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.stringContaining("updated_at = now()"),
+      expect.any(Array),
     );
   });
 

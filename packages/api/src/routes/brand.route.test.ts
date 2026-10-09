@@ -6,6 +6,12 @@ import { buildApp } from "../app.js";
 // so no database connection is needed.
 
 const BRAND_ID = "11111111-1111-1111-1111-111111111111";
+const TENANT_ID = "44444444-4444-4444-4444-444444444444";
+const VALID_CREATE_BODY = {
+  tenantId: TENANT_ID,
+  externalId: "pos-brand-1",
+  name: "test brand",
+};
 
 let app: FastifyInstance;
 
@@ -25,6 +31,13 @@ describe("GET /brands", () => {
     expect(res.statusCode).toBe(400);
     expect(res.json().error).toBe("VALIDATION_ERROR");
   });
+
+  it("rejects a malformed tenant id filter", async () => {
+    const res = await app.inject({ url: "/brands?tenantId=abc" });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().message).toContain("tenantId");
+  });
 });
 
 describe("GET /brands/:brandId", () => {
@@ -37,18 +50,23 @@ describe("GET /brands/:brandId", () => {
 });
 
 describe("POST /brands", () => {
-  it("rejects a missing name", async () => {
-    const res = await app.inject({ method: "POST", url: "/brands", payload: {} });
+  it.each(["tenantId", "externalId", "name"])(
+    "rejects a missing %s",
+    async (field) => {
+      const { [field as keyof typeof VALID_CREATE_BODY]: _, ...payload } =
+        VALID_CREATE_BODY;
+      const res = await app.inject({ method: "POST", url: "/brands", payload });
 
-    expect(res.statusCode).toBe(400);
-    expect(res.json().message).toContain("name");
-  });
+      expect(res.statusCode).toBe(400);
+      expect(res.json().message).toContain(field);
+    },
+  );
 
   it("rejects an unknown field", async () => {
     const res = await app.inject({
       method: "POST",
       url: "/brands",
-      payload: { name: "test brand", isActive: false },
+      payload: { ...VALID_CREATE_BODY, isActive: false },
     });
 
     expect(res.statusCode).toBe(400);
@@ -73,6 +91,20 @@ describe("PATCH /brands/:brandId", () => {
       method: "PATCH",
       url: `/brands/${BRAND_ID}`,
       payload: { is_active: false },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().message).toContain("additional properties");
+  });
+
+  it.each([
+    { field: "tenantId", value: TENANT_ID },
+    { field: "externalId", value: "other" },
+  ])("rejects $field in the body, since it is immutable", async ({ field, value }) => {
+    const res = await app.inject({
+      method: "PATCH",
+      url: `/brands/${BRAND_ID}`,
+      payload: { [field]: value },
     });
 
     expect(res.statusCode).toBe(400);

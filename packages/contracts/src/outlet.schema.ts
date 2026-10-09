@@ -1,4 +1,5 @@
 import Type, { Static } from "typebox";
+import { NameSchema } from "./name.schema.js";
 
 export const OutletRecordSchema = Type.Object(
   {
@@ -34,7 +35,7 @@ export type OutletQuerySchemaType = Static<typeof OutletQuerySchema>;
 export const CreateOutletBodySchema = Type.Object(
   {
     brandId: Type.String({ format: "uuid" }),
-    name: Type.String({ minLength: 1, maxLength: 255 }),
+    name: NameSchema,
   },
   {
     additionalProperties: false,
@@ -44,7 +45,7 @@ export type CreateOutletBodySchemaType = Static<typeof CreateOutletBodySchema>;
 
 export const UpdateOutletBodySchema = Type.Object(
   {
-    name: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
+    name: Type.Optional(NameSchema),
     isActive: Type.Optional(Type.Boolean()),
   },
   { additionalProperties: false, minProperties: 1 },

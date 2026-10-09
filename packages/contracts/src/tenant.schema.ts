@@ -1,4 +1,5 @@
 import Type, { type Static } from "typebox";
+import { NameSchema } from "./name.schema.js";
 
 export const TenantRecordSchema = Type.Object(
   {
@@ -28,7 +29,7 @@ export type TenantParamsSchemaType = Static<typeof TenantParamsSchema>;
 
 export const CreateTenantBodySchema = Type.Object(
   {
-    name: Type.String({ minLength: 1, maxLength: 255 }),
+    name: NameSchema,
   },
   { additionalProperties: false },
 );
@@ -36,7 +37,7 @@ export type CreateTenantBodySchemaType = Static<typeof CreateTenantBodySchema>;
 
 export const UpdateTenantBodySchema = Type.Object(
   {
-    name: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
+    name: Type.Optional(NameSchema),
     isActive: Type.Optional(Type.Boolean()),
   },
   { additionalProperties: false, minProperties: 1 },

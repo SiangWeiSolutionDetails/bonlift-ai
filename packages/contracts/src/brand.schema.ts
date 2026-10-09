@@ -1,4 +1,5 @@
 import Type, { type Static } from "typebox";
+import { NameSchema } from "./name.schema.js";
 
 export const BrandRecordSchema = Type.Object(
   {
@@ -34,7 +35,7 @@ export type BrandParamsSchemaType = Static<typeof BrandParamsSchema>;
 export const CreateBrandBodySchema = Type.Object(
   {
     tenantId: Type.String({ format: "uuid" }),
-    name: Type.String({ minLength: 1, maxLength: 255 }),
+    name: NameSchema,
   },
   { additionalProperties: false },
 );
@@ -42,7 +43,7 @@ export type CreateBrandBodySchemaType = Static<typeof CreateBrandBodySchema>;
 
 export const UpdateBrandBodySchema = Type.Object(
   {
-    name: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
+    name: Type.Optional(NameSchema),
     isActive: Type.Optional(Type.Boolean()),
   },
   { additionalProperties: false, minProperties: 1 },

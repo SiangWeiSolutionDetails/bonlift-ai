@@ -1,4 +1,0 @@
-name: ai-services - Local
-values:
-  - key: baseUrl
-    value: 'http://localhost:3000'

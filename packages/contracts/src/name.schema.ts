@@ -6,6 +6,5 @@ export const NAME_PATTERN = "^\\S(?:.*\\S)?$";
 
 export const NameSchema = Type.String({
   minLength: 1,
-  maxLength: 255,
   pattern: NAME_PATTERN,
 });

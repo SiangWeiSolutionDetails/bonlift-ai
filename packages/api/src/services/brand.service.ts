@@ -1,11 +1,7 @@
 import type { Pool } from "pg";
 import { ConflictError, NotFoundError } from "../errors.js";
 import { buildAssignments } from "../utils/sql.js";
-import {
-  isExternalIdViolation,
-  isForeignKeyViolation,
-  isUniqueViolation,
-} from "../utils/pgErrors.js";
+import { isForeignKeyViolation, isUniqueViolation } from "../utils/pgErrors.js";
 import { assertValid } from "../utils/validate.js";
 import {
   BrandParamsSchema,
@@ -16,29 +12,20 @@ import {
   CreateBrandBodySchemaType,
   UpdateBrandBodySchema,
   UpdateBrandBodySchemaType,
-} from "../schemas/brand.schema.js";
+} from "@ai-services/contracts";
 
-const BRAND_COLUMNS = "id, tenant_id, external_id, name, is_active";
+const BRAND_COLUMNS = "id, tenant_id, name, is_active";
 
 function mapBrandRow(row: any): BrandRecordSchemaType {
   return {
     id: row.id,
     tenantId: row.tenant_id,
-    externalId: row.external_id,
     name: row.name,
     isActive: row.is_active,
   };
 }
 
-function toConflictError(
-  error: unknown,
-  data: { externalId?: string; name?: string },
-) {
-  if (isExternalIdViolation(error)) {
-    return new ConflictError(
-      `Brand with external id ${data.externalId} already exists for this tenant.`,
-    );
-  }
+function toConflictError(error: unknown, data: { name?: string }) {
   if (isUniqueViolation(error)) {
     return new ConflictError(
       `Brand ${data.name} already exists for this tenant.`,
@@ -81,8 +68,8 @@ export async function getBrands(
   const values = [];
 
   if (tenantId) {
-    conditions.push("b.tenant_id = $1");
     values.push(tenantId);
+    conditions.push(`b.tenant_id = $${values.length}`);
   }
 
   const result = await pool.query(
@@ -106,7 +93,6 @@ export async function createBrand(
 
     const { columns, placeholders, values } = buildAssignments({
       tenant_id: data.tenantId,
-      external_id: data.externalId,
       name: data.name,
     });
 

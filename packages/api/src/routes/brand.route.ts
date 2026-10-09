@@ -17,7 +17,7 @@ import {
   CreateBrandBodySchemaType,
   UpdateBrandBodySchema,
   UpdateBrandBodySchemaType,
-} from "../schemas/brand.schema.js";
+} from "@ai-services/contracts";
 
 export async function brandRoutes(app: FastifyInstance) {
   app.get<{ Querystring: BrandQuerySchemaType }>(

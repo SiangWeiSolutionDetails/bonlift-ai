@@ -4,7 +4,6 @@ export const BrandRecordSchema = Type.Object(
   {
     id: Type.String(),
     tenantId: Type.String({ format: "uuid" }),
-    externalId: Type.String(),
     name: Type.String(),
     isActive: Type.Boolean(),
   },
@@ -35,7 +34,6 @@ export type BrandParamsSchemaType = Static<typeof BrandParamsSchema>;
 export const CreateBrandBodySchema = Type.Object(
   {
     tenantId: Type.String({ format: "uuid" }),
-    externalId: Type.String({ minLength: 1, maxLength: 255 }),
     name: Type.String({ minLength: 1, maxLength: 255 }),
   },
   { additionalProperties: false },

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ConflictError, NotFoundError, ValidationError } from "../errors.js";
-import type { OutletRecordSchemaType } from "../schemas/outlet.schema.js";
+import type { OutletRecordSchemaType } from "@ai-services/contracts";
 import { pgResult } from "../utils/pg.test-helpers.js";
 import { FOREIGN_KEY_VIOLATION, UNIQUE_VIOLATION } from "../utils/pgErrors.js";
 import {
@@ -18,15 +18,14 @@ const INVALID_ID = "invalid-id";
 
 const DEFAULT_OUTLET: OutletRecordSchemaType = {
   id: OUTLET_ID,
+  tenantId: TENANT_ID,
   brandId: BRAND_ID,
-  externalId: "pos-outlet-1",
   name: "test outlet",
   isActive: true,
 };
 
 const CREATE_DATA = {
   brandId: DEFAULT_OUTLET.brandId,
-  externalId: DEFAULT_OUTLET.externalId,
   name: DEFAULT_OUTLET.name,
 };
 
@@ -35,10 +34,6 @@ const UPDATE_DATA = {
   isActive: false,
 };
 
-const EXTERNAL_ID_VIOLATION = {
-  code: UNIQUE_VIOLATION,
-  constraint: "outlets_brand_external_id_key",
-};
 const NAME_VIOLATION = {
   code: UNIQUE_VIOLATION,
   constraint: "outlets_brand_name_key",
@@ -52,8 +47,8 @@ function fakeOutletRow(overrides: Partial<OutletRecordSchemaType> = {}) {
 
   return {
     id: outlet.id,
+    tenant_id: outlet.tenantId,
     brand_id: outlet.brandId,
-    external_id: outlet.externalId,
     name: outlet.name,
     is_active: outlet.isActive,
   };
@@ -64,8 +59,11 @@ beforeEach(() => {
 });
 
 describe("getOutlets", () => {
-  it("throws ValidationError when the brand id filter is invalid", async () => {
-    await expect(getOutlets(fakePool, { brandId: INVALID_ID })).rejects.toThrow(
+  it.each([
+    { field: "brandId", options: { brandId: INVALID_ID } },
+    { field: "tenantId", options: { tenantId: INVALID_ID } },
+  ])("throws ValidationError when the $field filter is invalid", async ({ options }) => {
+    await expect(getOutlets(fakePool, options)).rejects.toThrow(
       ValidationError,
     );
     expect(queryMock).not.toHaveBeenCalled();
@@ -75,7 +73,6 @@ describe("getOutlets", () => {
     const inactiveOutlet = {
       ...DEFAULT_OUTLET,
       id: OTHER_OUTLET_ID,
-      externalId: "pos-outlet-2",
       name: "inactive outlet",
       isActive: false,
     };
@@ -102,6 +99,29 @@ describe("getOutlets", () => {
       [BRAND_ID],
     );
     expect(result).toStrictEqual([DEFAULT_OUTLET]);
+  });
+
+  it("filters outlets by tenant id", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([fakeOutletRow()]));
+
+    const result = await getOutlets(fakePool, { tenantId: TENANT_ID });
+
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.stringContaining("WHERE o.tenant_id = $1"),
+      [TENANT_ID],
+    );
+    expect(result).toStrictEqual([DEFAULT_OUTLET]);
+  });
+
+  it("combines the tenant and brand filters", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([fakeOutletRow()]));
+
+    await getOutlets(fakePool, { tenantId: TENANT_ID, brandId: BRAND_ID });
+
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.stringContaining("WHERE o.tenant_id = $1 AND o.brand_id = $2"),
+      [TENANT_ID, BRAND_ID],
+    );
   });
 
   it("orders outlets by name, then id", async () => {
@@ -151,23 +171,23 @@ describe("createOutlet", () => {
   it.each([
     {
       label: "the name is missing",
-      data: { brandId: BRAND_ID, externalId: "pos-outlet-1" },
+      data: { brandId: BRAND_ID },
     },
     {
       label: "the brand id is missing",
-      data: { externalId: "pos-outlet-1", name: "test outlet" },
+      data: { name: "test outlet" },
     },
     {
       label: "the brand id is invalid",
-      data: { brandId: INVALID_ID, externalId: "pos-outlet-1", name: "x" },
-    },
-    {
-      label: "the external id is missing",
-      data: { brandId: BRAND_ID, name: "test outlet" },
+      data: { brandId: INVALID_ID, name: "x" },
     },
     {
       label: "a tenant id is supplied",
       data: { ...CREATE_DATA, tenantId: TENANT_ID },
+    },
+    {
+      label: "an external id is supplied",
+      data: { ...CREATE_DATA, externalId: "pos-outlet-1" },
     },
   ])("throws ValidationError when $label", async ({ data }) => {
     await expect(createOutlet(fakePool, data as any)).rejects.toThrow(
@@ -177,18 +197,18 @@ describe("createOutlet", () => {
   });
 
   it("throws NotFoundError when the brand does not exist", async () => {
-    queryMock.mockRejectedValueOnce({ code: FOREIGN_KEY_VIOLATION });
+    queryMock.mockResolvedValueOnce(pgResult([]));
 
     await expect(createOutlet(fakePool, CREATE_DATA)).rejects.toThrow(
       new NotFoundError("Brand does not exist."),
     );
   });
 
-  it("throws ConflictError naming the external id when it already exists in the brand", async () => {
-    queryMock.mockRejectedValueOnce(EXTERNAL_ID_VIOLATION);
+  it("throws NotFoundError when the brand foreign key is violated", async () => {
+    queryMock.mockRejectedValueOnce({ code: FOREIGN_KEY_VIOLATION });
 
     await expect(createOutlet(fakePool, CREATE_DATA)).rejects.toThrow(
-      `external id ${CREATE_DATA.externalId}`,
+      new NotFoundError("Brand does not exist."),
     );
   });
 
@@ -202,20 +222,17 @@ describe("createOutlet", () => {
     );
   });
 
-  it("inserts the outlet under its brand and returns it", async () => {
+  it("inserts the outlet under its brand, taking the tenant from the brand, and returns it", async () => {
     queryMock.mockResolvedValueOnce(pgResult([fakeOutletRow()]));
 
     const result = await createOutlet(fakePool, CREATE_DATA);
 
+    expect(queryMock).toHaveBeenCalledTimes(1);
     const [sql, values] = queryMock.mock.calls[0];
-    expect(sql).toContain(
-      "INSERT INTO outlets (brand_id, external_id, name) VALUES ($1, $2, $3)",
-    );
-    expect(values).toStrictEqual([
-      CREATE_DATA.brandId,
-      CREATE_DATA.externalId,
-      CREATE_DATA.name,
-    ]);
+    expect(sql).toContain("INSERT INTO outlets (tenant_id, brand_id, name)");
+    expect(sql).toContain("SELECT b.tenant_id, b.id, $2");
+    expect(sql).toContain("WHERE b.id = $1");
+    expect(values).toStrictEqual([CREATE_DATA.brandId, CREATE_DATA.name]);
     expect(result).toStrictEqual(DEFAULT_OUTLET);
   });
 });

@@ -9,7 +9,6 @@ const BRAND_ID = "11111111-1111-1111-1111-111111111111";
 const TENANT_ID = "44444444-4444-4444-4444-444444444444";
 const VALID_CREATE_BODY = {
   tenantId: TENANT_ID,
-  externalId: "pos-brand-1",
   name: "test brand",
 };
 
@@ -50,17 +49,49 @@ describe("GET /brands/:brandId", () => {
 });
 
 describe("POST /brands", () => {
-  it.each(["tenantId", "externalId", "name"])(
-    "rejects a missing %s",
-    async (field) => {
-      const { [field as keyof typeof VALID_CREATE_BODY]: _, ...payload } =
-        VALID_CREATE_BODY;
-      const res = await app.inject({ method: "POST", url: "/brands", payload });
+  it("rejects a missing name", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/brands",
+      payload: { tenantId: TENANT_ID },
+    });
 
-      expect(res.statusCode).toBe(400);
-      expect(res.json().message).toContain(field);
-    },
-  );
+    expect(res.statusCode).toBe(400);
+    expect(res.json().message).toContain("name");
+  });
+
+  it("rejects a missing tenant id", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/brands",
+      payload: { name: "test brand" },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().message).toContain("tenantId");
+  });
+
+  it("rejects a malformed tenant id", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/brands",
+      payload: { ...VALID_CREATE_BODY, tenantId: "abc" },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().message).toContain("tenantId");
+  });
+
+  it("rejects externalId, which brands do not have in v1", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/brands",
+      payload: { ...VALID_CREATE_BODY, externalId: "pos-brand-1" },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().message).toContain("additional properties");
+  });
 
   it("rejects an unknown field", async () => {
     const res = await app.inject({
@@ -100,7 +131,7 @@ describe("PATCH /brands/:brandId", () => {
   it.each([
     { field: "tenantId", value: TENANT_ID },
     { field: "externalId", value: "other" },
-  ])("rejects $field in the body, since it is immutable", async ({ field, value }) => {
+  ])("rejects $field in the body, which cannot be changed", async ({ field, value }) => {
     const res = await app.inject({
       method: "PATCH",
       url: `/brands/${BRAND_ID}`,

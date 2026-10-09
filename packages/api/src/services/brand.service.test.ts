@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ConflictError, NotFoundError, ValidationError } from "../errors.js";
-import type { BrandRecordSchemaType } from "../schemas/brand.schema.js";
+import type { BrandRecordSchemaType } from "@ai-services/contracts";
 import { pgResult } from "../utils/pg.test-helpers.js";
 import { FOREIGN_KEY_VIOLATION, UNIQUE_VIOLATION } from "../utils/pgErrors.js";
 import {
@@ -18,14 +18,12 @@ const INVALID_ID = "invalid-id";
 const DEFAULT_BRAND: BrandRecordSchemaType = {
   id: BRAND_ID,
   tenantId: TENANT_ID,
-  externalId: "pos-brand-1",
   name: "test brand",
   isActive: true,
 };
 
 const CREATE_DATA = {
   tenantId: DEFAULT_BRAND.tenantId,
-  externalId: DEFAULT_BRAND.externalId,
   name: DEFAULT_BRAND.name,
 };
 
@@ -34,10 +32,6 @@ const UPDATE_DATA = {
   isActive: false,
 };
 
-const EXTERNAL_ID_VIOLATION = {
-  code: UNIQUE_VIOLATION,
-  constraint: "brands_tenant_external_id_key",
-};
 const NAME_VIOLATION = {
   code: UNIQUE_VIOLATION,
   constraint: "brands_tenant_name_key",
@@ -52,7 +46,6 @@ function fakeBrandRow(overrides: Partial<BrandRecordSchemaType> = {}) {
   return {
     id: brand.id,
     tenant_id: brand.tenantId,
-    external_id: brand.externalId,
     name: brand.name,
     is_active: brand.isActive,
   };
@@ -74,7 +67,6 @@ describe("getBrands", () => {
     const inactiveBrand = {
       ...DEFAULT_BRAND,
       id: OTHER_BRAND_ID,
-      externalId: "pos-brand-2",
       name: "inactive brand",
       isActive: false,
     };
@@ -148,22 +140,14 @@ describe("getBrand", () => {
 
 describe("createBrand", () => {
   it.each([
-    {
-      label: "the name is missing",
-      data: { tenantId: TENANT_ID, externalId: "pos-brand-1" },
-    },
-    {
-      label: "the tenant id is missing",
-      data: { externalId: "pos-brand-1", name: "test brand" },
-    },
+    { label: "the name is missing", data: { tenantId: TENANT_ID } },
+    { label: "the name is empty", data: { tenantId: TENANT_ID, name: "" } },
+    { label: "the tenant id is missing", data: { name: "test brand" } },
     {
       label: "the tenant id is invalid",
-      data: { tenantId: INVALID_ID, externalId: "pos-brand-1", name: "x" },
+      data: { tenantId: INVALID_ID, name: "test brand" },
     },
-    {
-      label: "the external id is missing",
-      data: { tenantId: TENANT_ID, name: "test brand" },
-    },
+    { label: "an unknown field is supplied", data: { ...CREATE_DATA, isActive: false } },
   ])("throws ValidationError when $label", async ({ data }) => {
     await expect(createBrand(fakePool, data as any)).rejects.toThrow(
       ValidationError,
@@ -176,14 +160,6 @@ describe("createBrand", () => {
 
     await expect(createBrand(fakePool, CREATE_DATA)).rejects.toThrow(
       new NotFoundError("Tenant does not exist."),
-    );
-  });
-
-  it("throws ConflictError naming the external id when it already exists in the tenant", async () => {
-    queryMock.mockRejectedValueOnce(EXTERNAL_ID_VIOLATION);
-
-    await expect(createBrand(fakePool, CREATE_DATA)).rejects.toThrow(
-      `external id ${CREATE_DATA.externalId}`,
     );
   });
 
@@ -203,8 +179,10 @@ describe("createBrand", () => {
     const result = await createBrand(fakePool, CREATE_DATA);
 
     expect(queryMock).toHaveBeenCalledWith(
-      expect.stringContaining("INSERT INTO brands"),
-      [CREATE_DATA.tenantId, CREATE_DATA.externalId, CREATE_DATA.name],
+      expect.stringContaining(
+        "INSERT INTO brands (tenant_id, name) VALUES ($1, $2)",
+      ),
+      [CREATE_DATA.tenantId, CREATE_DATA.name],
     );
     expect(result).toStrictEqual(DEFAULT_BRAND);
   });
@@ -225,12 +203,9 @@ describe("updateBrand", () => {
     expect(queryMock).not.toHaveBeenCalled();
   });
 
-  it.each([
-    { field: "tenantId", data: { tenantId: TENANT_ID } },
-    { field: "externalId", data: { externalId: "other" } },
-  ])("throws ValidationError when trying to change $field", async ({ data }) => {
+  it("throws ValidationError when trying to move the brand to another tenant", async () => {
     await expect(
-      updateBrand(fakePool, BRAND_ID, data as any),
+      updateBrand(fakePool, BRAND_ID, { tenantId: TENANT_ID } as any),
     ).rejects.toThrow(ValidationError);
     expect(queryMock).not.toHaveBeenCalled();
   });
@@ -243,7 +218,7 @@ describe("updateBrand", () => {
     );
   });
 
-  it("throws ConflictError when the brand name already exists in the tenant", async () => {
+  it("throws ConflictError when the brand name already exists", async () => {
     queryMock.mockRejectedValueOnce(NAME_VIOLATION);
 
     await expect(updateBrand(fakePool, BRAND_ID, UPDATE_DATA)).rejects.toThrow(

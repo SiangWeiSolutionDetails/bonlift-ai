@@ -35,36 +35,34 @@ describe("GET /outlets", () => {
     expect(res.json().message).toContain("brandId");
   });
 
-  it("rejects a tenantId filter, since outlets are scoped by brand", async () => {
-    const res = await app.inject({ url: `/outlets?tenantId=${TENANT_ID}` });
+  it("rejects a malformed tenant id filter", async () => {
+    const res = await app.inject({ url: "/outlets?tenantId=abc" });
 
     expect(res.statusCode).toBe(400);
-    expect(res.json().error).toBe("VALIDATION_ERROR");
+    expect(res.json().message).toContain("tenantId");
   });
 });
 
 describe("POST /outlets", () => {
-  it("rejects a missing external id", async () => {
+  it("rejects a missing name", async () => {
     const res = await app.inject({
       method: "POST",
       url: "/outlets",
-      payload: { brandId: BRAND_ID, name: "test outlet" },
+      payload: { brandId: BRAND_ID },
     });
 
     expect(res.statusCode).toBe(400);
-    expect(res.json().message).toContain("externalId");
+    expect(res.json().message).toContain("name");
   });
 
-  it("rejects a tenantId in the body, since outlets belong to a brand only", async () => {
+  it.each([
+    { field: "tenantId", value: TENANT_ID },
+    { field: "externalId", value: "pos-outlet-1" },
+  ])("rejects $field in the body, which the client cannot set", async ({ field, value }) => {
     const res = await app.inject({
       method: "POST",
       url: "/outlets",
-      payload: {
-        brandId: BRAND_ID,
-        tenantId: TENANT_ID,
-        externalId: "pos-outlet-1",
-        name: "test outlet",
-      },
+      payload: { brandId: BRAND_ID, name: "test outlet", [field]: value },
     });
 
     expect(res.statusCode).toBe(400);

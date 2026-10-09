@@ -17,7 +17,7 @@ import {
   OutletRecordSchema,
   UpdateOutletBodySchema,
   UpdateOutletBodySchemaType,
-} from "../schemas/outlet.schema.js";
+} from "@ai-services/contracts";
 
 export async function outletRoutes(app: FastifyInstance) {
   app.get<{ Querystring: OutletQuerySchemaType }>(
@@ -31,6 +31,7 @@ export async function outletRoutes(app: FastifyInstance) {
     async (request) => {
       const pool = getPool();
       const outlets = await getOutlets(pool, {
+        tenantId: request.query.tenantId,
         brandId: request.query.brandId,
       });
       return {

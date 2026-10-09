@@ -3,8 +3,8 @@ import Type, { Static } from "typebox";
 export const OutletRecordSchema = Type.Object(
   {
     id: Type.String({ format: "uuid" }),
+    tenantId: Type.String({ format: "uuid" }),
     brandId: Type.String({ format: "uuid" }),
-    externalId: Type.String(),
     name: Type.String(),
     isActive: Type.Boolean(),
   },
@@ -24,6 +24,7 @@ export type OutletParamsSchemaType = Static<typeof OutletParamsSchema>;
 
 export const OutletQuerySchema = Type.Object(
   {
+    tenantId: Type.Optional(Type.String({ format: "uuid" })),
     brandId: Type.Optional(Type.String({ format: "uuid" })),
   },
   { additionalProperties: false },
@@ -33,7 +34,6 @@ export type OutletQuerySchemaType = Static<typeof OutletQuerySchema>;
 export const CreateOutletBodySchema = Type.Object(
   {
     brandId: Type.String({ format: "uuid" }),
-    externalId: Type.String({ minLength: 1, maxLength: 255 }),
     name: Type.String({ minLength: 1, maxLength: 255 }),
   },
   {

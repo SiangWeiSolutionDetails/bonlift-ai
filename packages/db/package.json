@@ -8,7 +8,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "migrate": "node --env-file=../../.env ../../node_modules/node-pg-migrate/bin/node-pg-migrate.js --migration-file-language sql -m migrations -j sql",
+    "migrate": "node --env-file=../../.env ../../node_modules/node-pg-migrate/bin/node-pg-migrate.js --migration-file-language sql -m migrations",
+    "migrate:create": "npm run migrate create",
     "migrate:up": "npm run migrate up",
     "migrate:down": "npm run migrate down",
     "seed": "docker exec -i ai-services-postgres-1 psql -U ai_services -d ai_services_dev < seed/seed.sql"

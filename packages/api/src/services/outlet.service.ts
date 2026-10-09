@@ -18,12 +18,11 @@ import {
   isUniqueViolation,
 } from "../utils/pgErrors.js";
 
-const OUTLET_COLUMNS = "id, tenant_id, brand_id, external_id, name, is_active";
+const OUTLET_COLUMNS = "id, brand_id, external_id, name, is_active";
 
 function mapOutletRow(row: any): OutletRecordSchemaType {
   return {
     id: row.id,
-    tenantId: row.tenant_id,
     brandId: row.brand_id,
     externalId: row.external_id,
     name: row.name,
@@ -37,7 +36,7 @@ function toConflictError(
 ) {
   if (isExternalIdViolation(error)) {
     return new ConflictError(
-      `Outlet with external id ${data.externalId} already exists for this tenant.`,
+      `Outlet with external id ${data.externalId} already exists for this brand.`,
     );
   }
   if (isUniqueViolation(error)) {
@@ -75,18 +74,12 @@ export async function getOutlets(
   pool: Pool,
   options: OutletQuerySchemaType,
 ): Promise<OutletRecordSchemaType[]> {
-  const tenantId = options?.tenantId;
   const brandId = options?.brandId;
 
-  assertValid(OutletQuerySchema, { tenantId, brandId });
+  assertValid(OutletQuerySchema, { brandId });
 
   const conditions = [];
   const values = [];
-
-  if (tenantId) {
-    values.push(tenantId);
-    conditions.push(`o.tenant_id = $${values.length}`);
-  }
 
   if (brandId) {
     values.push(brandId);
@@ -113,23 +106,21 @@ export async function createOutlet(
   try {
     assertValid(CreateOutletBodySchema, data);
 
+    const { columns, placeholders, values } = buildAssignments({
+      brand_id: data.brandId,
+      external_id: data.externalId,
+      name: data.name,
+    });
+
     const result = await pool.query(
       `
-      INSERT INTO outlets (tenant_id, brand_id, external_id, name)
-      SELECT b.tenant_id, b.id, $2::text, $3::text
-      FROM brands b
-      WHERE b.id = $1
+      INSERT INTO outlets (${columns}) VALUES (${placeholders})
       RETURNING ${OUTLET_COLUMNS};`,
-      [data.brandId, data.externalId, data.name],
+      values,
     );
-
-    if (result.rowCount === 0) {
-      throw new NotFoundError("Brand does not exist.");
-    }
 
     return mapOutletRow(result.rows[0]);
   } catch (error) {
-    // The brand can still disappear between the SELECT and the FK check.
     if (isForeignKeyViolation(error)) {
       throw new NotFoundError("Brand does not exist.");
     }

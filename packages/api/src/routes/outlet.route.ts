@@ -31,7 +31,6 @@ export async function outletRoutes(app: FastifyInstance) {
     async (request) => {
       const pool = getPool();
       const outlets = await getOutlets(pool, {
-        tenantId: request.query.tenantId,
         brandId: request.query.brandId,
       });
       return {

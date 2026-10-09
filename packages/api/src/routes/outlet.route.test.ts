@@ -35,11 +35,11 @@ describe("GET /outlets", () => {
     expect(res.json().message).toContain("brandId");
   });
 
-  it("rejects a malformed tenant id filter", async () => {
-    const res = await app.inject({ url: "/outlets?tenantId=abc" });
+  it("rejects a tenantId filter, since outlets are scoped by brand", async () => {
+    const res = await app.inject({ url: `/outlets?tenantId=${TENANT_ID}` });
 
     expect(res.statusCode).toBe(400);
-    expect(res.json().message).toContain("tenantId");
+    expect(res.json().error).toBe("VALIDATION_ERROR");
   });
 });
 
@@ -55,7 +55,7 @@ describe("POST /outlets", () => {
     expect(res.json().message).toContain("externalId");
   });
 
-  it("rejects a tenantId in the body, since it is derived from the brand", async () => {
+  it("rejects a tenantId in the body, since outlets belong to a brand only", async () => {
     const res = await app.inject({
       method: "POST",
       url: "/outlets",

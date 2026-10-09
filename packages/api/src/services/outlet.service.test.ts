@@ -18,7 +18,6 @@ const INVALID_ID = "invalid-id";
 
 const DEFAULT_OUTLET: OutletRecordSchemaType = {
   id: OUTLET_ID,
-  tenantId: TENANT_ID,
   brandId: BRAND_ID,
   externalId: "pos-outlet-1",
   name: "test outlet",
@@ -38,11 +37,11 @@ const UPDATE_DATA = {
 
 const EXTERNAL_ID_VIOLATION = {
   code: UNIQUE_VIOLATION,
-  constraint: "outlets_tenant_external_id_key",
+  constraint: "outlets_brand_external_id_key",
 };
 const NAME_VIOLATION = {
   code: UNIQUE_VIOLATION,
-  constraint: "outlets_tenant_brand_outlet_name_key",
+  constraint: "outlets_brand_name_key",
 };
 
 const queryMock = vi.fn();
@@ -53,7 +52,6 @@ function fakeOutletRow(overrides: Partial<OutletRecordSchemaType> = {}) {
 
   return {
     id: outlet.id,
-    tenant_id: outlet.tenantId,
     brand_id: outlet.brandId,
     external_id: outlet.externalId,
     name: outlet.name,
@@ -66,11 +64,8 @@ beforeEach(() => {
 });
 
 describe("getOutlets", () => {
-  it.each([
-    { label: "brand id", options: { brandId: INVALID_ID } },
-    { label: "tenant id", options: { tenantId: INVALID_ID } },
-  ])("throws ValidationError when the $label filter is invalid", async ({ options }) => {
-    await expect(getOutlets(fakePool, options)).rejects.toThrow(
+  it("throws ValidationError when the brand id filter is invalid", async () => {
+    await expect(getOutlets(fakePool, { brandId: INVALID_ID })).rejects.toThrow(
       ValidationError,
     );
     expect(queryMock).not.toHaveBeenCalled();
@@ -107,29 +102,6 @@ describe("getOutlets", () => {
       [BRAND_ID],
     );
     expect(result).toStrictEqual([DEFAULT_OUTLET]);
-  });
-
-  it("filters outlets by tenant id", async () => {
-    queryMock.mockResolvedValueOnce(pgResult([fakeOutletRow()]));
-
-    const result = await getOutlets(fakePool, { tenantId: TENANT_ID });
-
-    expect(queryMock).toHaveBeenCalledWith(
-      expect.stringContaining("WHERE o.tenant_id = $1"),
-      [TENANT_ID],
-    );
-    expect(result).toStrictEqual([DEFAULT_OUTLET]);
-  });
-
-  it("combines tenant and brand filters", async () => {
-    queryMock.mockResolvedValueOnce(pgResult([fakeOutletRow()]));
-
-    await getOutlets(fakePool, { tenantId: TENANT_ID, brandId: BRAND_ID });
-
-    expect(queryMock).toHaveBeenCalledWith(
-      expect.stringContaining("WHERE o.tenant_id = $1 AND o.brand_id = $2"),
-      [TENANT_ID, BRAND_ID],
-    );
   });
 
   it("orders outlets by name, then id", async () => {
@@ -205,14 +177,6 @@ describe("createOutlet", () => {
   });
 
   it("throws NotFoundError when the brand does not exist", async () => {
-    queryMock.mockResolvedValueOnce(pgResult([]));
-
-    await expect(createOutlet(fakePool, CREATE_DATA)).rejects.toThrow(
-      new NotFoundError("Brand does not exist."),
-    );
-  });
-
-  it("throws NotFoundError when the brand is removed before the FK check", async () => {
     queryMock.mockRejectedValueOnce({ code: FOREIGN_KEY_VIOLATION });
 
     await expect(createOutlet(fakePool, CREATE_DATA)).rejects.toThrow(
@@ -220,7 +184,7 @@ describe("createOutlet", () => {
     );
   });
 
-  it("throws ConflictError naming the external id when it already exists in the tenant", async () => {
+  it("throws ConflictError naming the external id when it already exists in the brand", async () => {
     queryMock.mockRejectedValueOnce(EXTERNAL_ID_VIOLATION);
 
     await expect(createOutlet(fakePool, CREATE_DATA)).rejects.toThrow(
@@ -238,15 +202,15 @@ describe("createOutlet", () => {
     );
   });
 
-  it("derives the tenant from the brand and returns the outlet", async () => {
+  it("inserts the outlet under its brand and returns it", async () => {
     queryMock.mockResolvedValueOnce(pgResult([fakeOutletRow()]));
 
     const result = await createOutlet(fakePool, CREATE_DATA);
 
     const [sql, values] = queryMock.mock.calls[0];
-    expect(sql).toContain("INSERT INTO outlets");
-    expect(sql).toContain("SELECT b.tenant_id, b.id");
-    expect(sql).toContain("FROM brands b");
+    expect(sql).toContain(
+      "INSERT INTO outlets (brand_id, external_id, name) VALUES ($1, $2, $3)",
+    );
     expect(values).toStrictEqual([
       CREATE_DATA.brandId,
       CREATE_DATA.externalId,

@@ -16,6 +16,8 @@
 --     No merge handling here: every run recomputes from POS, which must report the post-merge customer ID;
 --     pre-merge IDs age out via retention. CRM customer ID must be globally unique (XB-1); to be confirmed.
 --   - Tenants, brands and outlets are a small enrolment registry, created manually via the admin API (not synced).
+--     Hierarchy is tenant -> brand -> outlet; an outlet reaches its tenant only through its brand.
+--     Outlet external IDs are unique per brand, so callers identify an outlet by (brand, outlet external ID).
 --   - Computation history is append-only and kept for auditing, rollback, analysis and model training.
 --   - All outlets are in Singapore; dayparts are computed in Asia/Singapore in application code.
 --   - updated_at is set by application code (no trigger yet).
@@ -31,6 +33,7 @@
 --   - item quantity / order count per outlet per hour
 --   - item-pair co-occurrence count per outlet per day
 --   - item quantity / order count per customer per brand per day (post-merge customer ID)
+-- The ordering API must send the brand together with the POS outlet ID on every request.
 --
 -- PENDING (not yet applied below):
 --   - RE-6.3 rejection semantics and suppression window (OQ-9). Implicit rejections are engine data
@@ -60,28 +63,23 @@ CREATE TABLE brands (
     is_active         boolean NOT NULL DEFAULT true,
     created_at        timestamptz NOT NULL DEFAULT now(),
     updated_at        timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT brands_tenant_external_id_key UNIQUE (tenant_id, external_id),
-    -- Target for composite FKs that guarantee a child row's tenant matches its brand's tenant.
-    CONSTRAINT brands_tenant_id_id_key UNIQUE (tenant_id, id)
+    CONSTRAINT brands_tenant_external_id_key UNIQUE (tenant_id, external_id)
 );
 
 CREATE UNIQUE INDEX brands_tenant_name_key ON brands (tenant_id, lower(name));
 
 CREATE TABLE outlets (
     id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id         uuid NOT NULL REFERENCES tenants(id),
-    brand_id          uuid NOT NULL,
+    brand_id          uuid NOT NULL REFERENCES brands(id),
     external_id       text NOT NULL,
     name              text NOT NULL,
     is_active         boolean NOT NULL DEFAULT true,
     created_at        timestamptz NOT NULL DEFAULT now(),
     updated_at        timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT outlets_tenant_external_id_key UNIQUE (tenant_id, external_id),
-    CONSTRAINT outlets_tenant_brand_fkey FOREIGN KEY (tenant_id, brand_id) REFERENCES brands (tenant_id, id)
+    CONSTRAINT outlets_brand_external_id_key UNIQUE (brand_id, external_id)
 );
 
--- Also serves as the index for outlets_tenant_brand_fkey (leading columns tenant_id, brand_id).
-CREATE UNIQUE INDEX outlets_tenant_brand_outlet_name_key ON outlets (tenant_id, brand_id, lower(name));
+CREATE UNIQUE INDEX outlets_brand_name_key ON outlets (brand_id, lower(name));
 
 
 -- ============================================================

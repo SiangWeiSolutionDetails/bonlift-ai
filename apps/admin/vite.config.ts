@@ -17,7 +17,7 @@ export default defineConfig({
     // Same-origin in dev so the browser never needs CORS; the API has no /api prefix, so strip it.
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'http://localhost:4000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },

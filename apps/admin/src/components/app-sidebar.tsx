@@ -13,7 +13,8 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { GalleryVerticalEndIcon, AudioLinesIcon, TerminalIcon, TagIcon, StoreIcon } from "lucide-react"
+import { ROUTES } from "@/routes"
+import { GalleryVerticalEndIcon, AudioLinesIcon, TerminalIcon } from "lucide-react"
 
 // This is sample data.
 const data = {
@@ -48,23 +49,20 @@ const data = {
       plan: "Free",
     },
   ],
-  navMain: [
-    {
-      titleKey: "nav.brands",
-      url: "/brands",
-      icon: <TagIcon />,
-    },
-    {
-      titleKey: "nav.outlets",
-      url: "/outlets",
-      icon: <StoreIcon />,
-    },
-  ] as const,
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
+  activePath: string
+}
+
+export function AppSidebar({ activePath, ...props }: AppSidebarProps) {
   const { t } = useTranslation()
-  const navMain = data.navMain.map(({ titleKey, ...item }) => ({ ...item, title: t(titleKey) }))
+  const navMain = ROUTES.map((route) => ({
+    title: t(route.titleKey),
+    url: route.path,
+    icon: route.icon,
+    isActive: route.path === activePath,
+  }))
 
   return (
     <Sidebar collapsible="icon" {...props}>

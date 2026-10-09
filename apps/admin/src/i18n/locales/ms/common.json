@@ -13,6 +13,7 @@
   "nav": {
     "admin": "Pentadbir",
     "management": "Pengurusan",
+    "tenants": "Penyewa",
     "brands": "Jenama",
     "outlets": "Cawangan"
   },

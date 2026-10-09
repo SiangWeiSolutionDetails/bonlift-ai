@@ -11,14 +11,15 @@ import {
 } from '@/components/ui/breadcrumb'
 import { Separator } from '@/components/ui/separator'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
-import { BrandsPage } from '@/pages/brands-page'
+import { matchRoute } from '@/routes'
 
 function App() {
   const { t } = useTranslation()
+  const route = matchRoute(window.location.pathname)
 
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <AppSidebar activePath={route.path} />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
           <div className="flex items-center gap-2 px-4">
@@ -31,7 +32,7 @@ function App() {
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>{t('nav.brands')}</BreadcrumbPage>
+                  <BreadcrumbPage>{t(route.titleKey)}</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
@@ -41,7 +42,7 @@ function App() {
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <BrandsPage />
+          <route.Page />
         </div>
       </SidebarInset>
     </SidebarProvider>

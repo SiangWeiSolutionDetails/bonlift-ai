@@ -13,6 +13,7 @@
   "nav": {
     "admin": "管理后台",
     "management": "管理",
+    "tenants": "租户",
     "brands": "品牌",
     "outlets": "门店"
   },

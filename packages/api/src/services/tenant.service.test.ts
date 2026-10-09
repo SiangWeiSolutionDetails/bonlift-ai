@@ -113,6 +113,9 @@ describe("createTenant", () => {
   it.each([
     { label: "the name is missing", data: {} },
     { label: "the name is empty", data: { name: "" } },
+    { label: "the name is only whitespace", data: { name: "   " } },
+    { label: "the name has trailing whitespace", data: { name: "Minor " } },
+    { label: "the name has leading whitespace", data: { name: " Minor" } },
     {
       label: "an unknown field is supplied",
       data: { ...CREATE_DATA, isActive: false },
@@ -158,6 +161,21 @@ describe("updateTenant", () => {
       ValidationError,
     );
     expect(queryMock).not.toHaveBeenCalled();
+  });
+
+  it("throws ValidationError when the new name has surrounding whitespace", async () => {
+    await expect(
+      updateTenant(fakePool, TENANT_ID, { name: " renamed " }),
+    ).rejects.toThrow(ValidationError);
+    expect(queryMock).not.toHaveBeenCalled();
+  });
+
+  it("accepts a name with inner spaces", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([fakeTenantRow()]));
+
+    await expect(
+      updateTenant(fakePool, TENANT_ID, { name: "Minor Food Group" }),
+    ).resolves.toBeDefined();
   });
 
   it("throws NotFoundError when the tenant does not exist", async () => {

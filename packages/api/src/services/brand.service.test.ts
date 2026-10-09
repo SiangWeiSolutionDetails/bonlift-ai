@@ -142,6 +142,11 @@ describe("createBrand", () => {
   it.each([
     { label: "the name is missing", data: { tenantId: TENANT_ID } },
     { label: "the name is empty", data: { tenantId: TENANT_ID, name: "" } },
+    { label: "the name is only whitespace", data: { tenantId: TENANT_ID, name: "   " } },
+    {
+      label: "the name has surrounding whitespace",
+      data: { tenantId: TENANT_ID, name: " Thai Express " },
+    },
     { label: "the tenant id is missing", data: { name: "test brand" } },
     {
       label: "the tenant id is invalid",
@@ -200,6 +205,13 @@ describe("updateBrand", () => {
     await expect(updateBrand(fakePool, BRAND_ID, {})).rejects.toThrow(
       ValidationError,
     );
+    expect(queryMock).not.toHaveBeenCalled();
+  });
+
+  it("throws ValidationError when the new name has surrounding whitespace", async () => {
+    await expect(
+      updateBrand(fakePool, BRAND_ID, { name: "Thai Express " }),
+    ).rejects.toThrow(ValidationError);
     expect(queryMock).not.toHaveBeenCalled();
   });
 

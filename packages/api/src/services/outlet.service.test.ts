@@ -174,6 +174,14 @@ describe("createOutlet", () => {
       data: { brandId: BRAND_ID },
     },
     {
+      label: "the name is only whitespace",
+      data: { brandId: BRAND_ID, name: "   " },
+    },
+    {
+      label: "the name has surrounding whitespace",
+      data: { brandId: BRAND_ID, name: " Raffles City " },
+    },
+    {
       label: "the brand id is missing",
       data: { name: "test outlet" },
     },
@@ -249,6 +257,13 @@ describe("updateOutlet", () => {
     await expect(updateOutlet(fakePool, OUTLET_ID, {})).rejects.toThrow(
       ValidationError,
     );
+    expect(queryMock).not.toHaveBeenCalled();
+  });
+
+  it("throws ValidationError when the new name has surrounding whitespace", async () => {
+    await expect(
+      updateOutlet(fakePool, OUTLET_ID, { name: "Raffles City " }),
+    ).rejects.toThrow(ValidationError);
     expect(queryMock).not.toHaveBeenCalled();
   });
 

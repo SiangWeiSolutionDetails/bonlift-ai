@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { PencilIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { getErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
 import type { Brand } from "../type";
 
@@ -25,15 +27,17 @@ type BrandsTableProps = {
 };
 
 export function BrandsTable(props: BrandsTableProps) {
+  const { t } = useTranslation("brands");
+
   return (
     <div className="rounded-lg border">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead className="w-32">Status</TableHead>
+            <TableHead>{t("table.name")}</TableHead>
+            <TableHead className="w-32">{t("table.status")}</TableHead>
             <TableHead className="w-16 text-right">
-              <span className="sr-only">Actions</span>
+              <span className="sr-only">{t("table.actions")}</span>
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -46,6 +50,9 @@ export function BrandsTable(props: BrandsTableProps) {
 }
 
 function BrandsTableRows({ brands, isPending, error, onEdit }: BrandsTableProps) {
+  const { t } = useTranslation("brands");
+  const { t: tCommon } = useTranslation();
+
   if (isPending) {
     return Array.from({ length: SKELETON_ROW_COUNT }, (_, index) => (
       <TableRow key={index}>
@@ -57,11 +64,11 @@ function BrandsTableRows({ brands, isPending, error, onEdit }: BrandsTableProps)
   }
 
   if (error) {
-    return <MessageRow className="text-destructive">{error.message}</MessageRow>;
+    return <MessageRow className="text-destructive">{getErrorMessage(error, tCommon)}</MessageRow>;
   }
 
   if (!brands?.length) {
-    return <MessageRow>No brands yet.</MessageRow>;
+    return <MessageRow>{t("table.empty")}</MessageRow>;
   }
 
   return brands.map((brand) => (
@@ -69,14 +76,14 @@ function BrandsTableRows({ brands, isPending, error, onEdit }: BrandsTableProps)
       <TableCell className="font-medium">{brand.name}</TableCell>
       <TableCell>
         <Badge variant={brand.isActive ? "default" : "secondary"}>
-          {brand.isActive ? "Active" : "Inactive"}
+          {brand.isActive ? tCommon("status.active") : tCommon("status.inactive")}
         </Badge>
       </TableCell>
       <TableCell className="text-right">
         <Button
           variant="ghost"
           size="icon"
-          aria-label={`Edit ${brand.name}`}
+          aria-label={t("table.editBrand", { name: brand.name })}
           onClick={() => onEdit(brand)}
         >
           <PencilIcon />

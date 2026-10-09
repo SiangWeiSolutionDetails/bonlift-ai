@@ -14,6 +14,7 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
 import { ChevronRightIcon } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 export function NavMain({
   items,
@@ -29,9 +30,11 @@ export function NavMain({
     }[]
   }[]
 }) {
+  const { t } = useTranslation()
+
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Management</SidebarGroupLabel>
+      <SidebarGroupLabel>{t("nav.management")}</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => !item.items?.length ? (
           <SidebarMenuItem key={item.title}>

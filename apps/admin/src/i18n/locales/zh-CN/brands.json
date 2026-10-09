@@ -1,0 +1,27 @@
+{
+  "page": {
+    "title": "品牌",
+    "description": "管理各租户下的品牌。",
+    "newBrand": "新建品牌"
+  },
+  "table": {
+    "name": "名称",
+    "status": "状态",
+    "actions": "操作",
+    "empty": "暂无品牌。",
+    "editBrand": "编辑 {{name}}"
+  },
+  "create": {
+    "title": "新建品牌",
+    "description": "在租户下创建品牌。",
+    "tenant": "租户",
+    "tenantPlaceholder": "选择租户",
+    "name": "名称"
+  },
+  "edit": {
+    "title": "编辑品牌",
+    "description": "重命名品牌或更改其状态。",
+    "name": "名称",
+    "active": "启用"
+  }
+}

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { PlusIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import type { Tenant } from "@/features/tenants/type";
 import { BrandsTable } from "@/features/brands/components/brands-table";
@@ -8,6 +9,7 @@ import { EditBrandDialog } from "@/features/brands/components/edit-brand-dialog"
 import type { Brand } from "@/features/brands/type";
 
 export function BrandsPage() {
+  const { t } = useTranslation("brands");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
 
@@ -23,12 +25,12 @@ export function BrandsPage() {
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Brands</h1>
-          <p className="text-sm text-muted-foreground">Manage the brands under each tenant.</p>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("page.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("page.description")}</p>
         </div>
         <Button onClick={() => setIsCreateOpen(true)}>
           <PlusIcon data-icon="inline-start" />
-          New brand
+          {t("page.newBrand")}
         </Button>
       </div>
 

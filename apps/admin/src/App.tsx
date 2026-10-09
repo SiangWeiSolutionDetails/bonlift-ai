@@ -1,4 +1,6 @@
+import { useTranslation } from 'react-i18next'
 import { AppSidebar } from '@/components/app-sidebar'
+import { LanguageSwitcher } from '@/components/language-switcher'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,6 +14,8 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/s
 import { BrandsPage } from '@/pages/brands-page'
 
 function App() {
+  const { t } = useTranslation()
+
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -23,14 +27,17 @@ function App() {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="#">Admin</BreadcrumbLink>
+                  <BreadcrumbLink href="#">{t('nav.admin')}</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Brands</BreadcrumbPage>
+                  <BreadcrumbPage>{t('nav.brands')}</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
+          </div>
+          <div className="ml-auto px-4">
+            <LanguageSwitcher />
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">

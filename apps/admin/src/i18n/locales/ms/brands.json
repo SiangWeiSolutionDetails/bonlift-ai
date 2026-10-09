@@ -1,0 +1,27 @@
+{
+  "page": {
+    "title": "Jenama",
+    "description": "Urus jenama di bawah setiap penyewa.",
+    "newBrand": "Jenama baharu"
+  },
+  "table": {
+    "name": "Nama",
+    "status": "Status",
+    "actions": "Tindakan",
+    "empty": "Belum ada jenama.",
+    "editBrand": "Sunting {{name}}"
+  },
+  "create": {
+    "title": "Jenama baharu",
+    "description": "Cipta jenama di bawah penyewa.",
+    "tenant": "Penyewa",
+    "tenantPlaceholder": "Pilih penyewa",
+    "name": "Nama"
+  },
+  "edit": {
+    "title": "Sunting jenama",
+    "description": "Namakan semula jenama atau tukar statusnya.",
+    "name": "Nama",
+    "active": "Aktif"
+  }
+}

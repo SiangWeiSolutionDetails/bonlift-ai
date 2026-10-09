@@ -1,0 +1,30 @@
+{
+  "actions": {
+    "cancel": "Batal",
+    "create": "Cipta",
+    "creating": "Mencipta…",
+    "save": "Simpan",
+    "saving": "Menyimpan…"
+  },
+  "status": {
+    "active": "Aktif",
+    "inactive": "Tidak aktif"
+  },
+  "nav": {
+    "admin": "Pentadbir",
+    "management": "Pengurusan",
+    "brands": "Jenama",
+    "outlets": "Cawangan"
+  },
+  "language": {
+    "label": "Bahasa"
+  },
+  "errors": {
+    "NOT_FOUND": "Rekod yang diminta tidak dijumpai.",
+    "VALIDATION_ERROR": "Sebahagian maklumat yang dimasukkan tidak sah.",
+    "INTERNAL_ERROR": "Berlaku masalah di pihak kami. Sila cuba lagi.",
+    "NETWORK_ERROR": "Tidak dapat menghubungi pelayan. Semak sambungan anda dan cuba lagi.",
+    "HTTP_ERROR": "Permintaan gagal. Sila cuba lagi.",
+    "UNKNOWN": "Ralat yang tidak dijangka telah berlaku."
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "page": {
+    "title": "Brands",
+    "description": "Manage the brands under each tenant.",
+    "newBrand": "New brand"
+  },
+  "table": {
+    "name": "Name",
+    "status": "Status",
+    "actions": "Actions",
+    "empty": "No brands yet.",
+    "editBrand": "Edit {{name}}"
+  },
+  "create": {
+    "title": "New brand",
+    "description": "Create a brand under a tenant.",
+    "tenant": "Tenant",
+    "tenantPlaceholder": "Select a tenant",
+    "name": "Name"
+  },
+  "edit": {
+    "title": "Edit brand",
+    "description": "Rename the brand or change its status.",
+    "name": "Name",
+    "active": "Active"
+  }
+}

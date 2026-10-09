@@ -1,0 +1,30 @@
+{
+  "actions": {
+    "cancel": "Cancel",
+    "create": "Create",
+    "creating": "Creating…",
+    "save": "Save",
+    "saving": "Saving…"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "nav": {
+    "admin": "Admin",
+    "management": "Management",
+    "brands": "Brands",
+    "outlets": "Outlets"
+  },
+  "language": {
+    "label": "Language"
+  },
+  "errors": {
+    "NOT_FOUND": "The requested record could not be found.",
+    "VALIDATION_ERROR": "Some of the information entered is invalid.",
+    "INTERNAL_ERROR": "Something went wrong on our side. Please try again.",
+    "NETWORK_ERROR": "Unable to reach the server. Check your connection and try again.",
+    "HTTP_ERROR": "The request failed. Please try again.",
+    "UNKNOWN": "An unexpected error occurred."
+  }
+}

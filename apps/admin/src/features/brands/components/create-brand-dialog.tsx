@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Tenant } from "@/features/tenants/type";
+import { getErrorMessage } from "@/lib/error-message";
 
 const NAME_MAX_LENGTH = 255;
 
@@ -29,12 +31,14 @@ type CreateBrandDialogProps = {
 };
 
 export function CreateBrandDialog({ open, onOpenChange, tenants }: CreateBrandDialogProps) {
+  const { t } = useTranslation("brands");
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New brand</DialogTitle>
-          <DialogDescription>Create a brand under a tenant.</DialogDescription>
+          <DialogTitle>{t("create.title")}</DialogTitle>
+          <DialogDescription>{t("create.description")}</DialogDescription>
         </DialogHeader>
         {/* Lives inside DialogContent, which unmounts on close, so form state resets for free */}
         <CreateBrandForm tenants={tenants} onCreated={() => onOpenChange(false)} />
@@ -49,6 +53,8 @@ type CreateBrandFormProps = {
 };
 
 function CreateBrandForm({ tenants, onCreated }: CreateBrandFormProps) {
+  const { t } = useTranslation("brands");
+  const { t: tCommon } = useTranslation();
   const [tenantId, setTenantId] = useState("");
   const [name, setName] = useState("");
 
@@ -72,10 +78,10 @@ function CreateBrandForm({ tenants, onCreated }: CreateBrandFormProps) {
   return (
     <form onSubmit={handleSubmit} className="grid gap-4">
       <div className="grid gap-2">
-        <Label htmlFor="brand-tenant">Tenant</Label>
+        <Label htmlFor="brand-tenant">{t("create.tenant")}</Label>
         <Select value={tenantId} onValueChange={setTenantId}>
           <SelectTrigger id="brand-tenant" className="w-full">
-            <SelectValue placeholder="Select a tenant" />
+            <SelectValue placeholder={t("create.tenantPlaceholder")} />
           </SelectTrigger>
           <SelectContent>
             {tenants.map((tenant) => (
@@ -88,7 +94,7 @@ function CreateBrandForm({ tenants, onCreated }: CreateBrandFormProps) {
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="brand-name">Name</Label>
+        <Label htmlFor="brand-name">{t("create.name")}</Label>
         <Input
           id="brand-name"
           value={name}
@@ -97,16 +103,18 @@ function CreateBrandForm({ tenants, onCreated }: CreateBrandFormProps) {
         />
       </div>
 
-      {submitError && <p className="text-sm text-destructive">{submitError.message}</p>}
+      {submitError && (
+        <p className="text-sm text-destructive">{getErrorMessage(submitError, tCommon)}</p>
+      )}
 
       <DialogFooter>
         <DialogClose asChild>
           <Button type="button" variant="outline">
-            Cancel
+            {tCommon("actions.cancel")}
           </Button>
         </DialogClose>
         <Button type="submit" disabled={!canSubmit}>
-          {isSubmitting ? "Creating…" : "Create"}
+          {isSubmitting ? tCommon("actions.creating") : tCommon("actions.create")}
         </Button>
       </DialogFooter>
     </form>

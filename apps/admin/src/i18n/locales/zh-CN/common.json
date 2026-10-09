@@ -1,0 +1,30 @@
+{
+  "actions": {
+    "cancel": "取消",
+    "create": "创建",
+    "creating": "创建中…",
+    "save": "保存",
+    "saving": "保存中…"
+  },
+  "status": {
+    "active": "启用",
+    "inactive": "停用"
+  },
+  "nav": {
+    "admin": "管理后台",
+    "management": "管理",
+    "brands": "品牌",
+    "outlets": "门店"
+  },
+  "language": {
+    "label": "语言"
+  },
+  "errors": {
+    "NOT_FOUND": "找不到请求的记录。",
+    "VALIDATION_ERROR": "部分输入的信息无效。",
+    "INTERNAL_ERROR": "系统出现问题，请稍后重试。",
+    "NETWORK_ERROR": "无法连接服务器，请检查网络后重试。",
+    "HTTP_ERROR": "请求失败，请重试。",
+    "UNKNOWN": "发生未知错误。"
+  }
+}

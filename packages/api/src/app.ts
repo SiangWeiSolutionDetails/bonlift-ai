@@ -3,6 +3,7 @@ import { AppError } from "./errors.js";
 import { healthRoutes } from "./routes/health.route.js";
 import { recommendationsRoutes } from "./routes/recommendations.route.js";
 import { customerRecommendationsRoutes } from "./routes/customerRecommendations.route.js";
+import { tenantRoutes } from "./routes/tenant.route.js";
 import { brandRoutes } from "./routes/brand.route.js";
 import { outletRoutes } from "./routes/outlet.route.js";
 
@@ -35,6 +36,7 @@ export function buildApp(): FastifyInstance {
   });
 
   app.register(healthRoutes);
+  app.register(tenantRoutes);
   app.register(brandRoutes);
   app.register(outletRoutes);
   app.register(recommendationsRoutes);

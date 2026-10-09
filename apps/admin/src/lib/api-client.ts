@@ -34,7 +34,7 @@ function buildUrl(path: string, query?: Record<string, QueryValue>) {
     if (value !== undefined) params.append(key, String(value));
   }
   const queryString = params.toString();
-  return `${API_BASE}${path}${queryString ? `${queryString}` : ""}`;
+  return `${API_BASE}${path}${queryString ? `?${queryString}` : ""}`;
 }
 
 async function toApiError(res: Response) {
@@ -42,10 +42,10 @@ async function toApiError(res: Response) {
     const body = (await res.json()) as ApiErrorBody;
     return new ApiError(
       res.status,
-      body.error ?? "HPPT_ERROR",
+      body.error ?? "HTTP_ERROR",
       body.message ?? res.statusText,
     );
-  } catch (error) {
+  } catch {
     // Non-JSON body, e.g. the Vite proxy's 502 when the API is down
     return new ApiError(
       res.status,

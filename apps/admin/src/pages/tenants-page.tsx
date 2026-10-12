@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PlusIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { CreateTenantDialog } from "@/features/tenants/components/create-tenant-dialog";
 import { EditTenantDialog } from "@/features/tenants/components/edit-tenant-dialog";
@@ -18,17 +19,17 @@ export function TenantsPage() {
   const error = null as Error | null;
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{t("page.title")}</h1>
-          <p className="text-sm text-muted-foreground">{t("page.description")}</p>
-        </div>
-        <Button onClick={() => setIsCreateOpen(true)}>
-          <PlusIcon data-icon="inline-start" />
-          {t("page.newTenant")}
-        </Button>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title={t("page.title")}
+        description={t("page.description")}
+        action={
+          <Button onClick={() => setIsCreateOpen(true)}>
+            <PlusIcon data-icon="inline-start" />
+            {t("page.newTenant")}
+          </Button>
+        }
+      />
 
       <TenantsTable
         tenants={tenants}
@@ -38,7 +39,10 @@ export function TenantsPage() {
       />
 
       <CreateTenantDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
-      <EditTenantDialog tenant={editingTenant} onClose={() => setEditingTenant(null)} />
+      <EditTenantDialog
+        tenant={editingTenant}
+        onClose={() => setEditingTenant(null)}
+      />
     </div>
   );
 }

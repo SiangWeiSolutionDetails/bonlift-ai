@@ -30,7 +30,7 @@ export function BrandsTable(props: BrandsTableProps) {
   const { t } = useTranslation("brands");
 
   return (
-    <div className="rounded-lg border">
+    <div className="overflow-hidden rounded-xl bg-card shadow-xs ring-1 ring-foreground/5">
       <Table>
         <TableHeader>
           <TableRow>
@@ -75,7 +75,7 @@ function BrandsTableRows({ brands, isPending, error, onEdit }: BrandsTableProps)
     <TableRow key={brand.id}>
       <TableCell className="font-medium">{brand.name}</TableCell>
       <TableCell>
-        <Badge variant={brand.isActive ? "default" : "secondary"}>
+        <Badge variant={brand.isActive ? "success" : "secondary"}>
           {brand.isActive ? tCommon("status.active") : tCommon("status.inactive")}
         </Badge>
       </TableCell>

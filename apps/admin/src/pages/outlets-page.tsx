@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PlusIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -38,19 +39,19 @@ export function OutletsPage() {
   const brands: Brand[] = [];
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{t("page.title")}</h1>
-          <p className="text-sm text-muted-foreground">{t("page.description")}</p>
-        </div>
-        <Button onClick={() => setIsCreateOpen(true)}>
-          <PlusIcon data-icon="inline-start" />
-          {t("page.newOutlet")}
-        </Button>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title={t("page.title")}
+        description={t("page.description")}
+        action={
+          <Button onClick={() => setIsCreateOpen(true)}>
+            <PlusIcon data-icon="inline-start" />
+            {t("page.newOutlet")}
+          </Button>
+        }
+      />
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <Label htmlFor="outlet-brand-filter" className="shrink-0">
           {t("filter.brand")}
         </Label>

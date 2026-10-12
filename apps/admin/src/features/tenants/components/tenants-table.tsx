@@ -30,7 +30,7 @@ export function TenantsTable(props: TenantsTableProps) {
   const { t } = useTranslation("tenants");
 
   return (
-    <div className="rounded-lg border">
+    <div className="overflow-hidden rounded-xl bg-card shadow-xs ring-1 ring-foreground/5">
       <Table>
         <TableHeader>
           <TableRow>
@@ -75,7 +75,7 @@ function TenantsTableRows({ tenants, isPending, error, onEdit }: TenantsTablePro
     <TableRow key={tenant.id}>
       <TableCell className="font-medium">{tenant.name}</TableCell>
       <TableCell>
-        <Badge variant={tenant.isActive ? "default" : "secondary"}>
+        <Badge variant={tenant.isActive ? "success" : "secondary"}>
           {tenant.isActive ? tCommon("status.active") : tCommon("status.inactive")}
         </Badge>
       </TableCell>

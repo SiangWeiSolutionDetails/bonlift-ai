@@ -32,7 +32,7 @@ export function OutletsTable(props: OutletsTableProps) {
   const { t } = useTranslation("outlets");
 
   return (
-    <div className="rounded-lg border">
+    <div className="overflow-hidden rounded-xl bg-card shadow-xs ring-1 ring-foreground/5">
       <Table>
         <TableHeader>
           <TableRow>
@@ -86,7 +86,7 @@ function OutletsTableRows({ outlets, brands, isPending, error, onEdit }: Outlets
         {brandNameById.get(outlet.brandId) ?? t("table.unknownBrand")}
       </TableCell>
       <TableCell>
-        <Badge variant={outlet.isActive ? "default" : "secondary"}>
+        <Badge variant={outlet.isActive ? "success" : "secondary"}>
           {outlet.isActive ? tCommon("status.active") : tCommon("status.inactive")}
         </Badge>
       </TableCell>

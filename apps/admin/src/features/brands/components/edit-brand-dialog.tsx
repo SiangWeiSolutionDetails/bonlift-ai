@@ -86,7 +86,7 @@ function EditBrandForm({ brand, onSaved }: EditBrandFormProps) {
         />
       </div>
 
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 rounded-xl bg-muted px-4 py-3">
         <Label htmlFor="edit-brand-active">{t("edit.active")}</Label>
         <Switch id="edit-brand-active" checked={isActive} onCheckedChange={setIsActive} />
       </div>

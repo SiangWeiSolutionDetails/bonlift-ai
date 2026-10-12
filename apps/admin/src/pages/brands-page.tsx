@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PlusIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import type { Tenant } from "@/features/tenants/type";
 import { BrandsTable } from "@/features/brands/components/brands-table";
@@ -22,17 +23,17 @@ export function BrandsPage() {
   const tenants: Tenant[] = [];
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{t("page.title")}</h1>
-          <p className="text-sm text-muted-foreground">{t("page.description")}</p>
-        </div>
-        <Button onClick={() => setIsCreateOpen(true)}>
-          <PlusIcon data-icon="inline-start" />
-          {t("page.newBrand")}
-        </Button>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title={t("page.title")}
+        description={t("page.description")}
+        action={
+          <Button onClick={() => setIsCreateOpen(true)}>
+            <PlusIcon data-icon="inline-start" />
+            {t("page.newBrand")}
+          </Button>
+        }
+      />
 
       <BrandsTable
         brands={brands}
@@ -41,8 +42,15 @@ export function BrandsPage() {
         onEdit={setEditingBrand}
       />
 
-      <CreateBrandDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} tenants={tenants} />
-      <EditBrandDialog brand={editingBrand} onClose={() => setEditingBrand(null)} />
+      <CreateBrandDialog
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        tenants={tenants}
+      />
+      <EditBrandDialog
+        brand={editingBrand}
+        onClose={() => setEditingBrand(null)}
+      />
     </div>
   );
 }

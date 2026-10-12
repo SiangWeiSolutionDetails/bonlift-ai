@@ -20,6 +20,12 @@
   "language": {
     "label": "Language"
   },
+  "validation": {
+    "required": "This field is required.",
+    "pattern": "Must not start or end with a space.",
+    "format": "Invalid format.",
+    "invalid": "This value is invalid."
+  },
   "errors": {
     "NOT_FOUND": "The requested record could not be found.",
     "VALIDATION_ERROR": "Some of the information entered is invalid.",

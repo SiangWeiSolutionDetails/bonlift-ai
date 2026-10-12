@@ -1,5 +1,7 @@
-import { useState, type FormEvent } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { UpdateTenantBodySchema } from "@ai-services/contracts";
+import { FieldError } from "@/components/field-error";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,9 +16,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { getErrorMessage } from "@/lib/error-message";
+import { typeboxResolver } from "@/lib/typebox-resolver";
 import type { Tenant, UpdateTenantInput } from "../type";
-
-const NAME_MAX_LENGTH = 255;
+import { useUpdateTenant } from "../queries";
 
 type EditTenantDialogProps = {
   tenant: Tenant | null;
@@ -34,7 +36,9 @@ export function EditTenantDialog({ tenant, onClose }: EditTenantDialogProps) {
           <DialogDescription>{t("edit.description")}</DialogDescription>
         </DialogHeader>
         {/* key resets the form state when a different tenant is opened */}
-        {tenant && <EditTenantForm key={tenant.id} tenant={tenant} onSaved={onClose} />}
+        {tenant && (
+          <EditTenantForm key={tenant.id} tenant={tenant} onSaved={onClose} />
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -48,51 +52,68 @@ type EditTenantFormProps = {
 function EditTenantForm({ tenant, onSaved }: EditTenantFormProps) {
   const { t } = useTranslation("tenants");
   const { t: tCommon } = useTranslation();
-  const [name, setName] = useState(tenant.name);
-  const [isActive, setIsActive] = useState(tenant.isActive);
+  const {
+    register,
+    control,
+    handleSubmit,
+    formState: { errors, isDirty },
+  } = useForm<UpdateTenantInput>({
+    resolver: typeboxResolver(UpdateTenantBodySchema),
+    defaultValues: { name: tenant.name, isActive: tenant.isActive },
+  });
 
-  // IMPLEMENT: replace these two with `const updateTenantMutation = useUpdateTenant()`
-  // and read `isPending` / `error` from it.
-  const isSubmitting = false;
-  const submitError = null as Error | null;
+  const updateTenantMutation = useUpdateTenant();
+  const isSubmitting = updateTenantMutation.isPending;
+  const submitError = updateTenantMutation.error;
 
-  const trimmedName = name.trim();
-  // PATCH only what changed; the API rejects an empty body (minProperties: 1)
-  const changes: UpdateTenantInput = {
-    ...(trimmedName !== tenant.name && { name: trimmedName }),
-    ...(isActive !== tenant.isActive && { isActive }),
-  };
-  const hasChanges = Object.keys(changes).length > 0;
-  const canSubmit = hasChanges && trimmedName !== "" && !isSubmitting;
+  function onSubmit(values: UpdateTenantInput) {
+    // PATCH only what changed; the API rejects an empty body (minProperties: 1)
+    const changes: UpdateTenantInput = {
+      ...(values.name !== tenant.name && { name: values.name }),
+      ...(values.isActive !== tenant.isActive && { isActive: values.isActive }),
+    };
+    if (Object.keys(changes).length === 0) return onSaved();
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!canSubmit) return;
-
-    // IMPLEMENT: call the update mutation with `{ tenantId: tenant.id, input: changes }`
-    // and call `onSaved()` in its onSuccess.
-    void onSaved;
+    updateTenantMutation.mutate(
+      {
+        tenantId: tenant.id,
+        input: changes,
+      },
+      { onSuccess: onSaved },
+    );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
       <div className="grid gap-2">
         <Label htmlFor="edit-tenant-name">{t("edit.name")}</Label>
         <Input
           id="edit-tenant-name"
-          value={name}
-          maxLength={NAME_MAX_LENGTH}
-          onChange={(event) => setName(event.target.value)}
+          aria-invalid={!!errors.name}
+          {...register("name", { setValueAs: (value: string) => value.trim() })}
+        />
+        <FieldError message={errors.name?.message} />
+      </div>
+
+      <div className="flex items-center justify-between gap-4 rounded-xl bg-muted px-4 py-3">
+        <Label htmlFor="edit-tenant-active">{t("edit.active")}</Label>
+        <Controller
+          control={control}
+          name="isActive"
+          render={({ field }) => (
+            <Switch
+              id="edit-tenant-active"
+              checked={field.value}
+              onCheckedChange={field.onChange}
+            />
+          )}
         />
       </div>
 
-      <div className="flex items-center justify-between gap-4">
-        <Label htmlFor="edit-tenant-active">{t("edit.active")}</Label>
-        <Switch id="edit-tenant-active" checked={isActive} onCheckedChange={setIsActive} />
-      </div>
-
       {submitError && (
-        <p className="text-sm text-destructive">{getErrorMessage(submitError, tCommon)}</p>
+        <p className="text-sm text-destructive">
+          {getErrorMessage(submitError, tCommon)}
+        </p>
       )}
 
       <DialogFooter>
@@ -101,7 +122,7 @@ function EditTenantForm({ tenant, onSaved }: EditTenantFormProps) {
             {tCommon("actions.cancel")}
           </Button>
         </DialogClose>
-        <Button type="submit" disabled={!canSubmit}>
+        <Button type="submit" disabled={!isDirty || isSubmitting}>
           {isSubmitting ? tCommon("actions.saving") : tCommon("actions.save")}
         </Button>
       </DialogFooter>

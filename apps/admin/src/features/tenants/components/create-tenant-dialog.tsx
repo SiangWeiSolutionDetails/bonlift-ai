@@ -1,5 +1,7 @@
-import { useState, type FormEvent } from "react";
+import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { CreateTenantBodySchema } from "@ai-services/contracts";
+import { FieldError } from "@/components/field-error";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,15 +15,19 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getErrorMessage } from "@/lib/error-message";
-
-const NAME_MAX_LENGTH = 255;
+import { typeboxResolver } from "@/lib/typebox-resolver";
+import { useCreateTenant } from "../queries";
+import type { CreateTenantInput } from "../type";
 
 type CreateTenantDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
 
-export function CreateTenantDialog({ open, onOpenChange }: CreateTenantDialogProps) {
+export function CreateTenantDialog({
+  open,
+  onOpenChange,
+}: CreateTenantDialogProps) {
   const { t } = useTranslation("tenants");
 
   return (
@@ -45,39 +51,39 @@ type CreateTenantFormProps = {
 function CreateTenantForm({ onCreated }: CreateTenantFormProps) {
   const { t } = useTranslation("tenants");
   const { t: tCommon } = useTranslation();
-  const [name, setName] = useState("");
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<CreateTenantInput>({
+    resolver: typeboxResolver(CreateTenantBodySchema),
+    defaultValues: { name: "" },
+  });
 
-  // IMPLEMENT: replace these two with `const createTenantMutation = useCreateTenant()`
-  // and read `isPending` / `error` from it.
-  const isSubmitting = false;
-  const submitError = null as Error | null;
+  const createTenantMutation = useCreateTenant();
+  const isSubmitting = createTenantMutation.isPending;
+  const submitError = createTenantMutation.error;
 
-  const trimmedName = name.trim();
-  const canSubmit = trimmedName !== "" && !isSubmitting;
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!canSubmit) return;
-
-    // IMPLEMENT: call the create mutation with `{ name: trimmedName }`
-    // and call `onCreated()` in its onSuccess.
-    void onCreated;
+  function onSubmit(input: CreateTenantInput) {
+    createTenantMutation.mutate(input, { onSuccess: onCreated });
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
       <div className="grid gap-2">
         <Label htmlFor="tenant-name">{t("create.name")}</Label>
         <Input
           id="tenant-name"
-          value={name}
-          maxLength={NAME_MAX_LENGTH}
-          onChange={(event) => setName(event.target.value)}
+          aria-invalid={!!errors.name}
+          {...register("name", { setValueAs: (value: string) => value.trim() })}
         />
+        <FieldError message={errors.name?.message} />
       </div>
 
       {submitError && (
-        <p className="text-sm text-destructive">{getErrorMessage(submitError, tCommon)}</p>
+        <p className="text-sm text-destructive">
+          {getErrorMessage(submitError, tCommon)}
+        </p>
       )}
 
       <DialogFooter>
@@ -86,8 +92,10 @@ function CreateTenantForm({ onCreated }: CreateTenantFormProps) {
             {tCommon("actions.cancel")}
           </Button>
         </DialogClose>
-        <Button type="submit" disabled={!canSubmit}>
-          {isSubmitting ? tCommon("actions.creating") : tCommon("actions.create")}
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting
+            ? tCommon("actions.creating")
+            : tCommon("actions.create")}
         </Button>
       </DialogFooter>
     </form>

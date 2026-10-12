@@ -7,16 +7,14 @@ import { CreateTenantDialog } from "@/features/tenants/components/create-tenant-
 import { EditTenantDialog } from "@/features/tenants/components/edit-tenant-dialog";
 import { TenantsTable } from "@/features/tenants/components/tenants-table";
 import type { Tenant } from "@/features/tenants/type";
+import { useTenants } from "@/features/tenants/queries";
 
 export function TenantsPage() {
   const { t } = useTranslation("tenants");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
 
-  // IMPLEMENT: replace these three with `useTenants()`.
-  const tenants: Tenant[] | undefined = [];
-  const isPending = false;
-  const error = null as Error | null;
+  const { data: tenants, error, isPending } = useTenants();
 
   return (
     <div className="flex flex-col gap-6">

@@ -10,6 +10,8 @@
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
+    "build:contracts": "npm run build -w packages/contracts",
+    "dev:contracts": "npm run dev -w packages/contracts",
     "dev:client": "npm run dev -w apps/admin",
     "dev:api": "npm run dev -w packages/api",
     "dev:db": "docker compose up -d",

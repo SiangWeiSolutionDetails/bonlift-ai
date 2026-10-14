@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { getErrorMessage } from "@/lib/error-message";
+import { getChanges } from "@/lib/get-changes";
 import { typeboxResolver } from "@/lib/typebox-resolver";
 import type { Tenant, UpdateTenantInput } from "../type";
 import { useUpdateTenant } from "../queries";
@@ -68,10 +69,7 @@ function EditTenantForm({ tenant, onSaved }: EditTenantFormProps) {
 
   function onSubmit(values: UpdateTenantInput) {
     // PATCH only what changed; the API rejects an empty body (minProperties: 1)
-    const changes: UpdateTenantInput = {
-      ...(values.name !== tenant.name && { name: values.name }),
-      ...(values.isActive !== tenant.isActive && { isActive: values.isActive }),
-    };
+    const changes = getChanges(tenant, values);
     if (Object.keys(changes).length === 0) return onSaved();
 
     updateTenantMutation.mutate(

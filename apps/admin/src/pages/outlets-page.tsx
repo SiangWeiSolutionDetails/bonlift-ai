@@ -11,10 +11,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Brand } from "@/features/brands/type";
+import { useBrands } from "@/features/brands/queries";
 import { CreateOutletDialog } from "@/features/outlets/components/create-outlet-dialog";
 import { EditOutletDialog } from "@/features/outlets/components/edit-outlet-dialog";
 import { OutletsTable } from "@/features/outlets/components/outlets-table";
+import { useOutlets } from "@/features/outlets/queries";
 import type { Outlet, OutletListParams } from "@/features/outlets/type";
 
 // Radix Select reserves "" for "no selection", so the "all brands" option needs its own value
@@ -29,14 +30,9 @@ export function OutletsPage() {
   const listParams: OutletListParams =
     brandFilter === ALL_BRANDS ? {} : { brandId: brandFilter };
 
-  // IMPLEMENT: replace these three with `useOutlets(listParams)`.
-  const outlets: Outlet[] | undefined = [];
-  const isPending = false;
-  const error = null as Error | null;
-  void listParams;
-
-  // IMPLEMENT: replace with `useBrands()` (feeds the filter, the create dialog and the brand column).
-  const brands: Brand[] = [];
+  const { data: outlets, isPending, error } = useOutlets(listParams);
+  // Feeds the filter, the create dialog and the brand column
+  const { data: brands = [] } = useBrands();
 
   return (
     <div className="flex flex-col gap-6">

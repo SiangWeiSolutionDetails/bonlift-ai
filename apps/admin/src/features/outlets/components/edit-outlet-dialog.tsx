@@ -1,5 +1,7 @@
-import { useState, type FormEvent } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { UpdateOutletBodySchema } from "@ai-services/contracts";
+import { FieldError } from "@/components/field-error";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,9 +16,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { getErrorMessage } from "@/lib/error-message";
+import { getChanges } from "@/lib/get-changes";
+import { typeboxResolver } from "@/lib/typebox-resolver";
 import type { Outlet, UpdateOutletInput } from "../type";
-
-const NAME_MAX_LENGTH = 255;
+import { useUpdateOutlet } from "../queries";
 
 type EditOutletDialogProps = {
   outlet: Outlet | null;
@@ -48,47 +51,56 @@ type EditOutletFormProps = {
 function EditOutletForm({ outlet, onSaved }: EditOutletFormProps) {
   const { t } = useTranslation("outlets");
   const { t: tCommon } = useTranslation();
-  const [name, setName] = useState(outlet.name);
-  const [isActive, setIsActive] = useState(outlet.isActive);
+  const {
+    register,
+    control,
+    handleSubmit,
+    formState: { errors, isDirty },
+  } = useForm<UpdateOutletInput>({
+    resolver: typeboxResolver(UpdateOutletBodySchema),
+    defaultValues: { name: outlet.name, isActive: outlet.isActive },
+  });
 
-  // IMPLEMENT: replace these two with `const updateOutletMutation = useUpdateOutlet()`
-  // and read `isPending` / `error` from it.
-  const isSubmitting = false;
-  const submitError = null as Error | null;
+  const updateOutletMutation = useUpdateOutlet();
+  const isSubmitting = updateOutletMutation.isPending;
+  const submitError = updateOutletMutation.error;
 
-  const trimmedName = name.trim();
-  // PATCH only what changed; the API rejects an empty body (minProperties: 1)
-  const changes: UpdateOutletInput = {
-    ...(trimmedName !== outlet.name && { name: trimmedName }),
-    ...(isActive !== outlet.isActive && { isActive }),
-  };
-  const hasChanges = Object.keys(changes).length > 0;
-  const canSubmit = hasChanges && trimmedName !== "" && !isSubmitting;
+  function onSubmit(values: UpdateOutletInput) {
+    // PATCH only what changed; the API rejects an empty body (minProperties: 1)
+    const changes = getChanges(outlet, values);
+    if (Object.keys(changes).length === 0) return onSaved();
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!canSubmit) return;
-
-    // IMPLEMENT: call the update mutation with `{ outletId: outlet.id, input: changes }`
-    // and call `onSaved()` in its onSuccess.
-    void onSaved;
+    updateOutletMutation.mutate(
+      { outletId: outlet.id, input: changes },
+      { onSuccess: onSaved },
+    );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
       <div className="grid gap-2">
         <Label htmlFor="edit-outlet-name">{t("edit.name")}</Label>
         <Input
           id="edit-outlet-name"
-          value={name}
-          maxLength={NAME_MAX_LENGTH}
-          onChange={(event) => setName(event.target.value)}
+          aria-invalid={!!errors.name}
+          {...register("name", { setValueAs: (value: string) => value.trim() })}
         />
+        <FieldError message={errors.name?.message} />
       </div>
 
       <div className="flex items-center justify-between gap-4 rounded-xl bg-muted px-4 py-3">
         <Label htmlFor="edit-outlet-active">{t("edit.active")}</Label>
-        <Switch id="edit-outlet-active" checked={isActive} onCheckedChange={setIsActive} />
+        <Controller
+          control={control}
+          name="isActive"
+          render={({ field }) => (
+            <Switch
+              id="edit-outlet-active"
+              checked={field.value}
+              onCheckedChange={field.onChange}
+            />
+          )}
+        />
       </div>
 
       {submitError && (
@@ -101,7 +113,7 @@ function EditOutletForm({ outlet, onSaved }: EditOutletFormProps) {
             {tCommon("actions.cancel")}
           </Button>
         </DialogClose>
-        <Button type="submit" disabled={!canSubmit}>
+        <Button type="submit" disabled={!isDirty || isSubmitting}>
           {isSubmitting ? tCommon("actions.saving") : tCommon("actions.save")}
         </Button>
       </DialogFooter>

@@ -1,5 +1,7 @@
-import { useState, type FormEvent } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { CreateOutletBodySchema } from "@ai-services/contracts";
+import { FieldError } from "@/components/field-error";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,8 +23,9 @@ import {
 } from "@/components/ui/select";
 import type { Brand } from "@/features/brands/type";
 import { getErrorMessage } from "@/lib/error-message";
-
-const NAME_MAX_LENGTH = 255;
+import { typeboxResolver } from "@/lib/typebox-resolver";
+import type { CreateOutletInput } from "../type";
+import { useCreateOutlet } from "../queries";
 
 type CreateOutletDialogProps = {
   open: boolean;
@@ -66,53 +69,62 @@ type CreateOutletFormProps = {
 function CreateOutletForm({ brands, defaultBrandId, onCreated }: CreateOutletFormProps) {
   const { t } = useTranslation("outlets");
   const { t: tCommon } = useTranslation();
-  // Pre-selects the brand the page is filtered by, saving a click
-  const [brandId, setBrandId] = useState(defaultBrandId ?? "");
-  const [name, setName] = useState("");
+  const {
+    register,
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<CreateOutletInput>({
+    resolver: typeboxResolver(CreateOutletBodySchema),
+    // Pre-selects the brand the page is filtered by, saving a click
+    defaultValues: { brandId: defaultBrandId ?? "", name: "" },
+  });
 
-  // IMPLEMENT: replace these two with `const createOutletMutation = useCreateOutlet()`
-  // and read `isPending` / `error` from it.
-  const isSubmitting = false;
-  const submitError = null as Error | null;
+  const createOutletMutation = useCreateOutlet();
+  const isSubmitting = createOutletMutation.isPending;
+  const submitError = createOutletMutation.error;
 
-  const trimmedName = name.trim();
-  const canSubmit = brandId !== "" && trimmedName !== "" && !isSubmitting;
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!canSubmit) return;
-
-    // IMPLEMENT: call the create mutation with `{ brandId, name: trimmedName }`
-    // and call `onCreated()` in its onSuccess.
-    void onCreated;
+  function onSubmit(input: CreateOutletInput) {
+    createOutletMutation.mutate(input, { onSuccess: onCreated });
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
       <div className="grid gap-2">
         <Label htmlFor="outlet-brand">{t("create.brand")}</Label>
-        <Select value={brandId} onValueChange={setBrandId}>
-          <SelectTrigger id="outlet-brand" className="w-full">
-            <SelectValue placeholder={t("create.brandPlaceholder")} />
-          </SelectTrigger>
-          <SelectContent>
-            {brands.map((brand) => (
-              <SelectItem key={brand.id} value={brand.id}>
-                {brand.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Controller
+          control={control}
+          name="brandId"
+          render={({ field }) => (
+            <Select value={field.value} onValueChange={field.onChange}>
+              <SelectTrigger
+                id="outlet-brand"
+                className="w-full"
+                aria-invalid={!!errors.brandId}
+              >
+                <SelectValue placeholder={t("create.brandPlaceholder")} />
+              </SelectTrigger>
+              <SelectContent>
+                {brands.map((brand) => (
+                  <SelectItem key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+        <FieldError message={errors.brandId?.message} />
       </div>
 
       <div className="grid gap-2">
         <Label htmlFor="outlet-name">{t("create.name")}</Label>
         <Input
           id="outlet-name"
-          value={name}
-          maxLength={NAME_MAX_LENGTH}
-          onChange={(event) => setName(event.target.value)}
+          aria-invalid={!!errors.name}
+          {...register("name", { setValueAs: (value: string) => value.trim() })}
         />
+        <FieldError message={errors.name?.message} />
       </div>
 
       {submitError && (
@@ -125,7 +137,7 @@ function CreateOutletForm({ brands, defaultBrandId, onCreated }: CreateOutletFor
             {tCommon("actions.cancel")}
           </Button>
         </DialogClose>
-        <Button type="submit" disabled={!canSubmit}>
+        <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? tCommon("actions.creating") : tCommon("actions.create")}
         </Button>
       </DialogFooter>

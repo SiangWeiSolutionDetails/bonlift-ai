@@ -1,4 +1,3 @@
-import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,8 +20,12 @@ import {
 } from "@/components/ui/select";
 import type { Tenant } from "@/features/tenants/type";
 import { getErrorMessage } from "@/lib/error-message";
-
-const NAME_MAX_LENGTH = 255;
+import { CreateBrandBodySchema } from "@ai-services/contracts";
+import { useCreateBrand } from "../queries";
+import { Controller, useForm } from "react-hook-form";
+import { typeboxResolver } from "@/lib/typebox-resolver";
+import type { CreateBrandInput } from "../type";
+import { FieldError } from "@/components/field-error";
 
 type CreateBrandDialogProps = {
   open: boolean;
@@ -30,7 +33,11 @@ type CreateBrandDialogProps = {
   tenants: Tenant[];
 };
 
-export function CreateBrandDialog({ open, onOpenChange, tenants }: CreateBrandDialogProps) {
+export function CreateBrandDialog({
+  open,
+  onOpenChange,
+  tenants,
+}: CreateBrandDialogProps) {
   const { t } = useTranslation("brands");
 
   return (
@@ -41,7 +48,10 @@ export function CreateBrandDialog({ open, onOpenChange, tenants }: CreateBrandDi
           <DialogDescription>{t("create.description")}</DialogDescription>
         </DialogHeader>
         {/* Lives inside DialogContent, which unmounts on close, so form state resets for free */}
-        <CreateBrandForm tenants={tenants} onCreated={() => onOpenChange(false)} />
+        <CreateBrandForm
+          tenants={tenants}
+          onCreated={() => onOpenChange(false)}
+        />
       </DialogContent>
     </Dialog>
   );
@@ -55,56 +65,67 @@ type CreateBrandFormProps = {
 function CreateBrandForm({ tenants, onCreated }: CreateBrandFormProps) {
   const { t } = useTranslation("brands");
   const { t: tCommon } = useTranslation();
-  const [tenantId, setTenantId] = useState("");
-  const [name, setName] = useState("");
+  const {
+    register,
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<CreateBrandInput>({
+    resolver: typeboxResolver(CreateBrandBodySchema),
+    defaultValues: { tenantId: "", name: "" },
+  });
 
-  // IMPLEMENT: replace these two with `const createBrandMutation = useCreateBrand()`
-  // and read `isPending` / `error` from it.
-  const isSubmitting = false;
-  const submitError = null as Error | null;
+  const createBrandMutation = useCreateBrand();
+  const isSubmitting = createBrandMutation.isPending;
+  const submitError = createBrandMutation.error;
 
-  const trimmedName = name.trim();
-  const canSubmit = tenantId !== "" && trimmedName !== "" && !isSubmitting;
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!canSubmit) return;
-
-    // IMPLEMENT: call the create mutation with `{ tenantId, name: trimmedName }`
-    // and call `onCreated()` in its onSuccess.
-    void onCreated;
+  function onSubmit(input: CreateBrandInput) {
+    createBrandMutation.mutate(input, { onSuccess: onCreated });
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
       <div className="grid gap-2">
         <Label htmlFor="brand-tenant">{t("create.tenant")}</Label>
-        <Select value={tenantId} onValueChange={setTenantId}>
-          <SelectTrigger id="brand-tenant" className="w-full">
-            <SelectValue placeholder={t("create.tenantPlaceholder")} />
-          </SelectTrigger>
-          <SelectContent>
-            {tenants.map((tenant) => (
-              <SelectItem key={tenant.id} value={tenant.id}>
-                {tenant.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Controller
+          control={control}
+          name="tenantId"
+          render={({ field }) => (
+            <Select value={field.value} onValueChange={field.onChange}>
+              <SelectTrigger
+                id="brand-tenant"
+                className="w-full"
+                aria-invalid={!!errors.tenantId}
+              >
+                <SelectValue placeholder={t("create.tenantPlaceholder")} />
+              </SelectTrigger>
+              <SelectContent>
+                {tenants.map((tenant) => (
+                  <SelectItem key={tenant.id} value={tenant.id}>
+                    {tenant.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+        <FieldError message={errors.tenantId?.message} />
       </div>
 
       <div className="grid gap-2">
         <Label htmlFor="brand-name">{t("create.name")}</Label>
         <Input
           id="brand-name"
-          value={name}
-          maxLength={NAME_MAX_LENGTH}
-          onChange={(event) => setName(event.target.value)}
+          aria-invalid={!!errors.name}
+          {...register("name", { setValueAs: (value: string) => value.trim() })}
         />
+        <FieldError message={errors.name?.message} />
       </div>
 
       {submitError && (
-        <p className="text-sm text-destructive">{getErrorMessage(submitError, tCommon)}</p>
+        <p className="text-sm text-destructive">
+          {getErrorMessage(submitError, tCommon)}
+        </p>
       )}
 
       <DialogFooter>
@@ -113,8 +134,10 @@ function CreateBrandForm({ tenants, onCreated }: CreateBrandFormProps) {
             {tCommon("actions.cancel")}
           </Button>
         </DialogClose>
-        <Button type="submit" disabled={!canSubmit}>
-          {isSubmitting ? tCommon("actions.creating") : tCommon("actions.create")}
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting
+            ? tCommon("actions.creating")
+            : tCommon("actions.create")}
         </Button>
       </DialogFooter>
     </form>

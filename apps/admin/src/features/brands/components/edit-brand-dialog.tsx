@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { FieldError } from "@/components/field-error";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,9 +14,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { getErrorMessage } from "@/lib/error-message";
+import { getChanges } from "@/lib/get-changes";
 import type { Brand, UpdateBrandInput } from "../type";
-
-const NAME_MAX_LENGTH = 255;
+import { Controller, useForm } from "react-hook-form";
+import { typeboxResolver } from "@/lib/typebox-resolver";
+import { UpdateBrandBodySchema } from "@ai-services/contracts";
+import { useUpdateBrand } from "../queries";
 
 type EditBrandDialogProps = {
   brand: Brand | null;
@@ -34,7 +37,9 @@ export function EditBrandDialog({ brand, onClose }: EditBrandDialogProps) {
           <DialogDescription>{t("edit.description")}</DialogDescription>
         </DialogHeader>
         {/* key resets the form state when a different brand is opened */}
-        {brand && <EditBrandForm key={brand.id} brand={brand} onSaved={onClose} />}
+        {brand && (
+          <EditBrandForm key={brand.id} brand={brand} onSaved={onClose} />
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -48,51 +53,62 @@ type EditBrandFormProps = {
 function EditBrandForm({ brand, onSaved }: EditBrandFormProps) {
   const { t } = useTranslation("brands");
   const { t: tCommon } = useTranslation();
-  const [name, setName] = useState(brand.name);
-  const [isActive, setIsActive] = useState(brand.isActive);
+  const {
+    register,
+    control,
+    handleSubmit,
+    formState: { errors, isDirty },
+  } = useForm<UpdateBrandInput>({
+    resolver: typeboxResolver(UpdateBrandBodySchema),
+    defaultValues: { name: brand.name, isActive: brand.isActive },
+  });
 
-  // IMPLEMENT: replace these two with `const updateBrandMutation = useUpdateBrand()`
-  // and read `isPending` / `error` from it.
-  const isSubmitting = false;
-  const submitError = null as Error | null;
+  const updateBrandMutation = useUpdateBrand();
+  const isSubmitting = updateBrandMutation.isPending;
+  const submitError = updateBrandMutation.error;
 
-  const trimmedName = name.trim();
-  // PATCH only what changed; the API rejects an empty body (minProperties: 1)
-  const changes: UpdateBrandInput = {
-    ...(trimmedName !== brand.name && { name: trimmedName }),
-    ...(isActive !== brand.isActive && { isActive }),
-  };
-  const hasChanges = Object.keys(changes).length > 0;
-  const canSubmit = hasChanges && trimmedName !== "" && !isSubmitting;
+  function onSubmit(values: UpdateBrandInput) {
+    // PATCH only what changed; the API rejects an empty body (minProperties: 1)
+    const changes = getChanges(brand, values);
+    if (Object.keys(changes).length === 0) return onSaved();
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!canSubmit) return;
-
-    // IMPLEMENT: call the update mutation with `{ brandId: brand.id, input: changes }`
-    // and call `onSaved()` in its onSuccess.
-    void onSaved;
+    updateBrandMutation.mutate(
+      { brandId: brand.id, input: changes },
+      { onSuccess: onSaved },
+    );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
       <div className="grid gap-2">
         <Label htmlFor="edit-brand-name">{t("edit.name")}</Label>
         <Input
           id="edit-brand-name"
-          value={name}
-          maxLength={NAME_MAX_LENGTH}
-          onChange={(event) => setName(event.target.value)}
+          aria-invalid={!!errors.name}
+          {...register("name", { setValueAs: (value: string) => value.trim() })}
         />
+        <FieldError message={errors.name?.message} />
       </div>
 
       <div className="flex items-center justify-between gap-4 rounded-xl bg-muted px-4 py-3">
         <Label htmlFor="edit-brand-active">{t("edit.active")}</Label>
-        <Switch id="edit-brand-active" checked={isActive} onCheckedChange={setIsActive} />
+        <Controller
+          control={control}
+          name="isActive"
+          render={({ field }) => (
+            <Switch
+              id="edit-brand-active"
+              checked={field.value}
+              onCheckedChange={field.onChange}
+            />
+          )}
+        />
       </div>
 
       {submitError && (
-        <p className="text-sm text-destructive">{getErrorMessage(submitError, tCommon)}</p>
+        <p className="text-sm text-destructive">
+          {getErrorMessage(submitError, tCommon)}
+        </p>
       )}
 
       <DialogFooter>
@@ -101,7 +117,7 @@ function EditBrandForm({ brand, onSaved }: EditBrandFormProps) {
             {tCommon("actions.cancel")}
           </Button>
         </DialogClose>
-        <Button type="submit" disabled={!canSubmit}>
+        <Button type="submit" disabled={!isDirty || isSubmitting}>
           {isSubmitting ? tCommon("actions.saving") : tCommon("actions.save")}
         </Button>
       </DialogFooter>

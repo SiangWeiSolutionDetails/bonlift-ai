@@ -15,7 +15,6 @@
     "dev:client": "npm run dev -w apps/admin",
     "dev:api": "npm run dev -w packages/api",
     "dev:db": "docker compose up -d",
-    "dev:worker": "npm run dev -w packages/worker",
     "test": "vitest run",
     "test:integration:up": "docker compose -f docker-compose.test.yml up -d",
     "test:integration:migrate": "DATABASE_URL=postgres://ai_services:ai_services@localhost:5433/ai_services_test npm run migrate:up -w packages/db",

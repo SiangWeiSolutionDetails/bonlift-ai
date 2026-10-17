@@ -98,8 +98,16 @@ export async function createBrand(
 
     const result = await pool.query(
       `
-    INSERT INTO brands (${columns}) VALUES (${placeholders})
-    RETURNING ${BRAND_COLUMNS}`,
+      WITH
+      b as (
+        INSERT INTO brands (${columns}) VALUES (${placeholders})
+        RETURNING ${BRAND_COLUMNS}
+      ),
+      bds as (
+        INSERT INTO brand_data_sources (brand_id) SELECT id FROM b
+      )
+      SELECT ${BRAND_COLUMNS} from b;
+      `,
       values,
     );
 

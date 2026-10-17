@@ -5,16 +5,13 @@ import { useTranslation } from "react-i18next"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
-import { TeamSwitcher } from "@/components/team-switcher"
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
 import { ROUTES } from "@/routes"
-import { GalleryVerticalEndIcon, AudioLinesIcon, TerminalIcon } from "lucide-react"
 
 // This is sample data.
 const data = {
@@ -23,32 +20,6 @@ const data = {
     email: "m@example.com",
     avatar: "/avatars/shadcn.jpg",
   },
-  teams: [
-    {
-      name: "Acme Inc",
-      logo: (
-        <GalleryVerticalEndIcon
-        />
-      ),
-      plan: "Enterprise",
-    },
-    {
-      name: "Acme Corp.",
-      logo: (
-        <AudioLinesIcon
-        />
-      ),
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: (
-        <TerminalIcon
-        />
-      ),
-      plan: "Free",
-    },
-  ],
 }
 
 type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
@@ -66,9 +37,6 @@ export function AppSidebar({ activePath, ...props }: AppSidebarProps) {
 
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
-      </SidebarHeader>
       <SidebarContent>
         <NavMain items={navMain} />
       </SidebarContent>

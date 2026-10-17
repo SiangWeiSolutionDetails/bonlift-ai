@@ -35,7 +35,7 @@ export function NavMain({
   return (
     <SidebarGroup>
       <SidebarGroupLabel>{t("nav.management")}</SidebarGroupLabel>
-      <SidebarMenu>
+      <SidebarMenu className="gap-1">
         {items.map((item) => !item.items?.length ? (
           <SidebarMenuItem key={item.title}>
             <SidebarMenuButton asChild tooltip={item.title} isActive={item.isActive}>

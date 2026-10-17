@@ -5,6 +5,7 @@ import { tenantRoutes } from "./routes/tenant.route.js";
 import { brandRoutes } from "./routes/brand.route.js";
 import { outletRoutes } from "./routes/outlet.route.js";
 import { mockDatasetRoutes } from "./routes/mockDataset.route.js";
+import { brandDataSourceRoutes } from "./routes/brandDataSource.route.js";
 
 export function buildApp(): FastifyInstance {
   const app = Fastify({
@@ -38,6 +39,7 @@ export function buildApp(): FastifyInstance {
   app.register(tenantRoutes);
   app.register(brandRoutes);
   app.register(outletRoutes);
+  app.register(brandDataSourceRoutes);
 
   if (process.env.NODE_ENV !== "production") {
     app.register(mockDatasetRoutes);

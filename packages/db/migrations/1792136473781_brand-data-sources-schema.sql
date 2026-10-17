@@ -1,8 +1,7 @@
 -- Up Migration
 CREATE TABLE brand_data_sources (
     brand_id uuid PRIMARY KEY REFERENCES brands(id),
-    url text NOT NULL,
-    auth_secret_ref text,
+    url text,
     timeout_ms int NOT NULL DEFAULT 30000,
     refetch_days int NOT NULL DEFAULT 3,
     max_chunk_days int NOT NULL DEFAULT 7,
@@ -11,11 +10,9 @@ CREATE TABLE brand_data_sources (
     CONSTRAINT brand_data_sources_timeout_ms_check 
         CHECK (timeout_ms BETWEEN 1000 AND 120000),
     CONSTRAINT brand_data_sources_refetch_days_check
-        CHECK (refetch_days >= 0),
+        CHECK (refetch_days BETWEEN 0 AND 92),
     CONSTRAINT brand_data_sources_max_chunk_days_check
-        CHECK (max_chunk_days BETWEEN 1 AND 92),
-    CONSTRAINT brand_data_sources_auth_secret_ref_check
-        CHECK (auth_secret_ref ~ '^[A-Z][A-Z0-9_]*$')
+        CHECK (max_chunk_days BETWEEN 1 AND 92)
 );
 
 -- Down Migration

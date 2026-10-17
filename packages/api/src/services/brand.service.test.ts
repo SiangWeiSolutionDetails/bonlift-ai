@@ -142,7 +142,10 @@ describe("createBrand", () => {
   it.each([
     { label: "the name is missing", data: { tenantId: TENANT_ID } },
     { label: "the name is empty", data: { tenantId: TENANT_ID, name: "" } },
-    { label: "the name is only whitespace", data: { tenantId: TENANT_ID, name: "   " } },
+    {
+      label: "the name is only whitespace",
+      data: { tenantId: TENANT_ID, name: "   " },
+    },
     {
       label: "the name has surrounding whitespace",
       data: { tenantId: TENANT_ID, name: " Thai Express " },
@@ -152,7 +155,10 @@ describe("createBrand", () => {
       label: "the tenant id is invalid",
       data: { tenantId: INVALID_ID, name: "test brand" },
     },
-    { label: "an unknown field is supplied", data: { ...CREATE_DATA, isActive: false } },
+    {
+      label: "an unknown field is supplied",
+      data: { ...CREATE_DATA, isActive: false },
+    },
   ])("throws ValidationError when $label", async ({ data }) => {
     await expect(createBrand(fakePool, data as any)).rejects.toThrow(
       ValidationError,
@@ -183,12 +189,14 @@ describe("createBrand", () => {
 
     const result = await createBrand(fakePool, CREATE_DATA);
 
-    expect(queryMock).toHaveBeenCalledWith(
-      expect.stringContaining(
-        "INSERT INTO brands (tenant_id, name) VALUES ($1, $2)",
-      ),
-      [CREATE_DATA.tenantId, CREATE_DATA.name],
+    const [sql, values] = queryMock.mock.calls[0];
+    expect(sql).toContain(
+      "INSERT INTO brands (tenant_id, name) VALUES ($1, $2)",
     );
+    expect(sql).toContain(
+      "INSERT INTO brand_data_sources (brand_id) SELECT id FROM b",
+    );
+    expect(values).toStrictEqual([CREATE_DATA.tenantId, CREATE_DATA.name]);
     expect(result).toStrictEqual(DEFAULT_BRAND);
   });
 });

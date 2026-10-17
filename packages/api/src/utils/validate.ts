@@ -18,5 +18,15 @@ export function assertValid<T extends TSchema>(
   }
 
   const field = error.instancePath.slice(1);
-  throw new ValidationError(field ? `${field} ${error.message}` : error.message);
+  throw new ValidationError(
+    field ? `${field} ${error.message}` : error.message,
+  );
+}
+
+export function assertValidUrl(url: string) {
+  try {
+    new URL(url);
+  } catch (error) {
+    throw new ValidationError("Invalid URL.");
+  }
 }

@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useMatches, useRouter } from "@tanstack/react-router"
 import { useTranslation } from "react-i18next"
 
 import { NavMain } from "@/components/nav-main"
@@ -11,7 +12,6 @@ import {
   SidebarFooter,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { ROUTES } from "@/routes"
 
 // This is sample data.
 const data = {
@@ -22,18 +22,21 @@ const data = {
   },
 }
 
-type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
-  activePath: string
-}
-
-export function AppSidebar({ activePath, ...props }: AppSidebarProps) {
+export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const { t } = useTranslation()
-  const navMain = ROUTES.map((route) => ({
-    title: t(route.titleKey),
-    url: route.path,
-    icon: route.icon,
-    isActive: route.path === activePath,
-  }))
+  const { routeTree } = useRouter()
+  const activePath = useMatches({ select: (matches) => matches.at(-1)?.fullPath })
+
+  const navMain = (routeTree.children ?? []).flatMap((route) => {
+    const { titleKey, icon } = route.options.staticData ?? {}
+    if (!titleKey || !icon) return []
+    return [{
+      title: t(titleKey),
+      url: route.fullPath,
+      icon,
+      isActive: route.fullPath === activePath,
+    }]
+  })
 
   return (
     <Sidebar collapsible="icon" {...props}>

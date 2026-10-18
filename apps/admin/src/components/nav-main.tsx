@@ -13,20 +13,23 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
+import { Link, type LinkProps } from "@tanstack/react-router"
 import { ChevronRightIcon } from "lucide-react"
 import { useTranslation } from "react-i18next"
+
+type NavPath = LinkProps["to"]
 
 export function NavMain({
   items,
 }: {
   items: {
     title: string
-    url: string
+    url: NavPath
     icon?: React.ReactNode
     isActive?: boolean
     items?: {
       title: string
-      url: string
+      url: NavPath
     }[]
   }[]
 }) {
@@ -39,10 +42,10 @@ export function NavMain({
         {items.map((item) => !item.items?.length ? (
           <SidebarMenuItem key={item.title}>
             <SidebarMenuButton asChild tooltip={item.title} isActive={item.isActive}>
-              <a href={item.url}>
+              <Link to={item.url}>
                 {item.icon}
                 <span>{item.title}</span>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         ) : (
@@ -65,9 +68,9 @@ export function NavMain({
                   {item.items?.map((subItem) => (
                     <SidebarMenuSubItem key={subItem.title}>
                       <SidebarMenuSubButton asChild>
-                        <a href={subItem.url}>
+                        <Link to={subItem.url}>
                           <span>{subItem.title}</span>
-                        </a>
+                        </Link>
                       </SidebarMenuSubButton>
                     </SidebarMenuSubItem>
                   ))}

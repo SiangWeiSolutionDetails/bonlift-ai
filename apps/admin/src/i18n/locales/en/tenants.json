@@ -1,7 +1,6 @@
 {
   "page": {
     "title": "Tenants",
-    "description": "Manage the businesses that use the platform.",
     "newTenant": "New tenant"
   },
   "table": {
@@ -14,17 +13,14 @@
   },
   "create": {
     "title": "New tenant",
-    "description": "Register a new tenant.",
     "name": "Name"
   },
   "edit": {
     "title": "Edit tenant",
-    "description": "Rename the tenant or change its status.",
     "name": "Name",
     "active": "Active"
   },
   "view": {
-    "title": "Tenant details",
-    "description": "View the tenant's name and status."
+    "title": "Tenant details"
   }
 }

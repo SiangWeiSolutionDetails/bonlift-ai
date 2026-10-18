@@ -45,7 +45,6 @@ export function OutletsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title={t("page.title")}
-        description={t("page.description")}
         action={
           <Button onClick={() => setIsCreateOpen(true)}>
             <PlusIcon data-icon="inline-start" />

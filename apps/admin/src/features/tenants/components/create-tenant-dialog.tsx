@@ -7,7 +7,6 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -32,10 +31,9 @@ export function CreateTenantDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>{t("create.title")}</DialogTitle>
-          <DialogDescription>{t("create.description")}</DialogDescription>
         </DialogHeader>
         {/* Lives inside DialogContent, which unmounts on close, so form state resets for free */}
         <CreateTenantForm onCreated={() => onOpenChange(false)} />
@@ -69,7 +67,7 @@ function CreateTenantForm({ onCreated }: CreateTenantFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
       <div className="grid gap-2">
         <Label htmlFor="tenant-name">{t("create.name")}</Label>
         <Input

@@ -1,7 +1,6 @@
 {
   "page": {
     "title": "Outlets",
-    "description": "Manage the outlets under each brand.",
     "newOutlet": "New outlet"
   },
   "filter": {
@@ -20,19 +19,16 @@
   },
   "create": {
     "title": "New outlet",
-    "description": "Create an outlet under a brand.",
     "brand": "Brand",
     "brandPlaceholder": "Select a brand",
     "name": "Name"
   },
   "edit": {
     "title": "Edit outlet",
-    "description": "Rename the outlet or change its status.",
     "name": "Name",
     "active": "Active"
   },
   "view": {
-    "title": "Outlet details",
-    "description": "View the outlet's name and status."
+    "title": "Outlet details"
   }
 }

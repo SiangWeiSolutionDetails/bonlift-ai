@@ -1,7 +1,6 @@
 {
   "page": {
     "title": "门店",
-    "description": "管理各品牌下的门店。",
     "newOutlet": "新建门店"
   },
   "filter": {
@@ -20,19 +19,16 @@
   },
   "create": {
     "title": "新建门店",
-    "description": "在品牌下创建门店。",
     "brand": "品牌",
     "brandPlaceholder": "选择品牌",
     "name": "名称"
   },
   "edit": {
     "title": "编辑门店",
-    "description": "重命名门店或更改其状态。",
     "name": "名称",
     "active": "启用"
   },
   "view": {
-    "title": "门店详情",
-    "description": "查看门店的名称和状态。"
+    "title": "门店详情"
   }
 }

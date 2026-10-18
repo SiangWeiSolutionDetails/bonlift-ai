@@ -1,7 +1,6 @@
 {
   "page": {
     "title": "租户",
-    "description": "管理使用本平台的商户。",
     "newTenant": "新建租户"
   },
   "table": {
@@ -14,17 +13,14 @@
   },
   "create": {
     "title": "新建租户",
-    "description": "注册新的租户。",
     "name": "名称"
   },
   "edit": {
     "title": "编辑租户",
-    "description": "重命名租户或更改其状态。",
     "name": "名称",
     "active": "启用"
   },
   "view": {
-    "title": "租户详情",
-    "description": "查看租户的名称和状态。"
+    "title": "租户详情"
   }
 }

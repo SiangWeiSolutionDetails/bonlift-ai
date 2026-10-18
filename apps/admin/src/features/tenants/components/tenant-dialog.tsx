@@ -7,7 +7,6 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -33,10 +32,9 @@ export function TenantDialog({ tenant, readOnly = false, onClose }: TenantDialog
 
   return (
     <Dialog open={tenant !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>{t(`${mode}.title`)}</DialogTitle>
-          <DialogDescription>{t(`${mode}.description`)}</DialogDescription>
         </DialogHeader>
         {/* key resets the form state when a different tenant is opened */}
         {tenant && (
@@ -92,7 +90,7 @@ function TenantForm({ tenant, readOnly, onSaved }: TenantFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
       <div className="grid gap-2">
         <Label htmlFor="tenant-name">{t("edit.name")}</Label>
         <Input

@@ -5,7 +5,6 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -33,10 +32,9 @@ export function BrandDialog({ brand, readOnly = false, onClose }: BrandDialogPro
 
   return (
     <Dialog open={brand !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>{t(`${mode}.title`)}</DialogTitle>
-          <DialogDescription>{t(`${mode}.description`)}</DialogDescription>
         </DialogHeader>
         {/* key resets the form state when a different brand is opened */}
         {brand && (
@@ -89,7 +87,7 @@ function BrandForm({ brand, readOnly, onSaved }: BrandFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
       <div className="grid gap-2">
         <Label htmlFor="brand-name">{t("edit.name")}</Label>
         <Input

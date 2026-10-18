@@ -1,7 +1,6 @@
 {
   "page": {
     "title": "Brands",
-    "description": "Manage the brands under each tenant.",
     "newBrand": "New brand"
   },
   "table": {
@@ -14,19 +13,16 @@
   },
   "create": {
     "title": "New brand",
-    "description": "Create a brand under a tenant.",
     "tenant": "Tenant",
     "tenantPlaceholder": "Select a tenant",
     "name": "Name"
   },
   "edit": {
     "title": "Edit brand",
-    "description": "Rename the brand or change its status.",
     "name": "Name",
     "active": "Active"
   },
   "view": {
-    "title": "Brand details",
-    "description": "View the brand's name and status."
+    "title": "Brand details"
   }
 }

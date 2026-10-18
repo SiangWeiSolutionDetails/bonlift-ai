@@ -7,7 +7,6 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -33,10 +32,9 @@ export function OutletDialog({ outlet, readOnly = false, onClose }: OutletDialog
 
   return (
     <Dialog open={outlet !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>{t(`${mode}.title`)}</DialogTitle>
-          <DialogDescription>{t(`${mode}.description`)}</DialogDescription>
         </DialogHeader>
         {/* key resets the form state when a different outlet is opened */}
         {outlet && (
@@ -89,7 +87,7 @@ function OutletForm({ outlet, readOnly, onSaved }: OutletFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
       <div className="grid gap-2">
         <Label htmlFor="outlet-name">{t("edit.name")}</Label>
         <Input

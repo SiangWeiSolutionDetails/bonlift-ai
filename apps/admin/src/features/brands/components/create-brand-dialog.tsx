@@ -4,7 +4,6 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -42,10 +41,9 @@ export function CreateBrandDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>{t("create.title")}</DialogTitle>
-          <DialogDescription>{t("create.description")}</DialogDescription>
         </DialogHeader>
         {/* Lives inside DialogContent, which unmounts on close, so form state resets for free */}
         <CreateBrandForm
@@ -84,7 +82,7 @@ function CreateBrandForm({ tenants, onCreated }: CreateBrandFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
       <div className="grid gap-2">
         <Label htmlFor="brand-tenant">{t("create.tenant")}</Label>
         <Controller

@@ -7,7 +7,6 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -44,10 +43,9 @@ export function CreateOutletDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>{t("create.title")}</DialogTitle>
-          <DialogDescription>{t("create.description")}</DialogDescription>
         </DialogHeader>
         {/* Lives inside DialogContent, which unmounts on close, so form state resets for free */}
         <CreateOutletForm
@@ -89,7 +87,7 @@ function CreateOutletForm({ brands, defaultBrandId, onCreated }: CreateOutletFor
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
       <div className="grid gap-2">
         <Label htmlFor="outlet-brand">{t("create.brand")}</Label>
         <Controller

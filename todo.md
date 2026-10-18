@@ -48,5 +48,4 @@ Fixtures: `BRAND_ID`, `INVALID_ID`, `DEFAULT_DATA_SOURCE` (`url: null`, 30000 / 
 
 ## Housekeeping
 
-- [ ] Delete the old, empty `sales-snapshots` bucket in local SeaweedFS (replaced by `order-snapshots`).
-- [ ] Decide in P1 Step 7: normalise `customerId: ""` to omitted at ingest, or an `isAnonymous(order)` helper.
+- [x] ~~`customerId` normalisation~~: decided 18 Oct 2026, stored as received; `""`, `null` and missing all mean "no customer".

@@ -37,7 +37,6 @@
     "refetchDaysHint": "Recent days fetched again on every run, 0 to 92.",
     "maxChunkDays": "Max chunk days",
     "maxChunkDaysHint": "Days per request, 1 to 92.",
-    "edit": "Edit",
     "save": "Save data source"
   }
 }

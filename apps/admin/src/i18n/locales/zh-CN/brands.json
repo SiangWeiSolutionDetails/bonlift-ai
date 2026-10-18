@@ -37,7 +37,6 @@
     "refetchDaysHint": "每次运行时重新拉取的最近天数，0 至 92。",
     "maxChunkDays": "每批最大天数",
     "maxChunkDaysHint": "每次请求的天数，1 至 92。",
-    "edit": "编辑",
     "save": "保存数据源"
   }
 }

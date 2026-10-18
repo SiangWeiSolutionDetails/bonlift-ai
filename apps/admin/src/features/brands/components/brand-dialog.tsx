@@ -19,6 +19,7 @@ import { Controller, useForm } from "react-hook-form";
 import { typeboxResolver } from "@/lib/typebox-resolver";
 import { UpdateBrandBodySchema } from "@ai-services/contracts";
 import { useUpdateBrand } from "../queries";
+import { BrandDataSourceSection } from "@/features/brand-data-source/components/brand-data-source-section";
 
 type BrandDialogProps = {
   brand: Brand | null;
@@ -32,7 +33,7 @@ export function BrandDialog({ brand, readOnly = false, onClose }: BrandDialogPro
 
   return (
     <Dialog open={brand !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent aria-describedby={undefined}>
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>{t(`${mode}.title`)}</DialogTitle>
         </DialogHeader>
@@ -43,6 +44,13 @@ export function BrandDialog({ brand, readOnly = false, onClose }: BrandDialogPro
             brand={brand}
             readOnly={readOnly}
             onSaved={onClose}
+          />
+        )}
+        {brand && (
+          <BrandDataSourceSection
+            key={`${brand.id}-data-source`}
+            brandId={brand.id}
+            readOnly={readOnly}
           />
         )}
       </DialogContent>

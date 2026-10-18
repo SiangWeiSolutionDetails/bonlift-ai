@@ -24,6 +24,9 @@
     "required": "此字段为必填项。",
     "pattern": "开头和结尾不能有空格。",
     "format": "格式无效。",
+    "type": "请输入整数。",
+    "minimum": "该值过小。",
+    "maximum": "该值过大。",
     "invalid": "该值无效。"
   },
   "errors": {

@@ -24,5 +24,20 @@
   },
   "view": {
     "title": "品牌详情"
+  },
+  "dataSource": {
+    "title": "数据源",
+    "url": "URL",
+    "urlPlaceholder": "https://pos.example.com/orders",
+    "notConfigured": "未配置",
+    "urlInvalid": "请输入不含用户名、密码或 #片段的 http(s) URL。",
+    "timeoutMs": "超时（毫秒）",
+    "timeoutMsHint": "1,000 至 120,000 毫秒。",
+    "refetchDays": "重新拉取天数",
+    "refetchDaysHint": "每次运行时重新拉取的最近天数，0 至 92。",
+    "maxChunkDays": "每批最大天数",
+    "maxChunkDaysHint": "每次请求的天数，1 至 92。",
+    "edit": "编辑",
+    "save": "保存数据源"
   }
 }

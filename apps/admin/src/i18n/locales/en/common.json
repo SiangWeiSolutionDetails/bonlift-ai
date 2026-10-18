@@ -24,6 +24,9 @@
     "required": "This field is required.",
     "pattern": "Must not start or end with a space.",
     "format": "Invalid format.",
+    "type": "Enter a whole number.",
+    "minimum": "This value is too small.",
+    "maximum": "This value is too large.",
     "invalid": "This value is invalid."
   },
   "errors": {

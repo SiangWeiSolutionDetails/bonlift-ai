@@ -14,7 +14,7 @@ export type BrandDataSourceRecordSchemaType = Static<
   typeof BrandDataSourceRecordSchema
 >;
 
-export const BrandDataSourceBodySchema = Type.Object(
+export const UpdateBrandDataSourceBodySchema = Type.Object(
   {
     url: Type.Optional(
       Type.String({ pattern: "^https?://[^/?#@ ]+([/?][^# ]*)?$" }),
@@ -25,6 +25,6 @@ export const BrandDataSourceBodySchema = Type.Object(
   },
   { additionalProperties: false, minProperties: 1 },
 );
-export type BrandDataSourceBodySchemaType = Static<
-  typeof BrandDataSourceBodySchema
+export type UpdateBrandDataSourceBodySchemaType = Static<
+  typeof UpdateBrandDataSourceBodySchema
 >;

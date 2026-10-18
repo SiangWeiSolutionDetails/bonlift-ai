@@ -1,8 +1,8 @@
 import {
-  BrandDataSourceBodySchema,
-  BrandDataSourceBodySchemaType,
   BrandDataSourceRecordSchemaType,
   BrandParamsSchema,
+  UpdateBrandDataSourceBodySchema,
+  UpdateBrandDataSourceBodySchemaType,
 } from "@ai-services/contracts";
 import { Pool } from "pg";
 import { NotFoundError } from "../errors.js";
@@ -48,10 +48,10 @@ export async function getBrandDataSource(
 export async function updateBrandDataSource(
   pool: Pool,
   brandId: string,
-  data: BrandDataSourceBodySchemaType,
+  data: UpdateBrandDataSourceBodySchemaType,
 ): Promise<BrandDataSourceRecordSchemaType> {
   assertValid(BrandParamsSchema, { brandId });
-  assertValid(BrandDataSourceBodySchema, data);
+  assertValid(UpdateBrandDataSourceBodySchema, data);
   if (data.url !== undefined) assertValidUrl(data.url);
 
   const { setClause, values, nextPlaceholder } = buildAssignments({

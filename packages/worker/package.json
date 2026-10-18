@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "@ai-services/db": "^0.0.1",
-    "@aws-sdk/client-s3": "^3.1145.0",
     "bullmq": "^6.0.11",
     "ioredis": "^6.0.0"
   }

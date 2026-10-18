@@ -17,19 +17,6 @@ services:
     volumes:
       - redis_data:/data
 
-  # Local S3-compatible object storage (dev only; production uses a managed bucket).
-  s3:
-    image: chrislusf/seaweedfs:4.46
-    command: mini -dir=/data -bucket=order-snapshots -admin.ui=true -admin.user=admin -admin.password=localdevadmin -master.telemetry=false
-    environment:
-      AWS_ACCESS_KEY_ID: localdev
-      AWS_SECRET_ACCESS_KEY: localdevsecret
-    ports:
-      - "127.0.0.1:8333:8333"
-      - "127.0.0.1:23646:23646"
-    volumes:
-      - ./.local-s3:/data
-
 volumes:
   pg_data:
   redis_data:

@@ -31,7 +31,7 @@ export function TenantsTable(props: TenantsTableProps) {
   const { t } = useTranslation("tenants");
 
   return (
-    <div className="overflow-hidden rounded-xl bg-card shadow-xs ring-1 ring-foreground/5">
+    <div className="overflow-hidden rounded-xl bg-card shadow-panel">
       <Table>
         <TableHeader>
           <TableRow>

@@ -33,7 +33,7 @@ export function OutletsTable(props: OutletsTableProps) {
   const { t } = useTranslation("outlets");
 
   return (
-    <div className="overflow-hidden rounded-xl bg-card shadow-xs ring-1 ring-foreground/5">
+    <div className="overflow-hidden rounded-xl bg-card shadow-panel">
       <Table>
         <TableHeader>
           <TableRow>

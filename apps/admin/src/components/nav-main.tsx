@@ -37,11 +37,18 @@ export function NavMain({
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>{t("nav.management")}</SidebarGroupLabel>
-      <SidebarMenu className="gap-1">
+      <SidebarGroupLabel className="text-[11px] font-semibold text-sidebar-foreground/50">
+        {t("nav.management")}
+      </SidebarGroupLabel>
+      <SidebarMenu className="gap-0.5">
         {items.map((item) => !item.items?.length ? (
           <SidebarMenuItem key={item.title}>
-            <SidebarMenuButton asChild tooltip={item.title} isActive={item.isActive}>
+            <SidebarMenuButton
+              asChild
+              tooltip={item.title}
+              isActive={item.isActive}
+              className="h-8 rounded-md text-[13px] [&_svg]:text-primary data-active:bg-sidebar-primary data-active:font-medium data-active:text-sidebar-primary-foreground data-active:[&_svg]:text-sidebar-primary-foreground data-active:hover:bg-sidebar-primary data-active:hover:text-sidebar-primary-foreground"
+            >
               <Link to={item.url}>
                 {item.icon}
                 <span>{item.title}</span>

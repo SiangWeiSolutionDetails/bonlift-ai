@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { BrandsTable } from "@/features/brands/components/brands-table";
 import { CreateBrandDialog } from "@/features/brands/components/create-brand-dialog";
-import { EditBrandDialog } from "@/features/brands/components/edit-brand-dialog";
+import { BrandDialog } from "@/features/brands/components/brand-dialog";
 import type { Brand } from "@/features/brands/type";
 import { useBrands } from "@/features/brands/queries";
 import { useTenants } from "@/features/tenants/queries";
@@ -13,7 +13,14 @@ import { useTenants } from "@/features/tenants/queries";
 export function BrandsPage() {
   const { t } = useTranslation("brands");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
+  const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
+  // Not reset on close, so the title doesn't flip while the dialog animates out
+  const [isReadOnly, setIsReadOnly] = useState(false);
+
+  function openBrand(brand: Brand, readOnly: boolean) {
+    setSelectedBrand(brand);
+    setIsReadOnly(readOnly);
+  }
 
   const { data: brands, error, isPending } = useBrands();
   const { data: tenants = [] } = useTenants();
@@ -35,7 +42,8 @@ export function BrandsPage() {
         brands={brands}
         isPending={isPending}
         error={error}
-        onEdit={setEditingBrand}
+        onEdit={(brand) => openBrand(brand, false)}
+        onView={(brand) => openBrand(brand, true)}
       />
 
       <CreateBrandDialog
@@ -43,9 +51,10 @@ export function BrandsPage() {
         onOpenChange={setIsCreateOpen}
         tenants={tenants}
       />
-      <EditBrandDialog
-        brand={editingBrand}
-        onClose={() => setEditingBrand(null)}
+      <BrandDialog
+        brand={selectedBrand}
+        readOnly={isReadOnly}
+        onClose={() => setSelectedBrand(null)}
       />
     </div>
   );

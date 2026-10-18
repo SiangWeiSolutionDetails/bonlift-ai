@@ -15,7 +15,8 @@
     "actions": "Tindakan",
     "empty": "Belum ada cawangan.",
     "unknownBrand": "Jenama tidak diketahui",
-    "editOutlet": "Sunting {{name}}"
+    "editOutlet": "Sunting {{name}}",
+    "viewOutlet": "Lihat {{name}}"
   },
   "create": {
     "title": "Cawangan baharu",
@@ -29,5 +30,9 @@
     "description": "Namakan semula cawangan atau tukar statusnya.",
     "name": "Nama",
     "active": "Aktif"
+  },
+  "view": {
+    "title": "Butiran cawangan",
+    "description": "Lihat nama dan status cawangan."
   }
 }

@@ -15,7 +15,8 @@
     "actions": "操作",
     "empty": "暂无门店。",
     "unknownBrand": "未知品牌",
-    "editOutlet": "编辑 {{name}}"
+    "editOutlet": "编辑 {{name}}",
+    "viewOutlet": "查看 {{name}}"
   },
   "create": {
     "title": "新建门店",
@@ -29,5 +30,9 @@
     "description": "重命名门店或更改其状态。",
     "name": "名称",
     "active": "启用"
+  },
+  "view": {
+    "title": "门店详情",
+    "description": "查看门店的名称和状态。"
   }
 }

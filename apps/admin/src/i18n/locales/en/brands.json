@@ -9,7 +9,8 @@
     "status": "Status",
     "actions": "Actions",
     "empty": "No brands yet.",
-    "editBrand": "Edit {{name}}"
+    "editBrand": "Edit {{name}}",
+    "viewBrand": "View {{name}}"
   },
   "create": {
     "title": "New brand",
@@ -23,5 +24,9 @@
     "description": "Rename the brand or change its status.",
     "name": "Name",
     "active": "Active"
+  },
+  "view": {
+    "title": "Brand details",
+    "description": "View the brand's name and status."
   }
 }

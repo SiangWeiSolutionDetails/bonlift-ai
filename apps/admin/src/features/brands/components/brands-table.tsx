@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { PencilIcon } from "lucide-react";
+import { EyeIcon, PencilIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ type BrandsTableProps = {
   isPending: boolean;
   error: Error | null;
   onEdit: (brand: Brand) => void;
+  onView: (brand: Brand) => void;
 };
 
 export function BrandsTable(props: BrandsTableProps) {
@@ -36,7 +37,7 @@ export function BrandsTable(props: BrandsTableProps) {
           <TableRow>
             <TableHead>{t("table.name")}</TableHead>
             <TableHead className="w-32">{t("table.status")}</TableHead>
-            <TableHead className="w-16 text-right">
+            <TableHead className="w-24 text-right">
               <span className="sr-only">{t("table.actions")}</span>
             </TableHead>
           </TableRow>
@@ -49,7 +50,7 @@ export function BrandsTable(props: BrandsTableProps) {
   );
 }
 
-function BrandsTableRows({ brands, isPending, error, onEdit }: BrandsTableProps) {
+function BrandsTableRows({ brands, isPending, error, onEdit, onView }: BrandsTableProps) {
   const { t } = useTranslation("brands");
   const { t: tCommon } = useTranslation();
 
@@ -87,6 +88,14 @@ function BrandsTableRows({ brands, isPending, error, onEdit }: BrandsTableProps)
           onClick={() => onEdit(brand)}
         >
           <PencilIcon />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={t("table.viewBrand", { name: brand.name })}
+          onClick={() => onView(brand)}
+        >
+          <EyeIcon />
         </Button>
       </TableCell>
     </TableRow>

@@ -9,7 +9,8 @@
     "status": "Status",
     "actions": "Actions",
     "empty": "No tenants yet.",
-    "editTenant": "Edit {{name}}"
+    "editTenant": "Edit {{name}}",
+    "viewTenant": "View {{name}}"
   },
   "create": {
     "title": "New tenant",
@@ -21,5 +22,9 @@
     "description": "Rename the tenant or change its status.",
     "name": "Name",
     "active": "Active"
+  },
+  "view": {
+    "title": "Tenant details",
+    "description": "View the tenant's name and status."
   }
 }

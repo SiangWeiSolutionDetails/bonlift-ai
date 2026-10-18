@@ -9,7 +9,8 @@
     "status": "状态",
     "actions": "操作",
     "empty": "暂无品牌。",
-    "editBrand": "编辑 {{name}}"
+    "editBrand": "编辑 {{name}}",
+    "viewBrand": "查看 {{name}}"
   },
   "create": {
     "title": "新建品牌",
@@ -23,5 +24,9 @@
     "description": "重命名品牌或更改其状态。",
     "name": "名称",
     "active": "启用"
+  },
+  "view": {
+    "title": "品牌详情",
+    "description": "查看品牌的名称和状态。"
   }
 }

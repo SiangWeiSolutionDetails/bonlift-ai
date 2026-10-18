@@ -9,7 +9,8 @@
     "status": "状态",
     "actions": "操作",
     "empty": "暂无租户。",
-    "editTenant": "编辑 {{name}}"
+    "editTenant": "编辑 {{name}}",
+    "viewTenant": "查看 {{name}}"
   },
   "create": {
     "title": "新建租户",
@@ -21,5 +22,9 @@
     "description": "重命名租户或更改其状态。",
     "name": "名称",
     "active": "启用"
+  },
+  "view": {
+    "title": "租户详情",
+    "description": "查看租户的名称和状态。"
   }
 }

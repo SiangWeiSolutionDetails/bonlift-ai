@@ -21,36 +21,44 @@ import { typeboxResolver } from "@/lib/typebox-resolver";
 import type { Tenant, UpdateTenantInput } from "../type";
 import { useUpdateTenant } from "../queries";
 
-type EditTenantDialogProps = {
+type TenantDialogProps = {
   tenant: Tenant | null;
+  readOnly?: boolean;
   onClose: () => void;
 };
 
-export function EditTenantDialog({ tenant, onClose }: EditTenantDialogProps) {
+export function TenantDialog({ tenant, readOnly = false, onClose }: TenantDialogProps) {
   const { t } = useTranslation("tenants");
+  const mode = readOnly ? "view" : "edit";
 
   return (
     <Dialog open={tenant !== null} onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t("edit.title")}</DialogTitle>
-          <DialogDescription>{t("edit.description")}</DialogDescription>
+          <DialogTitle>{t(`${mode}.title`)}</DialogTitle>
+          <DialogDescription>{t(`${mode}.description`)}</DialogDescription>
         </DialogHeader>
         {/* key resets the form state when a different tenant is opened */}
         {tenant && (
-          <EditTenantForm key={tenant.id} tenant={tenant} onSaved={onClose} />
+          <TenantForm
+            key={tenant.id}
+            tenant={tenant}
+            readOnly={readOnly}
+            onSaved={onClose}
+          />
         )}
       </DialogContent>
     </Dialog>
   );
 }
 
-type EditTenantFormProps = {
+type TenantFormProps = {
   tenant: Tenant;
+  readOnly: boolean;
   onSaved: () => void;
 };
 
-function EditTenantForm({ tenant, onSaved }: EditTenantFormProps) {
+function TenantForm({ tenant, readOnly, onSaved }: TenantFormProps) {
   const { t } = useTranslation("tenants");
   const { t: tCommon } = useTranslation();
   const {
@@ -68,6 +76,8 @@ function EditTenantForm({ tenant, onSaved }: EditTenantFormProps) {
   const submitError = updateTenantMutation.error;
 
   function onSubmit(values: UpdateTenantInput) {
+    if (readOnly) return;
+
     // PATCH only what changed; the API rejects an empty body (minProperties: 1)
     const changes = getChanges(tenant, values);
     if (Object.keys(changes).length === 0) return onSaved();
@@ -84,9 +94,10 @@ function EditTenantForm({ tenant, onSaved }: EditTenantFormProps) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
       <div className="grid gap-2">
-        <Label htmlFor="edit-tenant-name">{t("edit.name")}</Label>
+        <Label htmlFor="tenant-name">{t("edit.name")}</Label>
         <Input
-          id="edit-tenant-name"
+          id="tenant-name"
+          readOnly={readOnly}
           aria-invalid={!!errors.name}
           {...register("name", { setValueAs: (value: string) => value.trim() })}
         />
@@ -94,14 +105,15 @@ function EditTenantForm({ tenant, onSaved }: EditTenantFormProps) {
       </div>
 
       <div className="flex items-center justify-between gap-4 rounded-xl bg-muted px-4 py-3">
-        <Label htmlFor="edit-tenant-active">{t("edit.active")}</Label>
+        <Label htmlFor="tenant-active">{t("edit.active")}</Label>
         <Controller
           control={control}
           name="isActive"
           render={({ field }) => (
             <Switch
-              id="edit-tenant-active"
+              id="tenant-active"
               checked={field.value}
+              disabled={readOnly}
               onCheckedChange={field.onChange}
             />
           )}
@@ -114,16 +126,18 @@ function EditTenantForm({ tenant, onSaved }: EditTenantFormProps) {
         </p>
       )}
 
-      <DialogFooter>
-        <DialogClose asChild>
-          <Button type="button" variant="outline">
-            {tCommon("actions.cancel")}
+      {!readOnly && (
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button type="button" variant="outline">
+              {tCommon("actions.cancel")}
+            </Button>
+          </DialogClose>
+          <Button type="submit" disabled={!isDirty || isSubmitting}>
+            {isSubmitting ? tCommon("actions.saving") : tCommon("actions.save")}
           </Button>
-        </DialogClose>
-        <Button type="submit" disabled={!isDirty || isSubmitting}>
-          {isSubmitting ? tCommon("actions.saving") : tCommon("actions.save")}
-        </Button>
-      </DialogFooter>
+        </DialogFooter>
+      )}
     </form>
   );
 }

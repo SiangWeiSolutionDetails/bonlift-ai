@@ -15,7 +15,8 @@
     "actions": "Actions",
     "empty": "No outlets yet.",
     "unknownBrand": "Unknown brand",
-    "editOutlet": "Edit {{name}}"
+    "editOutlet": "Edit {{name}}",
+    "viewOutlet": "View {{name}}"
   },
   "create": {
     "title": "New outlet",
@@ -29,5 +30,9 @@
     "description": "Rename the outlet or change its status.",
     "name": "Name",
     "active": "Active"
+  },
+  "view": {
+    "title": "Outlet details",
+    "description": "View the outlet's name and status."
   }
 }

@@ -1,5 +1,5 @@
 import { useMemo, type ReactNode } from "react";
-import { PencilIcon } from "lucide-react";
+import { EyeIcon, PencilIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ type OutletsTableProps = {
   isPending: boolean;
   error: Error | null;
   onEdit: (outlet: Outlet) => void;
+  onView: (outlet: Outlet) => void;
 };
 
 export function OutletsTable(props: OutletsTableProps) {
@@ -39,7 +40,7 @@ export function OutletsTable(props: OutletsTableProps) {
             <TableHead>{t("table.name")}</TableHead>
             <TableHead>{t("table.brand")}</TableHead>
             <TableHead className="w-32">{t("table.status")}</TableHead>
-            <TableHead className="w-16 text-right">
+            <TableHead className="w-24 text-right">
               <span className="sr-only">{t("table.actions")}</span>
             </TableHead>
           </TableRow>
@@ -52,7 +53,14 @@ export function OutletsTable(props: OutletsTableProps) {
   );
 }
 
-function OutletsTableRows({ outlets, brands, isPending, error, onEdit }: OutletsTableProps) {
+function OutletsTableRows({
+  outlets,
+  brands,
+  isPending,
+  error,
+  onEdit,
+  onView,
+}: OutletsTableProps) {
   const { t } = useTranslation("outlets");
   const { t: tCommon } = useTranslation();
   // O(1) lookup per row instead of scanning the brand list for every outlet
@@ -98,6 +106,14 @@ function OutletsTableRows({ outlets, brands, isPending, error, onEdit }: Outlets
           onClick={() => onEdit(outlet)}
         >
           <PencilIcon />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={t("table.viewOutlet", { name: outlet.name })}
+          onClick={() => onView(outlet)}
+        >
+          <EyeIcon />
         </Button>
       </TableCell>
     </TableRow>

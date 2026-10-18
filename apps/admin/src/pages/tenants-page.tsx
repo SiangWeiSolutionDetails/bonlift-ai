@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { CreateTenantDialog } from "@/features/tenants/components/create-tenant-dialog";
-import { EditTenantDialog } from "@/features/tenants/components/edit-tenant-dialog";
+import { TenantDialog } from "@/features/tenants/components/tenant-dialog";
 import { TenantsTable } from "@/features/tenants/components/tenants-table";
 import type { Tenant } from "@/features/tenants/type";
 import { useTenants } from "@/features/tenants/queries";
@@ -12,7 +12,14 @@ import { useTenants } from "@/features/tenants/queries";
 export function TenantsPage() {
   const { t } = useTranslation("tenants");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
+  const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
+  // Not reset on close, so the title doesn't flip while the dialog animates out
+  const [isReadOnly, setIsReadOnly] = useState(false);
+
+  function openTenant(tenant: Tenant, readOnly: boolean) {
+    setSelectedTenant(tenant);
+    setIsReadOnly(readOnly);
+  }
 
   const { data: tenants, error, isPending } = useTenants();
 
@@ -33,13 +40,15 @@ export function TenantsPage() {
         tenants={tenants}
         isPending={isPending}
         error={error}
-        onEdit={setEditingTenant}
+        onEdit={(tenant) => openTenant(tenant, false)}
+        onView={(tenant) => openTenant(tenant, true)}
       />
 
       <CreateTenantDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
-      <EditTenantDialog
-        tenant={editingTenant}
-        onClose={() => setEditingTenant(null)}
+      <TenantDialog
+        tenant={selectedTenant}
+        readOnly={isReadOnly}
+        onClose={() => setSelectedTenant(null)}
       />
     </div>
   );

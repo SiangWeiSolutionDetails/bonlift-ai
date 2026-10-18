@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { useBrands } from "@/features/brands/queries";
 import { CreateOutletDialog } from "@/features/outlets/components/create-outlet-dialog";
-import { EditOutletDialog } from "@/features/outlets/components/edit-outlet-dialog";
+import { OutletDialog } from "@/features/outlets/components/outlet-dialog";
 import { OutletsTable } from "@/features/outlets/components/outlets-table";
 import { useOutlets } from "@/features/outlets/queries";
 import type { Outlet, OutletListParams } from "@/features/outlets/type";
@@ -24,8 +24,15 @@ const ALL_BRANDS = "all";
 export function OutletsPage() {
   const { t } = useTranslation("outlets");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [editingOutlet, setEditingOutlet] = useState<Outlet | null>(null);
+  const [selectedOutlet, setSelectedOutlet] = useState<Outlet | null>(null);
+  // Not reset on close, so the title doesn't flip while the dialog animates out
+  const [isReadOnly, setIsReadOnly] = useState(false);
   const [brandFilter, setBrandFilter] = useState(ALL_BRANDS);
+
+  function openOutlet(outlet: Outlet, readOnly: boolean) {
+    setSelectedOutlet(outlet);
+    setIsReadOnly(readOnly);
+  }
 
   const listParams: OutletListParams =
     brandFilter === ALL_BRANDS ? {} : { brandId: brandFilter };
@@ -71,7 +78,8 @@ export function OutletsPage() {
         brands={brands}
         isPending={isPending}
         error={error}
-        onEdit={setEditingOutlet}
+        onEdit={(outlet) => openOutlet(outlet, false)}
+        onView={(outlet) => openOutlet(outlet, true)}
       />
 
       <CreateOutletDialog
@@ -80,7 +88,11 @@ export function OutletsPage() {
         brands={brands}
         defaultBrandId={brandFilter === ALL_BRANDS ? undefined : brandFilter}
       />
-      <EditOutletDialog outlet={editingOutlet} onClose={() => setEditingOutlet(null)} />
+      <OutletDialog
+        outlet={selectedOutlet}
+        readOnly={isReadOnly}
+        onClose={() => setSelectedOutlet(null)}
+      />
     </div>
   );
 }

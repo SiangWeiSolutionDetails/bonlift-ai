@@ -9,7 +9,8 @@
     "status": "Status",
     "actions": "Tindakan",
     "empty": "Belum ada jenama.",
-    "editBrand": "Sunting {{name}}"
+    "editBrand": "Sunting {{name}}",
+    "viewBrand": "Lihat {{name}}"
   },
   "create": {
     "title": "Jenama baharu",
@@ -23,5 +24,9 @@
     "description": "Namakan semula jenama atau tukar statusnya.",
     "name": "Nama",
     "active": "Aktif"
+  },
+  "view": {
+    "title": "Butiran jenama",
+    "description": "Lihat nama dan status jenama."
   }
 }

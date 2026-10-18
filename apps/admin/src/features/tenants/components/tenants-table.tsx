@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { PencilIcon } from "lucide-react";
+import { EyeIcon, PencilIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ type TenantsTableProps = {
   isPending: boolean;
   error: Error | null;
   onEdit: (tenant: Tenant) => void;
+  onView: (tenant: Tenant) => void;
 };
 
 export function TenantsTable(props: TenantsTableProps) {
@@ -36,7 +37,7 @@ export function TenantsTable(props: TenantsTableProps) {
           <TableRow>
             <TableHead>{t("table.name")}</TableHead>
             <TableHead className="w-32">{t("table.status")}</TableHead>
-            <TableHead className="w-16 text-right">
+            <TableHead className="w-24 text-right">
               <span className="sr-only">{t("table.actions")}</span>
             </TableHead>
           </TableRow>
@@ -49,7 +50,7 @@ export function TenantsTable(props: TenantsTableProps) {
   );
 }
 
-function TenantsTableRows({ tenants, isPending, error, onEdit }: TenantsTableProps) {
+function TenantsTableRows({ tenants, isPending, error, onEdit, onView }: TenantsTableProps) {
   const { t } = useTranslation("tenants");
   const { t: tCommon } = useTranslation();
 
@@ -87,6 +88,14 @@ function TenantsTableRows({ tenants, isPending, error, onEdit }: TenantsTablePro
           onClick={() => onEdit(tenant)}
         >
           <PencilIcon />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={t("table.viewTenant", { name: tenant.name })}
+          onClick={() => onView(tenant)}
+        >
+          <EyeIcon />
         </Button>
       </TableCell>
     </TableRow>

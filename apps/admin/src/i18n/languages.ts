@@ -1,4 +1,4 @@
-export const SUPPORTED_LANGUAGES = ["en", "zh-CN", "ms"] as const;
+export const SUPPORTED_LANGUAGES = ["en", "zh-CN"] as const;
 
 export type Language = (typeof SUPPORTED_LANGUAGES)[number];
 
@@ -8,7 +8,6 @@ export const DEFAULT_LANGUAGE: Language = "en";
 export const LANGUAGE_LABELS: Record<Language, string> = {
   en: "English",
   "zh-CN": "简体中文",
-  ms: "Bahasa Melayu",
 };
 
 const STORAGE_KEY = "admin.language";
@@ -17,7 +16,7 @@ export function isSupportedLanguage(value: unknown): value is Language {
   return SUPPORTED_LANGUAGES.includes(value as Language);
 }
 
-// "zh", "zh-SG", "zh-Hans" → "zh-CN"; "ms-MY" → "ms"; exact matches win first.
+// "zh", "zh-SG", "zh-Hans" → "zh-CN"; exact matches win first.
 export function matchLanguage(candidate: string): Language | undefined {
   if (isSupportedLanguage(candidate)) return candidate;
   const base = candidate.toLowerCase().split("-")[0];

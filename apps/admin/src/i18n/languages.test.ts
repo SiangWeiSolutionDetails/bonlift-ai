@@ -9,7 +9,6 @@ describe("matchLanguage", () => {
     ["zh", "zh-CN"],
     ["zh-SG", "zh-CN"],
     ["ZH-hans", "zh-CN"],
-    ["ms-MY", "ms"],
   ])("maps %s to %s", (candidate, expected) => {
     expect(matchLanguage(candidate)).toBe(expected);
   });

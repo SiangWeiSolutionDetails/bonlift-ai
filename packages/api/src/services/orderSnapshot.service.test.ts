@@ -16,7 +16,7 @@ const fakePool = { query: queryMock } as any;
 function order(overrides: Partial<DatasetOrder> = {}): DatasetOrder {
   return {
     orderId: "SAL-0001",
-    orderedAt: "2026-06-26T12:00:00Z",
+    orderedAt: "2026-06-26T12:00:00+08:00",
     orderTotal: 4.9,
     lines: [{ itemId: "PRD-1", itemName: "Iced Lime Juice", qty: 1, unitPrice: 4.9 }],
     ...overrides,
@@ -70,7 +70,7 @@ describe("storeOrderSnapshots", () => {
     it("throws ValidationError when an order belongs to another date", async () => {
       const day = {
         date: "20260626",
-        orders: [order({ orderId: "SAL-0042", orderedAt: "2026-06-27T00:30:00Z" })],
+        orders: [order({ orderId: "SAL-0042", orderedAt: "2026-06-27T00:30:00+08:00" })],
       };
 
       await expect(storeOrderSnapshots(fakePool, OUTLET_ID, dataset([day]))).rejects.toThrow(
@@ -82,9 +82,19 @@ describe("storeOrderSnapshots", () => {
   });
 
   describe("accepted input", () => {
+    it("judges an order by its local date, not its UTC date", async () => {
+      // 07:30 local on the 26th is 23:30 UTC on the 25th; the local date is what counts.
+      queryMock.mockResolvedValueOnce(pgResult([storedRow("20260626", 1)]));
+      const day = { date: "20260626", orders: [order({ orderedAt: "2026-06-26T07:30:00+08:00" })] };
+
+      await expect(
+        storeOrderSnapshots(fakePool, OUTLET_ID, dataset([day])),
+      ).resolves.toBeDefined();
+    });
+
     it.each([
-      ["the first second of the day", "2026-06-26T00:00:00Z"],
-      ["the last second of the day", "2026-06-26T23:59:59Z"],
+      ["the first second of the day", "2026-06-26T00:00:00+08:00"],
+      ["the last second of the day", "2026-06-26T23:59:59+08:00"],
     ])("accepts an order at %s", async (_label, orderedAt) => {
       queryMock.mockResolvedValueOnce(pgResult([storedRow("20260626", 1)]));
       const day = { date: "20260626", orders: [order({ orderedAt })] };
@@ -110,7 +120,7 @@ describe("storeOrderSnapshots", () => {
       );
       const days = [
         { date: "20260626", orders: [order()] },
-        { date: "20260627", orders: [order({ orderedAt: "2026-06-27T12:00:00Z" })] },
+        { date: "20260627", orders: [order({ orderedAt: "2026-06-27T12:00:00+08:00" })] },
       ];
 
       await expect(

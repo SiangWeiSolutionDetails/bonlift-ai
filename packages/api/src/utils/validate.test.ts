@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import Type from "typebox";
 import { ValidationError } from "../errors.js";
-import { assertValid, assertValidUrl } from "./validate.js";
+import { assertValid, assertValidDate, assertValidUrl } from "./validate.js";
 
 const UpdateSchema = Type.Object(
   {
@@ -68,5 +68,39 @@ describe("assertValidUrl", () => {
   // Protocol, credentials and fragments are rejected by the contract's url pattern, not here.
   it("does not check the protocol", () => {
     expect(() => assertValidUrl("ftp://pos.example.com/file")).not.toThrow();
+  });
+});
+
+describe("assertValidDate", () => {
+  it.each([
+    ["20260626", "YYYYMMDD"],
+    ["20240229", "YYYYMMDD"],
+    ["2026-06-26", "YYYY-MM-DD"],
+    ["26.06.2026", "DD.MM.YYYY"],
+  ])("does not throw for %s in %s", (value, format) => {
+    expect(() => assertValidDate(value, format)).not.toThrow();
+  });
+
+  it.each([
+    ["30 February", "20260230"],
+    ["29 February in a non-leap year", "20250229"],
+    ["31 June", "20260631"],
+    ["month 13", "20261301"],
+    ["month 00", "20260001"],
+    ["day 00", "20260600"],
+  ])("throws ValidationError for %s", (_label, value) => {
+    expect(() => assertValidDate(value, "YYYYMMDD")).toThrow(
+      `${value} is not a valid YYYYMMDD date.`,
+    );
+  });
+
+  it.each([
+    ["a different format", "2026-06-26", "YYYYMMDD"],
+    ["too few digits", "2026626", "YYYYMMDD"],
+    ["extra characters", "20260626x", "YYYYMMDD"],
+    ["letters", "2026AB26", "YYYYMMDD"],
+    ["a wrong separator", "2026/06/26", "YYYY-MM-DD"],
+  ])("throws ValidationError for %s", (_label, value, format) => {
+    expect(() => assertValidDate(value, format)).toThrow(ValidationError);
   });
 });

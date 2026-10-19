@@ -30,3 +30,28 @@ export function assertValidUrl(url: string) {
     throw new ValidationError("Invalid URL.");
   }
 }
+
+// Format tokens: YYYY, MM, DD; any other characters must match literally (e.g. "YYYYMMDD", "YYYY-MM-DD").
+export function assertValidDate(value: string, format: string) {
+  const pattern = format
+    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    .replace("YYYY", "(?<year>\\d{4})")
+    .replace("MM", "(?<month>\\d{2})")
+    .replace("DD", "(?<day>\\d{2})");
+  const match = new RegExp(`^${pattern}$`).exec(value);
+
+  const year = Number(match?.groups?.year);
+  const month = Number(match?.groups?.month);
+  const day = Number(match?.groups?.day);
+  // Date.UTC rolls impossible dates over (30 Feb → 2 Mar), so a mismatch means the date doesn't exist.
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    !match ||
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    throw new ValidationError(`${value} is not a valid ${format} date.`);
+  }
+}

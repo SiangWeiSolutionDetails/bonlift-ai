@@ -1,15 +1,27 @@
 import { Queue } from "bullmq";
 import { getRedisConnection } from "./connection.js";
 
-export interface OutletScoringJobData {
-  outletId: string;
+export const CALCULATIONS_QUEUE_NAME = "calculations";
+
+export interface CalculationJobData {
+  runId: string;
 }
 
-export const OUTLET_SCORING_QUEUE_NAME = "outlet-scoring";
+let queue: Queue<CalculationJobData> | undefined;
 
-export const outletScoringQueue = new Queue<OutletScoringJobData>(
-  OUTLET_SCORING_QUEUE_NAME,
-  {
-    connection: getRedisConnection(),
-  },
-);
+function getCalculationsQueue(): Queue<CalculationJobData> {
+  if (!queue) {
+    queue = new Queue<CalculationJobData>(CALCULATIONS_QUEUE_NAME, {
+      connection: getRedisConnection(),
+    });
+  }
+  return queue;
+}
+
+export async function queueCalculation(runId: string): Promise<void> {
+  await getCalculationsQueue().add(
+    "outlet_item_scores",
+    { runId },
+    { jobId: runId, removeOnComplete: true, removeOnFail: 1000 },
+  );
+}

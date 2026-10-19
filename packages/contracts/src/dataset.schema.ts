@@ -3,7 +3,8 @@ import Type, { Static } from "typebox";
 export const DatasetLineItemSchema = Type.Object({
   itemId: Type.String({ minLength: 1 }),
   itemName: Type.String({ minLength: 1 }),
-  qty: Type.Number({ exclusiveMinimum: 0 }),
+  // Negative quantities are reversals (an item removed or refunded within a paid order).
+  qty: Type.Number(),
   unitPrice: Type.Number(),
 });
 export type DatasetLineItemSchemaType = Static<typeof DatasetLineItemSchema>;

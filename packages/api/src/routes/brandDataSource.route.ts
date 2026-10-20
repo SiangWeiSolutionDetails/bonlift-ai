@@ -1,6 +1,7 @@
 import {
   BrandDataSourceRecordSchema,
   BrandParamsSchema,
+  BrandParamsSchemaType,
   UpdateBrandDataSourceBodySchema,
   UpdateBrandDataSourceBodySchemaType,
 } from "@ai-services/contracts";
@@ -12,7 +13,7 @@ import {
 } from "../services/brandDataSource.service.js";
 
 export async function brandDataSourceRoutes(app: FastifyInstance) {
-  app.get<{ Params: { brandId: string } }>(
+  app.get<{ Params: BrandParamsSchemaType }>(
     "/brands/:brandId/data-source",
     {
       schema: {
@@ -27,7 +28,7 @@ export async function brandDataSourceRoutes(app: FastifyInstance) {
   );
 
   app.patch<{
-    Params: { brandId: string };
+    Params: BrandParamsSchemaType;
     Body: UpdateBrandDataSourceBodySchemaType;
   }>(
     "/brands/:brandId/data-source",

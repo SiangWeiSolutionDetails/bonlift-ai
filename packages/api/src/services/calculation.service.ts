@@ -3,7 +3,7 @@ import {
   OutletItemScoresCalculationQuerySchemaType,
   OutletItemScoresCalculationResponseSchemaType,
   CalculationTriggerTypeSchemaType,
-  OutletItemScoresConfigSchemaType,
+  OutletItemScoresCalculationConfigSchemaType,
   OutletParamsSchema,
 } from "@ai-services/contracts";
 import { Pool } from "pg";
@@ -16,9 +16,9 @@ import {
 } from "../errors.js";
 import { isUniqueViolationOf } from "../utils/pgErrors.js";
 
-export const OUTLET_ITEM_SCORES_ALGORITHM_VERSION = "p2-count";
+export const OUTLET_ITEM_SCORES_CALCULATION_ALGORITHM_VERSION = "p2-count";
 
-export const OUTLET_ITEM_SCORES_CONFIG: OutletItemScoresConfigSchemaType = {};
+export const OUTLET_ITEM_SCORES_CALCULATION_CONFIG: OutletItemScoresCalculationConfigSchemaType = {};
 
 async function insertRun(
   pool: Pool,
@@ -73,8 +73,8 @@ async function insertRun(
         `,
       [
         outletId,
-        OUTLET_ITEM_SCORES_ALGORITHM_VERSION,
-        JSON.stringify(OUTLET_ITEM_SCORES_CONFIG),
+        OUTLET_ITEM_SCORES_CALCULATION_ALGORITHM_VERSION,
+        JSON.stringify(OUTLET_ITEM_SCORES_CALCULATION_CONFIG),
         query.from,
         query.to,
         trigger.type,

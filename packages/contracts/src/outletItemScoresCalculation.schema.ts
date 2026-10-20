@@ -10,12 +10,12 @@ export const DaypartSchema = Type.Object(
 );
 export type DaypartSchemaType = Static<typeof DaypartSchema>;
 
-export const OutletItemScoresConfigSchema = Type.Object(
+export const OutletItemScoresCalculationConfigSchema = Type.Object(
   {
     dayparts: Type.Optional(Type.Array(DaypartSchema)),
   },
   { additionalProperties: false },
 );
-export type OutletItemScoresConfigSchemaType = Static<
-  typeof OutletItemScoresConfigSchema
+export type OutletItemScoresCalculationConfigSchemaType = Static<
+  typeof OutletItemScoresCalculationConfigSchema
 >;

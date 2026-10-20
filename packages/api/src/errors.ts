@@ -22,3 +22,8 @@ export class ConflictError extends AppError {
   readonly statusCode = 409;
   readonly code = "CONFLICT";
 }
+
+export class ServiceUnavailableError extends AppError {
+  readonly statusCode = 503;
+  readonly code = "SERVICE_UNAVAILABLE";
+}

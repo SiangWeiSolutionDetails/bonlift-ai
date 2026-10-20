@@ -1,5 +1,6 @@
 interface PgErrorLike {
   code?: string;
+  constraint?: string;
 }
 
 export const UNIQUE_VIOLATION = "23505";
@@ -11,4 +12,10 @@ export function isUniqueViolation(err: unknown): boolean {
 
 export function isForeignKeyViolation(err: unknown): boolean {
   return (err as PgErrorLike)?.code === FOREIGN_KEY_VIOLATION;
+}
+
+export function isUniqueViolationOf(err: unknown, constraint: string): boolean {
+  return (
+    isUniqueViolation(err) && (err as PgErrorLike)?.constraint === constraint
+  );
 }

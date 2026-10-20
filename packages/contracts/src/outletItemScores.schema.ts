@@ -12,7 +12,6 @@ export type DaypartSchemaType = Static<typeof DaypartSchema>;
 
 export const OutletItemScoreConfigSchema = Type.Object(
   {
-    maxWindowDays: Type.Integer({ minimum: 1, maximum: 366 }),
     dayparts: Type.Optional(Type.Array(DaypartSchema)),
   },
   { additionalProperties: false },

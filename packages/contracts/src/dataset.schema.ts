@@ -33,7 +33,7 @@ export type DatasetDaySchemaType = Static<typeof DatasetDaySchema>;
 
 export const DatasetSchema = Type.Object({
   outletName: Type.String({ minLength: 1 }),
-  dates: Type.Array(DatasetDaySchema, { minItems: 1, maxItems: 92 }),
+  dates: Type.Array(DatasetDaySchema, { minItems: 1 }),
 });
 export type DatasetSchemaType = Static<typeof DatasetSchema>;
 
@@ -52,7 +52,7 @@ export const DatasetResultSchema = Type.Object(
         },
         { additionalProperties: false },
       ),
-      { minItems: 1, maxItems: 92 },
+      { minItems: 1 },
     ),
   },
   { additionalProperties: false },

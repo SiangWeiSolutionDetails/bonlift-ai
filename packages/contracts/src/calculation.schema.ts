@@ -23,3 +23,11 @@ export type CalculationResponseSchemaType = Static<
   typeof CalculationResponseSchema
 >;
 
+export const CalculationTriggerTypeSchema = Type.Union([
+  Type.Literal("manual"),
+  Type.Literal("scheduled"),
+  Type.Literal("backfill"),
+]);
+export type CalculationTriggerTypeSchemaType = Static<
+  typeof CalculationTriggerTypeSchema
+>;

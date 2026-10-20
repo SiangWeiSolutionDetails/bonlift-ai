@@ -40,6 +40,12 @@ Fixtures: `BRAND_ID`, `INVALID_ID`, `DEFAULT_DATA_SOURCE` (`url: null`, 30000 / 
 - [ ] `pgErrors.ts`: add `CHECK_VIOLATION` (`23514`) + `isCheckViolation`; map to `ValidationError` by constraint name, never echo PostgreSQL's `detail` (it contains the whole failing row).
 - [ ] Admin UI: "Data source" dialog per brand (`GET` / `PATCH /brands/:brandId/data-source`), "Not configured" when `url` is `null`, friendly message for the url pattern instead of the raw regex.
 
+## After the POC
+
+- [ ] **After the POC:** per-brand calculation settings: `config_versions` (history) + `active_configs` (current pointer), admin UI to change them, runs referencing the version. Until then defaults live in code and each run copies its settings into `computation_runs.config`.
+
+- [ ] **After the POC:** detect stale results and missing days: compare `order_snapshots.updated_at` with `computation_runs.started_at` (days replaced after a run), and record `input_days` on each run. Add a per-day `computation_run_inputs` table only if an exact audit trail is required (it grows by window × runs, about 1M rows a year for 30 outlets with a 90-day window).
+
 ## Security / hardening (roadmap H1)
 
 - [ ] HTTPS-only data source URLs in production (check removed for the POC; plain `http` sends orders incl. `customerId` unencrypted). Consider a per-environment setting.

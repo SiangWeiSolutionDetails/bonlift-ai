@@ -42,9 +42,11 @@ Fixtures: `BRAND_ID`, `INVALID_ID`, `DEFAULT_DATA_SOURCE` (`url: null`, 30000 / 
 
 ## After the POC
 
-- [ ] **After the POC:** per-brand calculation settings: `config_versions` (history) + `active_configs` (current pointer), admin UI to change them, runs referencing the version. Until then defaults live in code and each run copies its settings into `computation_runs.config`.
+- [ ] **Go-live (H1):** config versions are immutable by convention only (no UPDATE/DELETE code paths); revoke UPDATE/DELETE on `calculation_config_versions` and its child tables for the app role.
 
 - [ ] **After the POC:** detect stale results and missing days: compare `order_snapshots.updated_at` with `computation_runs.started_at` (days replaced after a run), and record `input_days` on each run. Add a per-day `computation_run_inputs` table only if an exact audit trail is required (it grows by window × runs, about 1M rows a year for 30 outlets with a 90-day window).
+
+- [ ] **Retention (H6):** result tables are plain, not partitioned, also after go-live (decided 21 Oct 2026). Delete old results with batched `DELETE`s (e.g. a few thousand rows per statement) of runs that are no longer published and older than the retention period, so autovacuum keeps up. Revisit partitioning only if the tables grow to where batched deletes or vacuum can't keep up.
 
 ## Security / hardening (roadmap H1)
 

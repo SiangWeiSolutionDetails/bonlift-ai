@@ -1,5 +1,5 @@
 import { FastifyInstance } from "fastify";
-import { queueOutletItemScoresCalculation } from "@ai-services/worker";
+import { queueOutletItemScores } from "@ai-services/worker";
 import { getPool } from "@ai-services/db";
 import {
   OutletItemScoresCalculationQuerySchema,
@@ -27,7 +27,7 @@ export async function calculationRoutes(app: FastifyInstance) {
       const pool = getPool();
       const result = await startOutletItemScoresCalculation(
         pool,
-        queueOutletItemScoresCalculation,
+        queueOutletItemScores,
         request.params.outletId,
         request.query,
         { type: "manual", by: "api" },

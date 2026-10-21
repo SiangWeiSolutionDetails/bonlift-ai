@@ -1,5 +1,5 @@
 export type { CalculationJobData } from "./queues/createQueue.js";
 export {
-  OUTLET_ITEM_SCORES_CALCULATION_QUEUE_NAME,
-  queueOutletItemScoresCalculation,
-} from "./queues/outletItemScoresCalculation.queue.js";
+  OUTLET_ITEM_SCORES_QUEUE_NAME,
+  queueOutletItemScores,
+} from "./queues/outletItemScores.queue.js";

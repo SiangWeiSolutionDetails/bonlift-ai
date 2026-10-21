@@ -1,8 +1,8 @@
 import { closePool } from "@ai-services/db";
 import { getRedisConnection } from "./connection.js";
-import { startOutletItemScoresCalculationWorker } from "./workers/outletItemScoresCalculation.worker.js";
+import { startOutletItemScoresWorker } from "./workers/outletItemScores.worker.js";
 
-const workers = [startOutletItemScoresCalculationWorker()];
+const workers = [startOutletItemScoresWorker()];
 
 let shuttingDown = false;
 

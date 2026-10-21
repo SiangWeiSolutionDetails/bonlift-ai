@@ -1,13 +1,13 @@
 import { CalculationJobData, lazyQueue } from "./createQueue.js";
 
-export const OUTLET_ITEM_SCORES_CALCULATION_QUEUE_NAME =
-  "outlet-item-scores-calculation";
+export const OUTLET_ITEM_SCORES_QUEUE_NAME =
+  "outlet-item-scores";
 
 const getQueue = lazyQueue<CalculationJobData>(
-  OUTLET_ITEM_SCORES_CALCULATION_QUEUE_NAME,
+  OUTLET_ITEM_SCORES_QUEUE_NAME,
 );
 
-export async function queueOutletItemScoresCalculation(
+export async function queueOutletItemScores(
   runId: string,
 ): Promise<void> {
   await getQueue().add(

@@ -20,6 +20,7 @@ import { typeboxResolver } from "@/lib/typebox-resolver";
 import { UpdateBrandBodySchema } from "@ai-services/contracts";
 import { useUpdateBrand } from "../queries";
 import { BrandDataSourceSection } from "@/features/brand-data-source/components/brand-data-source-section";
+import { OutletItemScoresConfigSection } from "@/features/outlet-item-scores-config/components/outlet-item-scores-config-section";
 
 type BrandDialogProps = {
   brand: Brand | null;
@@ -49,6 +50,13 @@ export function BrandDialog({ brand, readOnly = false, onClose }: BrandDialogPro
         {brand && (
           <BrandDataSourceSection
             key={`${brand.id}-data-source`}
+            brandId={brand.id}
+            readOnly={readOnly}
+          />
+        )}
+        {brand && (
+          <OutletItemScoresConfigSection
+            key={`${brand.id}-outlet-item-scores-config`}
             brandId={brand.id}
             readOnly={readOnly}
           />

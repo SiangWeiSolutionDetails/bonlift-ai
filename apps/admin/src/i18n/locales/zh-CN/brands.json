@@ -38,5 +38,37 @@
     "maxChunkDays": "每批最大天数",
     "maxChunkDaysHint": "每次请求的天数，1 至 92。",
     "save": "保存数据源"
+  },
+  "outletItemScoresConfig": {
+    "title": "热门商品计算",
+    "version": "v{{version}}",
+    "currentHint": "保存会创建新版本；已完成的计算保留其所用的版本。",
+    "halfLifeDays": "半衰期（天）",
+    "halfLifeDaysHint": "距今这么多天的订单，权重为新订单的一半。",
+    "topN": "每个时段的商品数",
+    "topNHint": "每个时段保留的热门商品数量。",
+    "dayparts": "时段",
+    "daypartsHint": "门店当地时间。结束时间早于开始时间的时段会跨过午夜。",
+    "wholeDay": "未设置时段：全天作为一个列表排名。",
+    "daypartName": "名称",
+    "daypartStart": "开始",
+    "daypartEnd": "结束",
+    "addDaypart": "添加时段",
+    "removeDaypart": "删除时段",
+    "save": "保存为新版本",
+    "issues": {
+      "reservedName": "名称 {{name}} 已保留给全天。",
+      "sameStartEnd": "{{name}} 的开始和结束时间不能相同。",
+      "duplicateName": "{{name}} 被重复使用。",
+      "overlap": "{{first}} 与 {{second}} 时间重叠。"
+    },
+    "history": {
+      "title": "版本历史",
+      "current": "当前",
+      "by": "由 {{name}}",
+      "summary": "半衰期 {{halfLifeDays}} 天 · 前 {{topN}} 名 · {{dayparts}}",
+      "wholeDay": "全天",
+      "restore": "恢复"
+    }
   }
 }

@@ -38,5 +38,37 @@
     "maxChunkDays": "Max chunk days",
     "maxChunkDaysHint": "Days per request, 1 to 92.",
     "save": "Save data source"
+  },
+  "outletItemScoresConfig": {
+    "title": "Popular items calculation",
+    "version": "v{{version}}",
+    "currentHint": "Saving creates a new version; past runs keep the version they used.",
+    "halfLifeDays": "Half-life (days)",
+    "halfLifeDaysHint": "An order this many days old counts half as much as a new one.",
+    "topN": "Items per daypart",
+    "topNHint": "How many top items are kept for each daypart.",
+    "dayparts": "Dayparts",
+    "daypartsHint": "Outlet local time. A daypart that ends before it starts runs past midnight.",
+    "wholeDay": "No dayparts: the whole day is ranked as one list.",
+    "daypartName": "Name",
+    "daypartStart": "Start",
+    "daypartEnd": "End",
+    "addDaypart": "Add daypart",
+    "removeDaypart": "Remove daypart",
+    "save": "Save as new version",
+    "issues": {
+      "reservedName": "The name {{name}} is reserved for the whole day.",
+      "sameStartEnd": "{{name}} must start and end at different times.",
+      "duplicateName": "{{name}} is used more than once.",
+      "overlap": "{{first}} and {{second}} overlap."
+    },
+    "history": {
+      "title": "Version history",
+      "current": "Current",
+      "by": "by {{name}}",
+      "summary": "Half-life {{halfLifeDays}} days · Top {{topN}} · {{dayparts}}",
+      "wholeDay": "Whole day",
+      "restore": "Restore"
+    }
   }
 }

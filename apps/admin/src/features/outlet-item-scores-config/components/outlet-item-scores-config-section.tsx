@@ -16,6 +16,7 @@ import {
   findDaypartIssue,
   type DaypartIssue,
 } from "@ai-services/contracts";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FieldError } from "@/components/field-error";
 import { FieldHint } from "@/components/field-hint";
 import { SectionCard } from "@/components/section-card";
@@ -177,6 +178,8 @@ function OutletItemScoresConfigForm({
     name: "dayparts",
   });
   const [daypartIssue, setDaypartIssue] = useState<DaypartIssue | null>(null);
+  const [pendingChanges, setPendingChanges] =
+    useState<CreateOutletItemScoresConfigVersionInput | null>(null);
 
   const createVersionMutation = useCreateOutletItemScoresConfigVersion();
   const isSubmitting = createVersionMutation.isPending;
@@ -191,11 +194,22 @@ function OutletItemScoresConfigForm({
     const changes = getConfigChanges(defaultValues, values);
     if (Object.keys(changes).length === 0) return;
 
-    createVersionMutation.mutate({ brandId: config.brandId, input: changes });
+    setPendingChanges(changes);
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
+      <ConfirmDialog
+        open={pendingChanges !== null}
+        onCancel={() => setPendingChanges(null)}
+        onConfirm={() =>
+          pendingChanges &&
+          createVersionMutation.mutate({
+            brandId: config.brandId,
+            input: pendingChanges,
+          })
+        }
+      />
       <p className="text-sm text-muted-foreground">
         {t("outletItemScoresConfig.currentHint")}
       </p>

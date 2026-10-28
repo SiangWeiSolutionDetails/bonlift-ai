@@ -7,6 +7,10 @@
     "saving": "保存中…",
     "showHint": "显示提示"
   },
+  "confirmSave": {
+    "title": "保存更改？",
+    "description": "更改将立即生效。"
+  },
   "status": {
     "active": "启用",
     "inactive": "停用"

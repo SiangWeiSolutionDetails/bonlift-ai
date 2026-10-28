@@ -71,7 +71,9 @@
       "by": "by {{name}}",
       "summary": "Half-life {{halfLifeDays}} days · Top {{topN}} · {{dayparts}}",
       "wholeDay": "Whole day",
-      "restore": "Restore"
+      "restore": "Restore",
+      "restoreConfirmTitle": "Restore version {{version}}?",
+      "restoreConfirmDescription": "This creates a new version with these settings and makes it the current one."
     }
   }
 }

@@ -71,7 +71,9 @@
       "by": "由 {{name}}",
       "summary": "半衰期 {{halfLifeDays}} 天 · 前 {{topN}} 名 · {{dayparts}}",
       "wholeDay": "全天",
-      "restore": "恢复"
+      "restore": "恢复",
+      "restoreConfirmTitle": "恢复版本 {{version}}？",
+      "restoreConfirmDescription": "将使用这些设置创建一个新版本，并设为当前版本。"
     }
   }
 }

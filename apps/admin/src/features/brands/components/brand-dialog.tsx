@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { StoreIcon } from "lucide-react";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FieldError } from "@/components/field-error";
 import { SectionCard } from "@/components/section-card";
 import { Button } from "@/components/ui/button";
@@ -94,6 +96,7 @@ function BrandForm({ brand, readOnly, onSaved }: BrandFormProps) {
   const updateBrandMutation = useUpdateBrand();
   const isSubmitting = updateBrandMutation.isPending;
   const submitError = updateBrandMutation.error;
+  const [pendingChanges, setPendingChanges] = useState<UpdateBrandInput | null>(null);
 
   function onSubmit(values: UpdateBrandInput) {
     if (readOnly) return;
@@ -102,6 +105,10 @@ function BrandForm({ brand, readOnly, onSaved }: BrandFormProps) {
     const changes = getChanges(brand, values);
     if (Object.keys(changes).length === 0) return onSaved();
 
+    setPendingChanges(changes);
+  }
+
+  function save(changes: UpdateBrandInput) {
     updateBrandMutation.mutate(
       { brandId: brand.id, input: changes },
       { onSuccess: onSaved },
@@ -110,6 +117,11 @@ function BrandForm({ brand, readOnly, onSaved }: BrandFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
+      <ConfirmDialog
+        open={pendingChanges !== null}
+        onCancel={() => setPendingChanges(null)}
+        onConfirm={() => pendingChanges && save(pendingChanges)}
+      />
       <div className="grid gap-2">
         <Label htmlFor="brand-name">{t("edit.name")}</Label>
         <Input

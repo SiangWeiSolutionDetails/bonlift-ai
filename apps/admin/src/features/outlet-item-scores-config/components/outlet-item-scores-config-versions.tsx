@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RotateCcwIcon } from "lucide-react";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,10 +23,13 @@ export function OutletItemScoresConfigVersions({
   latestVersionId,
   readOnly,
 }: OutletItemScoresConfigVersionsProps) {
+  const { t } = useTranslation("brands");
   const { t: tCommon } = useTranslation();
   const { data: versions, error, isPending } =
     useOutletItemScoresConfigVersions(brandId);
   const restoreMutation = useCreateOutletItemScoresConfigVersion();
+  const [versionToRestore, setVersionToRestore] =
+    useState<OutletItemScoresConfigVersion | null>(null);
 
   // Versions are immutable, so restoring creates a new latest version with the old values.
   function restore(version: OutletItemScoresConfigVersion) {
@@ -40,6 +45,17 @@ export function OutletItemScoresConfigVersions({
 
   return (
     <div className="grid gap-3">
+      <ConfirmDialog
+        open={versionToRestore !== null}
+        onCancel={() => setVersionToRestore(null)}
+        onConfirm={() => versionToRestore && restore(versionToRestore)}
+        title={t("outletItemScoresConfig.history.restoreConfirmTitle", {
+          version: versionToRestore?.version,
+        })}
+        description={t("outletItemScoresConfig.history.restoreConfirmDescription")}
+        confirmLabel={t("outletItemScoresConfig.history.restore")}
+      />
+
       {isPending && <Skeleton className="h-16 w-full" />}
 
       {error && (
@@ -57,7 +73,7 @@ export function OutletItemScoresConfigVersions({
               isLatest={version.id === latestVersionId}
               canRestore={!readOnly && version.id !== latestVersionId}
               isRestoring={restoreMutation.isPending}
-              onRestore={() => restore(version)}
+              onRestore={() => setVersionToRestore(version)}
             />
           ))}
         </ol>

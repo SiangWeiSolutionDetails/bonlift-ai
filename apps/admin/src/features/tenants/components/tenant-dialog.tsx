@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { UpdateTenantBodySchema } from "@ai-services/contracts";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FieldError } from "@/components/field-error";
 import { Button } from "@/components/ui/button";
 import {
@@ -73,6 +75,8 @@ function TenantForm({ tenant, readOnly, onSaved }: TenantFormProps) {
   const isSubmitting = updateTenantMutation.isPending;
   const submitError = updateTenantMutation.error;
 
+  const [pendingChanges, setPendingChanges] = useState<UpdateTenantInput | null>(null);
+
   function onSubmit(values: UpdateTenantInput) {
     if (readOnly) return;
 
@@ -80,6 +84,10 @@ function TenantForm({ tenant, readOnly, onSaved }: TenantFormProps) {
     const changes = getChanges(tenant, values);
     if (Object.keys(changes).length === 0) return onSaved();
 
+    setPendingChanges(changes);
+  }
+
+  function save(changes: UpdateTenantInput) {
     updateTenantMutation.mutate(
       {
         tenantId: tenant.id,
@@ -91,6 +99,11 @@ function TenantForm({ tenant, readOnly, onSaved }: TenantFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
+      <ConfirmDialog
+        open={pendingChanges !== null}
+        onCancel={() => setPendingChanges(null)}
+        onConfirm={() => pendingChanges && save(pendingChanges)}
+      />
       <div className="grid gap-2">
         <Label htmlFor="tenant-name">{t("edit.name")}</Label>
         <Input

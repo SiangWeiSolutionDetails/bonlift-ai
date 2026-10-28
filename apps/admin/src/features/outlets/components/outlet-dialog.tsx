@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { UpdateOutletBodySchema } from "@ai-services/contracts";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FieldError } from "@/components/field-error";
 import { Button } from "@/components/ui/button";
 import {
@@ -72,6 +74,7 @@ function OutletForm({ outlet, readOnly, onSaved }: OutletFormProps) {
   const updateOutletMutation = useUpdateOutlet();
   const isSubmitting = updateOutletMutation.isPending;
   const submitError = updateOutletMutation.error;
+  const [pendingChanges, setPendingChanges] = useState<UpdateOutletInput | null>(null);
 
   function onSubmit(values: UpdateOutletInput) {
     if (readOnly) return;
@@ -80,6 +83,10 @@ function OutletForm({ outlet, readOnly, onSaved }: OutletFormProps) {
     const changes = getChanges(outlet, values);
     if (Object.keys(changes).length === 0) return onSaved();
 
+    setPendingChanges(changes);
+  }
+
+  function save(changes: UpdateOutletInput) {
     updateOutletMutation.mutate(
       { outletId: outlet.id, input: changes },
       { onSuccess: onSaved },
@@ -88,6 +95,11 @@ function OutletForm({ outlet, readOnly, onSaved }: OutletFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
+      <ConfirmDialog
+        open={pendingChanges !== null}
+        onCancel={() => setPendingChanges(null)}
+        onConfirm={() => pendingChanges && save(pendingChanges)}
+      />
       <div className="grid gap-2">
         <Label htmlFor="outlet-name">{t("edit.name")}</Label>
         <Input

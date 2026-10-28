@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { DatabaseIcon } from "lucide-react";
 import { useForm, type UseFormRegisterReturn } from "react-hook-form";
 import { UpdateBrandDataSourceBodySchema } from "@ai-services/contracts";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FieldError } from "@/components/field-error";
 import { FieldHint } from "@/components/field-hint";
 import { SectionCard } from "@/components/section-card";
@@ -64,6 +66,11 @@ function BrandDataSourceContent({
   return <BrandDataSourceForm dataSource={dataSource} readOnly={readOnly} />;
 }
 
+type PendingSave = {
+  values: UpdateBrandDataSourceInput;
+  changes: UpdateBrandDataSourceInput;
+};
+
 type BrandDataSourceFormProps = {
   dataSource: BrandDataSource;
   readOnly: boolean;
@@ -96,10 +103,16 @@ function BrandDataSourceForm({
   const isSubmitting = updateBrandDataSourceMutation.isPending;
   const submitError = updateBrandDataSourceMutation.error;
 
+  const [pendingSave, setPendingSave] = useState<PendingSave | null>(null);
+
   function onSubmit(values: UpdateBrandDataSourceInput) {
     const changes = getChanges(defaultValues, values);
     if (Object.keys(changes).length === 0) return;
 
+    setPendingSave({ values, changes });
+  }
+
+  function save({ values, changes }: PendingSave) {
     updateBrandDataSourceMutation.mutate(
       {
         brandId: dataSource.brandId,
@@ -111,6 +124,11 @@ function BrandDataSourceForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
+      <ConfirmDialog
+        open={pendingSave !== null}
+        onCancel={() => setPendingSave(null)}
+        onConfirm={() => pendingSave && save(pendingSave)}
+      />
       <div className="grid gap-2">
         <Label htmlFor="data-source-url">{t("dataSource.url")}</Label>
         <Input

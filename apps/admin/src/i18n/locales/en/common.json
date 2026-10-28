@@ -7,6 +7,10 @@
     "saving": "Saving…",
     "showHint": "Show hint"
   },
+  "confirmSave": {
+    "title": "Save changes?",
+    "description": "Your changes will be applied immediately."
+  },
   "status": {
     "active": "Active",
     "inactive": "Inactive"

@@ -1,5 +1,7 @@
 import { useTranslation } from "react-i18next";
+import { StoreIcon } from "lucide-react";
 import { FieldError } from "@/components/field-error";
+import { SectionCard } from "@/components/section-card";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,7 +23,6 @@ import { UpdateBrandBodySchema } from "@ai-services/contracts";
 import { useUpdateBrand } from "../queries";
 import { BrandDataSourceSection } from "@/features/brand-data-source/components/brand-data-source-section";
 import { OutletItemScoresConfigSection } from "@/features/outlet-item-scores-config/components/outlet-item-scores-config-section";
-
 type BrandDialogProps = {
   brand: Brand | null;
   readOnly?: boolean;
@@ -34,32 +35,36 @@ export function BrandDialog({ brand, readOnly = false, onClose }: BrandDialogPro
 
   return (
     <Dialog open={brand !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto" aria-describedby={undefined}>
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-5xl" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>{t(`${mode}.title`)}</DialogTitle>
         </DialogHeader>
-        {/* key resets the form state when a different brand is opened */}
         {brand && (
-          <BrandForm
-            key={brand.id}
-            brand={brand}
-            readOnly={readOnly}
-            onSaved={onClose}
-          />
-        )}
-        {brand && (
-          <BrandDataSourceSection
-            key={`${brand.id}-data-source`}
-            brandId={brand.id}
-            readOnly={readOnly}
-          />
-        )}
-        {brand && (
-          <OutletItemScoresConfigSection
-            key={`${brand.id}-outlet-item-scores-config`}
-            brandId={brand.id}
-            readOnly={readOnly}
-          />
+          <div className="grid gap-4 lg:grid-cols-3">
+            <SectionCard
+              title={t("details.title")}
+              icon={StoreIcon}
+              tone="primary"
+            >
+              {/* key resets the form state when a different brand is opened */}
+              <BrandForm
+                key={brand.id}
+                brand={brand}
+                readOnly={readOnly}
+                onSaved={onClose}
+              />
+            </SectionCard>
+            <BrandDataSourceSection
+              key={`${brand.id}-data-source`}
+              brandId={brand.id}
+              readOnly={readOnly}
+            />
+            <OutletItemScoresConfigSection
+              key={`${brand.id}-outlet-item-scores-config`}
+              brandId={brand.id}
+              readOnly={readOnly}
+            />
+          </div>
         )}
       </DialogContent>
     </Dialog>
@@ -115,7 +120,7 @@ function BrandForm({ brand, readOnly, onSaved }: BrandFormProps) {
         <FieldError message={errors.name?.message} />
       </div>
 
-      <div className="flex items-center justify-between gap-4 rounded-xl bg-muted px-4 py-3">
+      <div className="flex items-center justify-between gap-4 rounded-xl bg-card px-4 py-3 shadow-xs">
         <Label htmlFor="brand-active">{t("edit.active")}</Label>
         <Controller
           control={control}

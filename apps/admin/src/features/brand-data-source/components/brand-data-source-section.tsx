@@ -1,11 +1,12 @@
 import { useTranslation } from "react-i18next";
+import { DatabaseIcon } from "lucide-react";
 import { useForm, type UseFormRegisterReturn } from "react-hook-form";
 import { UpdateBrandDataSourceBodySchema } from "@ai-services/contracts";
 import { FieldError } from "@/components/field-error";
+import { SectionCard } from "@/components/section-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getErrorMessage } from "@/lib/error-message";
 import { typeboxResolver } from "@/lib/typebox-resolver";
@@ -25,13 +26,13 @@ export function BrandDataSourceSection({
   const { t } = useTranslation("brands");
 
   return (
-    <section className="grid gap-6">
-      <Separator />
-      <h3 className="font-heading text-base font-semibold">
-        {t("dataSource.title")}
-      </h3>
+    <SectionCard
+      title={t("dataSource.title")}
+      icon={DatabaseIcon}
+      className="lg:col-span-2"
+    >
       <BrandDataSourceContent brandId={brandId} readOnly={readOnly} />
-    </section>
+    </SectionCard>
   );
 }
 

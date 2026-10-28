@@ -5,18 +5,23 @@ import {
   useForm,
   type UseFormRegisterReturn,
 } from "react-hook-form";
-import { PlusIcon, Trash2Icon } from "lucide-react";
+import {
+  HistoryIcon,
+  PlusIcon,
+  Trash2Icon,
+  TrendingUpIcon,
+} from "lucide-react";
 import {
   CreateOutletItemScoresCalculationConfigVersionBodySchema,
   findDaypartIssue,
   type DaypartIssue,
 } from "@ai-services/contracts";
 import { FieldError } from "@/components/field-error";
+import { SectionCard } from "@/components/section-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getErrorMessage } from "@/lib/error-message";
 import { typeboxResolver } from "@/lib/typebox-resolver";
@@ -41,15 +46,40 @@ export function OutletItemScoresConfigSection({
   readOnly,
 }: OutletItemScoresConfigSectionProps) {
   const { t } = useTranslation("brands");
+  const { data: config, isPending } = useOutletItemScoresConfig(brandId);
 
   return (
-    <section className="grid gap-6">
-      <Separator />
-      <h3 className="font-heading text-base font-semibold">
-        {t("outletItemScoresConfig.title")}
-      </h3>
-      <OutletItemScoresConfigContent brandId={brandId} readOnly={readOnly} />
-    </section>
+    <>
+      <SectionCard
+        title={t("outletItemScoresConfig.title")}
+        icon={TrendingUpIcon}
+        action={
+          config && (
+            <Badge variant="secondary">
+              {t("outletItemScoresConfig.version", { version: config.version })}
+            </Badge>
+          )
+        }
+        className="lg:col-span-2"
+      >
+        <OutletItemScoresConfigContent brandId={brandId} readOnly={readOnly} />
+      </SectionCard>
+      <SectionCard
+        title={t("outletItemScoresConfig.history.title")}
+        icon={HistoryIcon}
+        tone="primary"
+      >
+        {config ? (
+          <OutletItemScoresConfigVersions
+            brandId={brandId}
+            latestVersionId={config.id}
+            readOnly={readOnly}
+          />
+        ) : (
+          isPending && <Skeleton className="h-16 w-full" />
+        )}
+      </SectionCard>
+    </>
   );
 }
 
@@ -78,19 +108,12 @@ function OutletItemScoresConfigContent({
   }
 
   return (
-    <>
-      {/* key remounts the form with the new defaults whenever a new version becomes the latest */}
-      <OutletItemScoresConfigForm
-        key={config.id}
-        config={config}
-        readOnly={readOnly}
-      />
-      <OutletItemScoresConfigVersions
-        brandId={brandId}
-        latestVersionId={config.id}
-        readOnly={readOnly}
-      />
-    </>
+    // key remounts the form with the new defaults whenever a new version becomes the latest
+    <OutletItemScoresConfigForm
+      key={config.id}
+      config={config}
+      readOnly={readOnly}
+    />
   );
 }
 
@@ -172,12 +195,9 @@ function OutletItemScoresConfigForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Badge variant="secondary">
-          {t("outletItemScoresConfig.version", { version: config.version })}
-        </Badge>
-        <span>{t("outletItemScoresConfig.currentHint")}</span>
-      </div>
+      <p className="text-sm text-muted-foreground">
+        {t("outletItemScoresConfig.currentHint")}
+      </p>
 
       <div className="grid gap-x-4 gap-y-6 sm:grid-cols-2">
         <NumberField

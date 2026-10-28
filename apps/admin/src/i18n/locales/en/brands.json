@@ -25,6 +25,9 @@
   "view": {
     "title": "Brand details"
   },
+  "details": {
+    "title": "Brand"
+  },
   "dataSource": {
     "title": "Data source",
     "url": "URL",

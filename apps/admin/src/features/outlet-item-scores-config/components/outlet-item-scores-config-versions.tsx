@@ -21,7 +21,6 @@ export function OutletItemScoresConfigVersions({
   latestVersionId,
   readOnly,
 }: OutletItemScoresConfigVersionsProps) {
-  const { t } = useTranslation("brands");
   const { t: tCommon } = useTranslation();
   const { data: versions, error, isPending } =
     useOutletItemScoresConfigVersions(brandId);
@@ -41,10 +40,6 @@ export function OutletItemScoresConfigVersions({
 
   return (
     <div className="grid gap-3">
-      <h4 className="text-sm font-medium">
-        {t("outletItemScoresConfig.history.title")}
-      </h4>
-
       {isPending && <Skeleton className="h-16 w-full" />}
 
       {error && (
@@ -54,7 +49,7 @@ export function OutletItemScoresConfigVersions({
       )}
 
       {versions && (
-        <ol className="grid gap-2">
+        <ol className="grid max-h-128 gap-2 overflow-y-auto">
           {versions.map((version) => (
             <VersionItem
               key={version.id}
@@ -101,7 +96,7 @@ function VersionItem({
           .join(", ");
 
   return (
-    <li className="flex items-start justify-between gap-3 rounded-xl bg-muted px-4 py-3">
+    <li className="flex items-start justify-between gap-3 rounded-xl bg-card px-4 py-3 shadow-xs">
       <div className="grid gap-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-medium">

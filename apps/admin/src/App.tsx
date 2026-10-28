@@ -2,6 +2,7 @@ import { Outlet, useMatches } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { AppSidebar } from '@/components/app-sidebar'
 import { LanguageSwitcher } from '@/components/language-switcher'
+import { ThemeSwitcher } from '@/components/theme-switcher'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -33,7 +34,8 @@ function App() {
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-          <div className="ml-auto px-4 md:px-6">
+          <div className="ml-auto flex items-center gap-1 px-4 md:px-6">
+            <ThemeSwitcher />
             <LanguageSwitcher />
           </div>
         </header>

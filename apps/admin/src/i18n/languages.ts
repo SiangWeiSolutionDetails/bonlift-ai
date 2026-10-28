@@ -10,7 +10,7 @@ export const LANGUAGE_LABELS: Record<Language, string> = {
   "zh-CN": "简体中文",
 };
 
-const STORAGE_KEY = "admin.language";
+const STORAGE_KEY = "language";
 
 export function isSupportedLanguage(value: unknown): value is Language {
   return SUPPORTED_LANGUAGES.includes(value as Language);

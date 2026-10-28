@@ -25,6 +25,12 @@
   "language": {
     "label": "Language"
   },
+  "theme": {
+    "label": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
   "validation": {
     "required": "This field is required.",
     "pattern": "Must not start or end with a space.",

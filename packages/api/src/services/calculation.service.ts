@@ -3,7 +3,6 @@ import {
   OutletItemScoresCalculationQuerySchemaType,
   OutletItemScoresCalculationResponseSchemaType,
   CalculationTriggerTypeSchemaType,
-  OutletItemScoresCalculationConfigSchemaType,
   OutletParamsSchema,
 } from "@ai-services/contracts";
 import { Pool } from "pg";
@@ -18,8 +17,6 @@ import { isUniqueViolationOf } from "../utils/pgErrors.js";
 
 export const OUTLET_ITEM_SCORES_CALCULATION_ALGORITHM_VERSION = "p2-count";
 
-export const OUTLET_ITEM_SCORES_CALCULATION_CONFIG: OutletItemScoresCalculationConfigSchemaType = {};
-
 async function insertRun(
   pool: Pool,
   outletId: string,
@@ -31,10 +28,22 @@ async function insertRun(
       `
         WITH
         outlet AS (
-            SELECT b.id AS brand_id, o.id, (b.is_active AND o.is_active) AS is_active
+            SELECT 
+              b.id AS brand_id, 
+              o.id, 
+              (b.is_active AND o.is_active) AS is_active,
+              v.id AS calculation_config_version_id
             FROM outlets o
             JOIN brands b
             ON b.id = o.brand_id
+            LEFT JOIN LATERAL (
+              SELECT ccv.id
+              FROM calculation_config_versions ccv
+              WHERE ccv.brand_id = b.id
+              AND ccv.job_type = 'outlet_item_scores'
+              ORDER BY ccv.version DESC
+              LIMIT 1
+            ) v on TRUE
             WHERE o.id = $1
         ),
         created AS (
@@ -44,7 +53,7 @@ async function insertRun(
                 job_type, 
                 run_date, 
                 algorithm_version, 
-                config, 
+                calculation_config_version_id, 
                 input_window_from, 
                 input_window_to, 
                 trigger_type, 
@@ -57,11 +66,11 @@ async function insertRun(
                 'outlet_item_scores', 
                 current_date,
                 $2, 
-                $3, 
+                o.calculation_config_version_id, 
+                $3::date, 
                 $4::date, 
-                $5::date, 
-                $6,
-                $7, 
+                $5,
+                $6, 
                 'running'
             FROM outlet o
             WHERE o.is_active IS TRUE 
@@ -74,7 +83,6 @@ async function insertRun(
       [
         outletId,
         OUTLET_ITEM_SCORES_CALCULATION_ALGORITHM_VERSION,
-        JSON.stringify(OUTLET_ITEM_SCORES_CALCULATION_CONFIG),
         query.from,
         query.to,
         trigger.type,
@@ -111,7 +119,11 @@ async function queueRun(
     await pool.query(
       `
         UPDATE computation_runs
-        SET status = 'failed', error = 'Fail to queue.', finished_at = now(), updated_at = now()
+        SET 
+          status = 'failed', 
+          error = 'Fail to queue.', 
+          finished_at = now(), 
+          updated_at = now()
         WHERE id = $1
         AND status = 'running'
         `,

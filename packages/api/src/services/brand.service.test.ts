@@ -190,11 +190,19 @@ describe("createBrand", () => {
     const result = await createBrand(fakePool, CREATE_DATA);
 
     const [sql, values] = queryMock.mock.calls[0];
-    expect(sql).toContain(
+    // Compare on collapsed whitespace so line breaks in the SQL don't matter.
+    const flatSql = sql.replace(/\s+/g, " ");
+    expect(flatSql).toContain(
       "INSERT INTO brands (tenant_id, name) VALUES ($1, $2)",
     );
-    expect(sql).toContain(
+    expect(flatSql).toContain(
       "INSERT INTO brand_data_sources (brand_id) SELECT id FROM b",
+    );
+    expect(flatSql).toContain(
+      "INSERT INTO calculation_config_versions (brand_id, job_type) SELECT b.id, 'outlet_item_scores' FROM b",
+    );
+    expect(flatSql).toContain(
+      "INSERT INTO outlet_item_scores_calculation_config_versions (id) SELECT ccv.id FROM ccv",
     );
     expect(values).toStrictEqual([CREATE_DATA.tenantId, CREATE_DATA.name]);
     expect(result).toStrictEqual(DEFAULT_BRAND);

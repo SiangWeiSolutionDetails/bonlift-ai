@@ -1,21 +1,26 @@
 import Type, { Static } from "typebox";
 
-export const DaypartSchema = Type.Object(
+export const OutletItemScoresCalculationQuerySchema = Type.Object(
   {
-    name: Type.String({ minLength: 1 }),
-    start: Type.String({ pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$" }),
-    end: Type.String({ pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$" }),
+    from: Type.String({ pattern: "^[0-9]{8}$" }),
+    to: Type.String({ pattern: "^[0-9]{8}$" }),
   },
   { additionalProperties: false },
 );
-export type DaypartSchemaType = Static<typeof DaypartSchema>;
+export type OutletItemScoresCalculationQuerySchemaType = Static<
+  typeof OutletItemScoresCalculationQuerySchema
+>;
 
-export const OutletItemScoresCalculationConfigSchema = Type.Object(
+export const OutletItemScoresCalculationResponseSchema = Type.Object(
   {
-    dayparts: Type.Optional(Type.Array(DaypartSchema)),
+    runId: Type.String({ format: "uuid" }),
+    outletId: Type.String({ format: "uuid" }),
+    jobType: Type.Literal("outlet_item_scores"),
+    from: Type.String({ pattern: "^[0-9]{8}$" }),
+    to: Type.String({ pattern: "^[0-9]{8}$" }),
   },
   { additionalProperties: false },
 );
-export type OutletItemScoresCalculationConfigSchemaType = Static<
-  typeof OutletItemScoresCalculationConfigSchema
+export type OutletItemScoresCalculationResponseSchemaType = Static<
+  typeof OutletItemScoresCalculationResponseSchema
 >;

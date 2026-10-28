@@ -5,3 +5,6 @@ export * from "./dataset.schema.js";
 export * from "./brandDataSource.schema.js";
 export * from "./calculation.schema.js";
 export * from "./outletItemScoresCalculation.schema.js";
+export * from "./calculationConfigVersion.schema.js";
+export * from "./outletItemScoresCalculationConfigVersion.schema.js";
+export * from "./dayparts.js";

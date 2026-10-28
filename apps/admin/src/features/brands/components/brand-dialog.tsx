@@ -35,12 +35,13 @@ export function BrandDialog({ brand, readOnly = false, onClose }: BrandDialogPro
 
   return (
     <Dialog open={brand !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-5xl" aria-describedby={undefined}>
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden sm:max-w-5xl" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>{t(`${mode}.title`)}</DialogTitle>
         </DialogHeader>
         {brand && (
-          <div className="grid gap-4 lg:grid-cols-3">
+          // Scroll inside the body so the scrollbar doesn't clip the dialog's rounded corners
+          <div className="-mx-6 grid min-h-0 gap-4 overflow-y-auto px-6 lg:grid-cols-3">
             <SectionCard
               title={t("details.title")}
               icon={StoreIcon}

@@ -3,6 +3,7 @@ import { DatabaseIcon } from "lucide-react";
 import { useForm, type UseFormRegisterReturn } from "react-hook-form";
 import { UpdateBrandDataSourceBodySchema } from "@ai-services/contracts";
 import { FieldError } from "@/components/field-error";
+import { FieldHint } from "@/components/field-hint";
 import { SectionCard } from "@/components/section-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -201,7 +202,10 @@ function NumberField({
 }: NumberFieldProps) {
   return (
     <div className="grid content-start gap-2">
-      <Label htmlFor={id}>{label}</Label>
+      <div className="flex items-center gap-1.5">
+        <Label htmlFor={id}>{label}</Label>
+        <FieldHint id={`${id}-hint`} hint={hint} />
+      </div>
       <Input
         id={id}
         type="number"
@@ -212,9 +216,6 @@ function NumberField({
         aria-describedby={`${id}-hint`}
         {...registration}
       />
-      <p id={`${id}-hint`} className="text-xs text-muted-foreground">
-        {hint}
-      </p>
       <FieldError message={error} />
     </div>
   );

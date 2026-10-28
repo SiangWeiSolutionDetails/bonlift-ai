@@ -4,7 +4,8 @@
     "create": "创建",
     "creating": "创建中…",
     "save": "保存",
-    "saving": "保存中…"
+    "saving": "保存中…",
+    "showHint": "显示提示"
   },
   "status": {
     "active": "启用",

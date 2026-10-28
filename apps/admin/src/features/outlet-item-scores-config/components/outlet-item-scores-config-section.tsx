@@ -17,6 +17,7 @@ import {
   type DaypartIssue,
 } from "@ai-services/contracts";
 import { FieldError } from "@/components/field-error";
+import { FieldHint } from "@/components/field-hint";
 import { SectionCard } from "@/components/section-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -218,13 +219,17 @@ function OutletItemScoresConfigForm({
         />
       </div>
 
-      <fieldset className="grid gap-3">
-        <legend className="mb-1 text-sm font-medium">
+      <fieldset
+        className="grid gap-3"
+        aria-describedby="outlet-item-scores-dayparts-hint"
+      >
+        <legend className="mb-1 flex items-center gap-1.5 text-sm font-medium">
           {t("outletItemScoresConfig.dayparts")}
+          <FieldHint
+            id="outlet-item-scores-dayparts-hint"
+            hint={t("outletItemScoresConfig.daypartsHint")}
+          />
         </legend>
-        <p className="text-xs text-muted-foreground">
-          {t("outletItemScoresConfig.daypartsHint")}
-        </p>
 
         {fields.length === 0 && (
           <p className="rounded-xl bg-muted px-4 py-3 text-sm text-muted-foreground">
@@ -355,7 +360,10 @@ function NumberField({
 }: NumberFieldProps) {
   return (
     <div className="grid content-start gap-2">
-      <Label htmlFor={id}>{label}</Label>
+      <div className="flex items-center gap-1.5">
+        <Label htmlFor={id}>{label}</Label>
+        <FieldHint id={`${id}-hint`} hint={hint} />
+      </div>
       <Input
         id={id}
         type="number"
@@ -366,9 +374,6 @@ function NumberField({
         aria-describedby={`${id}-hint`}
         {...registration}
       />
-      <p id={`${id}-hint`} className="text-xs text-muted-foreground">
-        {hint}
-      </p>
       <FieldError message={error} />
     </div>
   );

@@ -4,7 +4,8 @@
     "create": "Create",
     "creating": "Creating…",
     "save": "Save",
-    "saving": "Saving…"
+    "saving": "Saving…",
+    "showHint": "Show hint"
   },
   "status": {
     "active": "Active",

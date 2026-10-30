@@ -9,14 +9,6 @@ import { useTranslation } from "react-i18next";
 import { SectionCard } from "@/components/section-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -26,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { formatWindow } from "@/features/outlet-item-scores/format";
 import { formatDate, formatTime } from "@/lib/date-format";
 import { getErrorMessage } from "@/lib/error-message";
@@ -43,14 +36,7 @@ type SortDirection = "asc" | "desc";
 const DAY_FILTERS = ["all", "stored", "missing"] as const;
 type DayFilter = (typeof DAY_FILTERS)[number];
 
-// Same colours as the row status badges, so an option reads as the badge it filters for.
-const FILTER_BADGE_VARIANT = {
-  all: "outline",
-  stored: "success",
-  missing: "destructive",
-} as const;
-
-const FILTER_BADGE_ICON = {
+const FILTER_ICON = {
   all: null,
   stored: CircleCheckIcon,
   missing: CircleXIcon,
@@ -86,32 +72,24 @@ export function OrderSnapshotsCard({ outletId }: { outletId: string }) {
 
       {coverage.data && <CoverageSummary coverage={coverage.data} />}
 
-      <div className="flex items-center gap-3">
-        <Label htmlFor="snapshots-status-filter" className="shrink-0">
-          {t("filter.label")}
-        </Label>
-        <Select
-          value={dayFilter}
-          onValueChange={(value) => setDayFilter(value as DayFilter)}
-        >
-          <SelectTrigger id="snapshots-status-filter" className="w-36">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {DAY_FILTERS.map((filter) => {
-              const Icon = FILTER_BADGE_ICON[filter];
-              return (
-                <SelectItem key={filter} value={filter}>
-                  <Badge variant={FILTER_BADGE_VARIANT[filter]}>
-                    {Icon && <Icon />}
-                    {t(`filter.${filter}`)}
-                  </Badge>
-                </SelectItem>
-              );
-            })}
-          </SelectContent>
-        </Select>
-      </div>
+      <ToggleGroup
+        type="single"
+        variant="outline"
+        value={dayFilter}
+        // Radix emits "" when the active item is clicked again; keep one filter always selected
+        onValueChange={(value) => value && setDayFilter(value as DayFilter)}
+        aria-label={t("filter.label")}
+      >
+        {DAY_FILTERS.map((filter) => {
+          const Icon = FILTER_ICON[filter];
+          return (
+            <ToggleGroupItem key={filter} value={filter}>
+              {Icon && <Icon />}
+              {t(`filter.${filter}`)}
+            </ToggleGroupItem>
+          );
+        })}
+      </ToggleGroup>
 
       <div className="-mx-5 -mb-5 overflow-x-auto border-t">
         <Table>

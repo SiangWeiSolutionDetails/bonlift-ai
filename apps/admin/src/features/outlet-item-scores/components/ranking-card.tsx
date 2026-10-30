@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ALL_DAY_DAYPART } from "@ai-services/contracts";
 import { FieldHint } from "@/components/field-hint";
@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { formatDateTime } from "@/lib/date-format";
 import { getErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
@@ -79,6 +79,7 @@ function RankingBody({ run }: RankingCardProps) {
   const { t: tCommon } = useTranslation();
   const result = useOutletItemScoresRunResult(run.id, run.status);
   const groups = useMemo(() => groupByDaypart(result.data?.items ?? []), [result.data]);
+  const [selectedDaypart, setSelectedDaypart] = useState<string | undefined>();
 
   if (run.status === "running") {
     return <Message>{t("ranking.running")}</Message>;
@@ -105,22 +106,27 @@ function RankingBody({ run }: RankingCardProps) {
   }
 
   const dayparts = orderDayparts(run, [...groups.keys()]);
+  // Fall back to the first daypart when the selection doesn't exist in this run
+  const daypart =
+    selectedDaypart && groups.has(selectedDaypart) ? selectedDaypart : dayparts[0];
 
   return (
-    <Tabs defaultValue={dayparts[0]} className="gap-4">
-      <TabsList className="flex-wrap">
-        {dayparts.map((daypart) => (
-          <TabsTrigger key={daypart} value={daypart}>
-            {daypart === ALL_DAY_DAYPART ? t("ranking.allDay") : daypart}
-          </TabsTrigger>
+    <div className="flex flex-col gap-4">
+      <ToggleGroup
+        type="single"
+        variant="outline"
+        value={daypart}
+        onValueChange={(value) => value && setSelectedDaypart(value)}
+        className="flex-wrap"
+      >
+        {dayparts.map((option) => (
+          <ToggleGroupItem key={option} value={option}>
+            {option === ALL_DAY_DAYPART ? t("ranking.allDay") : option}
+          </ToggleGroupItem>
         ))}
-      </TabsList>
-      {dayparts.map((daypart) => (
-        <TabsContent key={daypart} value={daypart}>
-          <DaypartRanking items={groups.get(daypart) ?? []} />
-        </TabsContent>
-      ))}
-    </Tabs>
+      </ToggleGroup>
+      <DaypartRanking items={groups.get(daypart) ?? []} />
+    </div>
   );
 }
 

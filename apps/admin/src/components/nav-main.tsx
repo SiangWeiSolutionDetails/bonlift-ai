@@ -15,13 +15,14 @@ import {
 } from "@/components/ui/sidebar"
 import { Link, type LinkProps } from "@tanstack/react-router"
 import { ChevronRightIcon } from "lucide-react"
-import { useTranslation } from "react-i18next"
 
 type NavPath = LinkProps["to"]
 
 export function NavMain({
+  label,
   items,
 }: {
+  label: string
   items: {
     title: string
     url: NavPath
@@ -33,12 +34,10 @@ export function NavMain({
     }[]
   }[]
 }) {
-  const { t } = useTranslation()
-
   return (
     <SidebarGroup>
       <SidebarGroupLabel className="text-[12px] font-semibold text-sidebar-foreground/50">
-        {t("nav.management")}
+        {label}
       </SidebarGroupLabel>
       <SidebarMenu className="gap-0.5">
         {items.map((item) => !item.items?.length ? (

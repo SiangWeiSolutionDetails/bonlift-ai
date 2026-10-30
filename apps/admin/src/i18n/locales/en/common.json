@@ -20,6 +20,7 @@
   "nav": {
     "admin": "Admin",
     "management": "Management",
+    "computation": "Computation",
     "tenants": "Tenants",
     "brands": "Brands",
     "outlets": "Outlets",

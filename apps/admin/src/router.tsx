@@ -36,21 +36,21 @@ const tenantsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/tenants",
   component: TenantsPage,
-  staticData: { titleKey: "nav.tenants", icon: <Building2Icon /> },
+  staticData: { titleKey: "nav.tenants", groupKey: "nav.management", icon: <Building2Icon /> },
 });
 
 const brandsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/brands",
   component: BrandsPage,
-  staticData: { titleKey: "nav.brands", icon: <TagIcon /> },
+  staticData: { titleKey: "nav.brands", groupKey: "nav.management", icon: <TagIcon /> },
 });
 
 const outletsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/outlets",
   component: OutletsPage,
-  staticData: { titleKey: "nav.outlets", icon: <StoreIcon /> },
+  staticData: { titleKey: "nav.outlets", groupKey: "nav.management", icon: <StoreIcon /> },
 });
 
 const snapshotsRoute = createRoute({
@@ -58,7 +58,7 @@ const snapshotsRoute = createRoute({
   path: "/snapshots",
   component: OrderSnapshotsPage,
   validateSearch: validateSnapshotsSearch,
-  staticData: { titleKey: "nav.snapshots", icon: <DatabaseIcon /> },
+  staticData: { titleKey: "nav.snapshots", groupKey: "nav.computation", icon: <DatabaseIcon /> },
 });
 
 const resultsRoute = createRoute({
@@ -66,10 +66,10 @@ const resultsRoute = createRoute({
   path: "/results",
   component: ResultsPage,
   validateSearch: validateResultsSearch,
-  staticData: { titleKey: "nav.results", icon: <BarChart3Icon /> },
+  staticData: { titleKey: "nav.results", groupKey: "nav.computation", icon: <BarChart3Icon /> },
 });
 
-// Order here is the sidebar order; routes with a staticData icon appear in the sidebar.
+// Order here is the sidebar order; routes with a staticData icon and groupKey appear in the sidebar.
 const routeTree = rootRoute.addChildren([
   indexRoute,
   tenantsRoute,
@@ -87,6 +87,7 @@ declare module "@tanstack/react-router" {
   }
   interface StaticDataRouteOption {
     titleKey?: `nav.${keyof typeof enCommon.nav}`;
+    groupKey?: `nav.${keyof typeof enCommon.nav}`;
     icon?: ReactNode;
   }
 }

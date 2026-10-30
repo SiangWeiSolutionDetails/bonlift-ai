@@ -22,15 +22,17 @@
     "window": "Window",
     "config": "Config",
     "configVersion": "v{{version}}",
-    "halfLife": "Half-life {{halfLifeDays}} d",
-    "topN": "Top {{topN}}",
     "status": "Status",
     "rows": "Rows",
     "duration": "Duration",
     "started": "Started",
     "actions": "Actions",
     "published": "Published",
-    "view": "View"
+    "view": "View",
+    "halfLifeLabel": "Half-life",
+    "halfLifeValue": "{{halfLifeDays}} days",
+    "topNLabel": "Items per daypart",
+    "daypartsLabel": "Dayparts"
   },
   "ranking": {
     "title": "Popular items",

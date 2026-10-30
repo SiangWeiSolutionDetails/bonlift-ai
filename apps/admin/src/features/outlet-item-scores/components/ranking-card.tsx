@@ -21,7 +21,7 @@ import { useOutletItemScoresRunResult } from "../queries";
 import { groupByDaypart, orderDayparts } from "../ranking";
 import type { OutletItemScore, OutletItemScoresRun } from "../type";
 import { CopyableId } from "./copyable-id";
-import { RunConfigBadges, RunStatusBadge } from "./run-badges";
+import { RunConfigBadge, RunStatusBadge } from "./run-badges";
 
 type RankingCardProps = {
   run: OutletItemScoresRun;
@@ -51,7 +51,7 @@ function RunDetails({ run }: RankingCardProps) {
       </Detail>
       <Detail label={t("runs.window")}>{formatWindow(run.from, run.to)}</Detail>
       <Detail label={t("runs.config")}>
-        <RunConfigBadges run={run} />
+        <RunConfigBadge run={run} />
       </Detail>
       <Detail label={t("runs.status")}>
         <RunStatusBadge run={run} />

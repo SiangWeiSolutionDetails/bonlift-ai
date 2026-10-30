@@ -12,14 +12,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDateTime } from "@/lib/date-format";
+import { formatDate, formatTime } from "@/lib/date-format";
 import { getErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
-import { formatDuration, formatWindow } from "../format";
+import { addDays, formatDuration } from "../format";
 import type { OutletItemScoresRun } from "../type";
-import { RunConfigBadges, RunStatusBadge } from "./run-badges";
+import { CopyableId } from "./copyable-id";
+import { RunConfigBadge, RunStatusBadge } from "./run-badges";
 
-const COLUMN_COUNT = 7;
+const COLUMN_COUNT = 8;
 const SKELETON_ROW_COUNT = 3;
 
 type RunsCardProps = {
@@ -39,7 +40,8 @@ export function RunsCard(props: RunsCardProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="pl-5">{t("runs.window")}</TableHead>
+              <TableHead className="pl-5">{t("runs.runId")}</TableHead>
+              <TableHead>{t("runs.window")}</TableHead>
               <TableHead>{t("runs.config")}</TableHead>
               <TableHead>{t("runs.status")}</TableHead>
               <TableHead className="text-right">{t("runs.rows")}</TableHead>
@@ -96,14 +98,22 @@ function RunRows({
 
     return (
       <TableRow key={run.id} className={cn(isViewing && "bg-primary/5")}>
-        <TableCell className="pl-5 font-medium">
-          <div className="flex flex-wrap items-center gap-2">
-            {formatWindow(run.from, run.to)}
+        <TableCell className="pl-5">
+          {/* Icon pinned to the cell's right edge so the copy icons line up down the column */}
+          <div className="grid justify-items-start gap-1">
+            <CopyableId id={run.id} className="flex w-full justify-between" />
             {run.isPublished && <Badge>{t("runs.published")}</Badge>}
           </div>
         </TableCell>
-        <TableCell className="min-w-60">
-          <RunConfigBadges run={run} />
+        <TableCell>
+          {/* Stacked like Started, so the full run ID fits without a sideways scroll */}
+          <div className="grid font-medium">
+            <span>{formatDate(run.from)}</span>
+            <span>{formatDate(addDays(run.to, -1))}</span>
+          </div>
+        </TableCell>
+        <TableCell>
+          <RunConfigBadge run={run} />
         </TableCell>
         <TableCell>
           <RunStatusBadge run={run} />
@@ -114,8 +124,14 @@ function RunRows({
         <TableCell className="text-right tabular-nums text-muted-foreground">
           {formatDuration(run.startedAt, run.finishedAt) ?? "—"}
         </TableCell>
-        <TableCell className="text-muted-foreground">
-          {formatDateTime(run.startedAt)}
+        <TableCell>
+          {/* Two lines keep the table within the card once the full run ID is shown */}
+          <div className="grid">
+            <span>{formatDate(run.startedAt)}</span>
+            <span className="text-xs text-muted-foreground">
+              {formatTime(run.startedAt)}
+            </span>
+          </div>
         </TableCell>
         <TableCell className="pr-5 text-right">
           <Button

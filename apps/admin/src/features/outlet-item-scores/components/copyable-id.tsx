@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { CheckIcon, CopyIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const COPIED_FEEDBACK_MS = 1500;
 
-export function CopyableId({ id }: { id: string }) {
+export function CopyableId({ id, className }: { id: string; className?: string }) {
   const { t } = useTranslation("results");
   const [copied, setCopied] = useState(false);
 
@@ -24,18 +25,22 @@ export function CopyableId({ id }: { id: string }) {
     }
   }
 
+  const label = copied ? t("ranking.copied") : t("ranking.copyRunId");
+
   return (
-    <Badge variant="secondary" asChild>
-      <button
+    <span className={cn("inline-flex items-center gap-1 whitespace-nowrap", className)}>
+      <span>{id}</span>
+      <Button
         type="button"
+        variant="ghost"
+        size="icon-xs"
         onClick={copy}
-        aria-label={copied ? t("ranking.copied") : t("ranking.copyRunId")}
-        title={copied ? t("ranking.copied") : t("ranking.copyRunId")}
-        className="cursor-pointer font-mono select-all"
+        aria-label={label}
+        title={label}
+        className="text-muted-foreground hover:text-foreground"
       >
-        {id}
         {copied ? <CheckIcon /> : <CopyIcon />}
-      </button>
-    </Badge>
+      </Button>
+    </span>
   );
 }

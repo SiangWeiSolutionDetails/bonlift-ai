@@ -22,15 +22,17 @@
     "window": "日期范围",
     "config": "配置",
     "configVersion": "v{{version}}",
-    "halfLife": "半衰期 {{halfLifeDays}} 天",
-    "topN": "前 {{topN}} 名",
     "status": "状态",
     "rows": "行数",
     "duration": "耗时",
     "started": "开始时间",
     "actions": "操作",
     "published": "已发布",
-    "view": "查看"
+    "view": "查看",
+    "halfLifeLabel": "半衰期",
+    "halfLifeValue": "{{halfLifeDays}} 天",
+    "topNLabel": "每个时段的商品数",
+    "daypartsLabel": "时段"
   },
   "ranking": {
     "title": "热门商品",

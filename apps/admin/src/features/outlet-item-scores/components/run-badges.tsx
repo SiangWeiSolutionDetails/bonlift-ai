@@ -1,7 +1,11 @@
 import { Loader2Icon } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { SettingBadge } from "@/components/setting-badge";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { OutletItemScoresRun } from "../type";
 
 const STATUS_VARIANT = {
@@ -10,17 +14,35 @@ const STATUS_VARIANT = {
   failed: "destructive",
 } as const;
 
-export function RunConfigBadges({ run }: { run: OutletItemScoresRun }) {
+// Only the version is shown; its settings appear on hover or keyboard focus, keeping rows compact.
+export function RunConfigBadge({ run }: { run: OutletItemScoresRun }) {
   const { t } = useTranslation("results");
+  const dayparts = run.dayparts.length
+    ? run.dayparts.map(({ name, start, end }) => `${name} ${start}–${end}`)
+    : [t("ranking.allDay")];
 
   return (
-    <div className="flex flex-wrap gap-1.5">
-      <Badge>{t("runs.configVersion", { version: run.configVersion })}</Badge>
-      <SettingBadge>
-        {t("runs.halfLife", { halfLifeDays: run.halfLifeDays })}
-      </SettingBadge>
-      <SettingBadge>{t("runs.topN", { topN: run.topN })}</SettingBadge>
-    </div>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge tabIndex={0} className="cursor-default">
+          {t("runs.configVersion", { version: run.configVersion })}
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent>
+        <dl className="grid grid-cols-[auto_auto] gap-x-3 gap-y-1">
+          <dt className="opacity-70">{t("runs.halfLifeLabel")}</dt>
+          <dd>{t("runs.halfLifeValue", { halfLifeDays: run.halfLifeDays })}</dd>
+          <dt className="opacity-70">{t("runs.topNLabel")}</dt>
+          <dd>{run.topN}</dd>
+          <dt className="opacity-70">{t("runs.daypartsLabel")}</dt>
+          <dd className="grid">
+            {dayparts.map((daypart) => (
+              <span key={daypart}>{daypart}</span>
+            ))}
+          </dd>
+        </dl>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 

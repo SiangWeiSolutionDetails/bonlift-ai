@@ -4,7 +4,8 @@ import type { Language } from "@/i18n/languages";
 
 // One display format for the whole app, whatever the UI language.
 const DISPLAY_DATE = "dd/MM/yyyy";
-const DISPLAY_DATE_TIME = "dd/MM/yyyy hh:mm:ss a";
+const DISPLAY_TIME = "hh:mm:ss a";
+const DISPLAY_DATE_TIME = `${DISPLAY_DATE} ${DISPLAY_TIME}`;
 const ISO_DATE = "yyyy-MM-dd";
 
 const CALENDAR_LOCALES: Record<Language, Locale> = { en: enUS, "zh-CN": zhCN };
@@ -17,6 +18,10 @@ function toDate(value: string | Date) {
 
 export function formatDate(value: string | Date) {
   return format(toDate(value), DISPLAY_DATE);
+}
+
+export function formatTime(value: string | Date) {
+  return format(toDate(value), DISPLAY_TIME);
 }
 
 export function formatDateTime(value: string | Date) {

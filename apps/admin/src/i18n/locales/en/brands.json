@@ -1,7 +1,7 @@
 {
   "page": {
     "title": "Brands",
-    "newBrand": "New brand"
+    "newBrand": "New Brand"
   },
   "table": {
     "name": "Name",
@@ -12,43 +12,43 @@
     "viewBrand": "View {{name}}"
   },
   "create": {
-    "title": "New brand",
+    "title": "New Brand",
     "tenant": "Tenant",
     "tenantPlaceholder": "Select a tenant",
     "name": "Name"
   },
   "edit": {
-    "title": "Edit brand",
+    "title": "Edit Brand",
     "name": "Name",
     "active": "Active"
   },
   "view": {
-    "title": "Brand details"
+    "title": "Brand Details"
   },
   "details": {
     "title": "Brand"
   },
   "dataSource": {
-    "title": "Data source",
+    "title": "Data Source",
     "url": "URL",
     "urlPlaceholder": "https://pos.example.com/orders",
     "notConfigured": "Not configured",
     "urlInvalid": "Enter an http(s) URL without a username, password or #fragment.",
     "timeoutMs": "Timeout (ms)",
     "timeoutMsHint": "1,000 to 120,000 milliseconds.",
-    "refetchDays": "Refetch days",
+    "refetchDays": "Refetch Days",
     "refetchDaysHint": "Recent days fetched again on every run, 0 to 92.",
-    "maxChunkDays": "Max chunk days",
+    "maxChunkDays": "Max Chunk Days",
     "maxChunkDaysHint": "Days per request, 1 to 92.",
-    "save": "Save data source"
+    "save": "Save Data Source"
   },
   "outletItemScoresConfig": {
-    "title": "Popular items calculation",
+    "title": "Popular Items Calculation",
     "version": "v{{version}}",
     "currentHint": "Saving creates a new version; past runs keep the version they used.",
-    "halfLifeDays": "Half-life (days)",
+    "halfLifeDays": "Half-Life (Days)",
     "halfLifeDaysHint": "An order this many days old counts half as much as a new one.",
-    "topN": "Items per daypart",
+    "topN": "Items Per Daypart",
     "topNHint": "How many top items are kept for each daypart.",
     "dayparts": "Dayparts",
     "daypartsHint": "Outlet local time. A daypart that ends before it starts runs past midnight.",
@@ -56,9 +56,9 @@
     "daypartName": "Name",
     "daypartStart": "Start",
     "daypartEnd": "End",
-    "addDaypart": "Add daypart",
-    "removeDaypart": "Remove daypart",
-    "save": "Save as new version",
+    "addDaypart": "Add Daypart",
+    "removeDaypart": "Remove Daypart",
+    "save": "Save As New Version",
     "issues": {
       "reservedName": "The name {{name}} is reserved for the whole day.",
       "sameStartEnd": "{{name}} must start and end at different times.",
@@ -66,12 +66,12 @@
       "overlap": "{{first}} and {{second}} overlap."
     },
     "history": {
-      "title": "Version history",
+      "title": "Version History",
       "current": "Current",
       "by": "by {{name}}",
       "halfLife": "Half-life {{halfLifeDays}} days",
       "topN": "Top {{topN}}",
-      "wholeDay": "Whole day",
+      "wholeDay": "Whole Day",
       "restore": "Restore",
       "restoreConfirmTitle": "Restore version {{version}}?",
       "restoreConfirmDescription": "This creates a new version with these settings and makes it the current one."

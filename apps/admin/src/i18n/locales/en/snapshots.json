@@ -7,7 +7,7 @@
     "date": "Date",
     "orders": "Orders",
     "size": "Size",
-    "updated": "Last updated",
+    "updated": "Last Updated",
     "status": "Status",
     "empty": "No order dates have been uploaded for this outlet yet.",
     "actions": "Actions",
@@ -19,10 +19,10 @@
     "copied": "Copied"
   },
   "summary": {
-    "stored": "Stored days",
-    "missing": "Missing days",
-    "stale": "Stale days",
-    "liveRun": "Live run window"
+    "stored": "Stored Days",
+    "missing": "Missing Days",
+    "stale": "Stale Days",
+    "liveRun": "Live Run Window"
   },
   "filter": {
     "label": "Status",

@@ -1,7 +1,7 @@
 {
   "page": {
-    "title": "Results",
-    "runCalculation": "Run calculation"
+    "title": "Outlet Item Scoring",
+    "runCalculation": "Run Calculation"
   },
   "picker": {
     "brand": "Brand",
@@ -29,9 +29,9 @@
     "actions": "Actions",
     "published": "Published",
     "view": "View",
-    "halfLifeLabel": "Half-life",
+    "halfLifeLabel": "Half-Life",
     "halfLifeValue": "{{halfLifeDays}} days",
-    "topNLabel": "Items per daypart",
+    "topNLabel": "Items Per Daypart",
     "daypartsLabel": "Dayparts",
     "publish": "Publish",
     "publishConfirmTitle": "Publish this run?",
@@ -40,21 +40,21 @@
   "ranking": {
     "rank": "#",
     "item": "Item",
-    "share": "Order share",
+    "share": "Order Share",
     "shareHint": "Recency-weighted share of this daypart's orders that contain the item.",
     "orders": "Orders",
-    "allDay": "All day",
+    "allDay": "All Day",
     "running": "Calculating…",
     "failed": "This run failed: {{error}}",
     "empty": "No orders in this window, so nothing was ranked.",
-    "copyRunId": "Copy run ID",
+    "copyRunId": "Copy Run ID",
     "copied": "Copied"
   },
   "dialog": {
-    "title": "Run calculation",
+    "title": "Run Calculation",
     "description": "Scores the outlet's orders in this date range with the brand's current settings. The result goes live unless a run covering later dates is already live.",
     "from": "From",
-    "to": "To (inclusive)",
+    "to": "To (Inclusive)",
     "invalidRange": "The end date must be on or after the start date.",
     "submit": "Run",
     "submitting": "Starting…"

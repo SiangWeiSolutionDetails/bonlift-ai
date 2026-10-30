@@ -1,11 +1,11 @@
 {
   "page": {
     "title": "Outlets",
-    "newOutlet": "New outlet"
+    "newOutlet": "New Outlet"
   },
   "filter": {
     "brand": "Brand",
-    "allBrands": "All brands"
+    "allBrands": "All Brands"
   },
   "table": {
     "name": "Name",
@@ -18,17 +18,17 @@
     "viewOutlet": "View {{name}}"
   },
   "create": {
-    "title": "New outlet",
+    "title": "New Outlet",
     "brand": "Brand",
     "brandPlaceholder": "Select a brand",
     "name": "Name"
   },
   "edit": {
-    "title": "Edit outlet",
+    "title": "Edit Outlet",
     "name": "Name",
     "active": "Active"
   },
   "view": {
-    "title": "Outlet details"
+    "title": "Outlet Details"
   }
 }

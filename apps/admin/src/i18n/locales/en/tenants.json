@@ -1,7 +1,7 @@
 {
   "page": {
     "title": "Tenants",
-    "newTenant": "New tenant"
+    "newTenant": "New Tenant"
   },
   "table": {
     "name": "Name",
@@ -12,15 +12,15 @@
     "viewTenant": "View {{name}}"
   },
   "create": {
-    "title": "New tenant",
+    "title": "New Tenant",
     "name": "Name"
   },
   "edit": {
-    "title": "Edit tenant",
+    "title": "Edit Tenant",
     "name": "Name",
     "active": "Active"
   },
   "view": {
-    "title": "Tenant details"
+    "title": "Tenant Details"
   }
 }

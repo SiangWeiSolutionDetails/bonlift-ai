@@ -6,7 +6,7 @@
     "edit": "Edit",
     "save": "Save",
     "saving": "Saving…",
-    "showHint": "Show hint",
+    "showHint": "Show Hint",
     "view": "View"
   },
   "confirmSave": {
@@ -24,8 +24,8 @@
     "tenants": "Tenants",
     "brands": "Brands",
     "outlets": "Outlets",
-    "snapshots": "Order snapshots",
-    "results": "Results"
+    "snapshots": "Order Snapshots",
+    "results": "Outlet Item Scoring"
   },
   "language": {
     "label": "Language"

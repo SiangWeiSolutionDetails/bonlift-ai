@@ -2,7 +2,7 @@ import type { ComponentType, ReactNode } from "react";
 import { cn } from "cn";
 
 type SectionCardProps = {
-  title: ReactNode;
+  title?: ReactNode;
   icon?: ComponentType<{ className?: string }>;
   tone?: "default" | "primary";
   action?: ReactNode;
@@ -28,17 +28,19 @@ export function SectionCard({
         className,
       )}
     >
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-3">
-          {Icon && (
-            <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-              <Icon className="size-4" />
-            </span>
-          )}
-          <h3 className="font-heading text-base font-semibold">{title}</h3>
+      {(title || Icon || action) && (
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3">
+            {Icon && (
+              <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+                <Icon className="size-4" />
+              </span>
+            )}
+            {title && <h3 className="font-heading text-base font-semibold">{title}</h3>}
+          </div>
+          {action}
         </div>
-        {action}
-      </div>
+      )}
       {children}
     </section>
   );

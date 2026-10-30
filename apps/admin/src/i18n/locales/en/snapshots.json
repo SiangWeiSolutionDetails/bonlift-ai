@@ -1,0 +1,33 @@
+{
+  "page": {
+    "title": "Order snapshots",
+    "noOutlet": "Choose a brand and an outlet to see which order dates are stored."
+  },
+  "card": {
+    "date": "Date",
+    "orders": "Orders",
+    "size": "Size",
+    "updated": "Last updated",
+    "status": "Status",
+    "empty": "No order dates have been uploaded for this outlet yet."
+  },
+  "summary": {
+    "stored": "Stored days",
+    "missing": "Missing days",
+    "stale": "Stale days",
+    "liveRun": "Live run window"
+  },
+  "filter": {
+    "label": "Status",
+    "all": "All",
+    "stored": "Stored",
+    "missing": "Missing",
+    "noMatch": "No dates match this filter."
+  },
+  "status": {
+    "stored": "Stored",
+    "missing": "Missing",
+    "stale": "Stale",
+    "staleHint": "Re-uploaded after the live run started, so its ranking may be out of date."
+  }
+}

@@ -7,6 +7,7 @@ import { outletRoutes } from "./routes/outlet.route.js";
 import { mockDatasetRoutes } from "./routes/mockDataset.route.js";
 import { brandDataSourceRoutes } from "./routes/brandDataSource.route.js";
 import { datasetRoutes } from "./routes/dataset.route.js";
+import { orderSnapshotRoutes } from "./routes/orderSnapshot.route.js";
 import { calculationRoutes } from "./routes/calculation.route.js";
 import { outletItemScoresCalculationConfigVersionRoutes } from "./routes/outletItemScoresCalculationConfigVersion.route.js";
 import { outletItemScoresResultRoutes } from "./routes/outletItemScoresResult.route.js";
@@ -45,6 +46,7 @@ export function buildApp(): FastifyInstance {
   app.register(outletRoutes);
   app.register(brandDataSourceRoutes);
   app.register(datasetRoutes);
+  app.register(orderSnapshotRoutes);
   app.register(calculationRoutes);
   app.register(outletItemScoresCalculationConfigVersionRoutes);
   app.register(outletItemScoresResultRoutes);

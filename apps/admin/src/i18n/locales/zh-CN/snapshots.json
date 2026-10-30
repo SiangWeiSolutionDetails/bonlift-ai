@@ -1,0 +1,33 @@
+{
+  "page": {
+    "title": "订单快照",
+    "noOutlet": "选择品牌和门店以查看已存储的订单日期。"
+  },
+  "card": {
+    "date": "日期",
+    "orders": "订单数",
+    "size": "大小",
+    "updated": "最后更新",
+    "status": "状态",
+    "empty": "该门店尚未上传任何订单日期。"
+  },
+  "summary": {
+    "stored": "已存储天数",
+    "missing": "缺失天数",
+    "stale": "已过期天数",
+    "liveRun": "生效运行日期范围"
+  },
+  "filter": {
+    "label": "状态",
+    "all": "全部",
+    "stored": "已存储",
+    "missing": "缺失",
+    "noMatch": "没有符合此筛选条件的日期。"
+  },
+  "status": {
+    "stored": "已存储",
+    "missing": "缺失",
+    "stale": "已过期",
+    "staleHint": "在生效运行开始后重新上传，其排名可能已过期。"
+  }
+}

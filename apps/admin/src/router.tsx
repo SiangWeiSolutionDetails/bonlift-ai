@@ -5,11 +5,19 @@ import {
   createRouter,
   redirect,
 } from "@tanstack/react-router";
-import { BarChart3Icon, Building2Icon, StoreIcon, TagIcon } from "lucide-react";
+import {
+  BarChart3Icon,
+  Building2Icon,
+  DatabaseIcon,
+  StoreIcon,
+  TagIcon,
+} from "lucide-react";
 import App from "@/App";
+import { validateSnapshotsSearch } from "@/features/order-snapshots/search";
 import { validateResultsSearch } from "@/features/outlet-item-scores/search";
 import type enCommon from "@/i18n/locales/en/common.json";
 import { BrandsPage } from "@/pages/brands-page";
+import { OrderSnapshotsPage } from "@/pages/order-snapshots-page";
 import { OutletsPage } from "@/pages/outlets-page";
 import { ResultsPage } from "@/pages/results-page";
 import { TenantsPage } from "@/pages/tenants-page";
@@ -45,6 +53,14 @@ const outletsRoute = createRoute({
   staticData: { titleKey: "nav.outlets", icon: <StoreIcon /> },
 });
 
+const snapshotsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/snapshots",
+  component: OrderSnapshotsPage,
+  validateSearch: validateSnapshotsSearch,
+  staticData: { titleKey: "nav.snapshots", icon: <DatabaseIcon /> },
+});
+
 const resultsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/results",
@@ -59,6 +75,7 @@ const routeTree = rootRoute.addChildren([
   tenantsRoute,
   brandsRoute,
   outletsRoute,
+  snapshotsRoute,
   resultsRoute,
 ]);
 

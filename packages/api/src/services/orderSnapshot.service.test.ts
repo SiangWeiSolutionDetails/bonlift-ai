@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DatasetSchemaType } from "@ai-services/contracts";
 import { NotFoundError, ValidationError } from "../errors.js";
 import { pgResult } from "../utils/pg.test-helpers.js";
-import { storeOrderSnapshots } from "./orderSnapshot.service.js";
+import { getOrderSnapshotCoverage, storeOrderSnapshots } from "./orderSnapshot.service.js";
 
 const OUTLET_ID = "33333333-3333-3333-3333-333333333333";
 const INVALID_ID = "invalid-id";
@@ -214,5 +214,139 @@ describe("storeOrderSnapshots", () => {
         ],
       });
     });
+
+    it("stores the order count in its own column", async () => {
+      queryMock.mockResolvedValueOnce(pgResult([storedRow("20260626", 1)]));
+
+      await storeOrderSnapshots(fakePool, OUTLET_ID, dataset([{ date: "20260626", orders: [] }]));
+
+      const [sql] = queryMock.mock.calls[0];
+      expect(sql).toContain("order_count = EXCLUDED.order_count");
+    });
+  });
+});
+
+describe("getOrderSnapshotCoverage", () => {
+  const RUN_ID = "44444444-4444-4444-4444-444444444444";
+  const UPDATED_AT = new Date("2026-06-28T02:00:00Z");
+  const RUN_STARTED_AT = new Date("2026-06-28T01:00:00Z");
+
+  const noPublishedRun = {
+    published_run_id: null,
+    published_from: null,
+    published_to: null,
+    published_started_at: null,
+  };
+  const publishedRun = {
+    published_run_id: RUN_ID,
+    published_from: "2026-06-01",
+    published_to: "2026-06-29",
+    published_started_at: RUN_STARTED_AT,
+  };
+
+  function storedDay(date: string, overrides: Record<string, unknown> = {}) {
+    return {
+      date,
+      is_stored: true,
+      order_count: 30,
+      size_bytes: 2048,
+      updated_at: UPDATED_AT,
+      is_stale: false,
+      ...noPublishedRun,
+      ...overrides,
+    };
+  }
+
+  function missingDay(date: string, overrides: Record<string, unknown> = {}) {
+    return {
+      date,
+      is_stored: false,
+      order_count: null,
+      size_bytes: null,
+      updated_at: null,
+      is_stale: false,
+      ...noPublishedRun,
+      ...overrides,
+    };
+  }
+
+  it("throws ValidationError when the outlet id is invalid", async () => {
+    await expect(getOrderSnapshotCoverage(fakePool, INVALID_ID)).rejects.toThrow(ValidationError);
+    expect(queryMock).not.toHaveBeenCalled();
+  });
+
+  it("throws NotFoundError when the outlet does not exist", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([]));
+
+    await expect(getOrderSnapshotCoverage(fakePool, OUTLET_ID)).rejects.toThrow(
+      new NotFoundError("Outlet does not exist."),
+    );
+  });
+
+  it("returns no days when the outlet has no snapshots", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([missingDay(null as any)]));
+
+    const result = await getOrderSnapshotCoverage(fakePool, OUTLET_ID);
+
+    expect(result).toStrictEqual({ outletId: OUTLET_ID, publishedRun: null, days: [] });
+  });
+
+  it("maps stored, missing and stale days", async () => {
+    queryMock.mockResolvedValueOnce(
+      pgResult([
+        storedDay("2026-06-28", { is_stale: true, ...publishedRun }),
+        missingDay("2026-06-27", publishedRun),
+        storedDay("2026-06-26", publishedRun),
+      ]),
+    );
+
+    const result = await getOrderSnapshotCoverage(fakePool, OUTLET_ID);
+
+    expect(result).toStrictEqual({
+      outletId: OUTLET_ID,
+      publishedRun: {
+        id: RUN_ID,
+        from: "2026-06-01",
+        to: "2026-06-29",
+        startedAt: RUN_STARTED_AT.toISOString(),
+      },
+      days: [
+        {
+          date: "2026-06-28",
+          isStored: true,
+          orderCount: 30,
+          sizeBytes: 2048,
+          updatedAt: UPDATED_AT.toISOString(),
+          isStale: true,
+        },
+        {
+          date: "2026-06-27",
+          isStored: false,
+          orderCount: null,
+          sizeBytes: null,
+          updatedAt: null,
+          isStale: false,
+        },
+        {
+          date: "2026-06-26",
+          isStored: true,
+          orderCount: 30,
+          sizeBytes: 2048,
+          updatedAt: UPDATED_AT.toISOString(),
+          isStale: false,
+        },
+      ],
+    });
+  });
+
+  it("reads sizes without decompressing the orders and sends only the outlet id", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([storedDay("2026-06-26")]));
+
+    await getOrderSnapshotCoverage(fakePool, OUTLET_ID);
+
+    const [sql, values] = queryMock.mock.calls[0];
+    expect(sql).toContain("pg_column_size(os.orders)");
+    expect(sql).not.toContain("jsonb_array_length");
+    expect(values).toStrictEqual([OUTLET_ID]);
   });
 });

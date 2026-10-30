@@ -1,5 +1,4 @@
 import { useMemo, type ReactNode } from "react";
-import { EyeIcon, PencilIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -101,19 +100,19 @@ function OutletsTableRows({
       <TableCell className="text-right">
         <Button
           variant="ghost"
-          size="icon"
+          size="sm"
           aria-label={t("table.editOutlet", { name: outlet.name })}
           onClick={() => onEdit(outlet)}
         >
-          <PencilIcon />
+          {tCommon("actions.edit")}
         </Button>
         <Button
           variant="ghost"
-          size="icon"
+          size="sm"
           aria-label={t("table.viewOutlet", { name: outlet.name })}
           onClick={() => onView(outlet)}
         >
-          <EyeIcon />
+          {tCommon("actions.view")}
         </Button>
       </TableCell>
     </TableRow>

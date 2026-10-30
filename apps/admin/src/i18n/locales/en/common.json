@@ -3,9 +3,11 @@
     "cancel": "Cancel",
     "create": "Create",
     "creating": "Creating…",
+    "edit": "Edit",
     "save": "Save",
     "saving": "Saving…",
-    "showHint": "Show hint"
+    "showHint": "Show hint",
+    "view": "View"
   },
   "confirmSave": {
     "title": "Save changes?",

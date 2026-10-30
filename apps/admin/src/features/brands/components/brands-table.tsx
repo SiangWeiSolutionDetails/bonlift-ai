@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { EyeIcon, PencilIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -83,19 +82,19 @@ function BrandsTableRows({ brands, isPending, error, onEdit, onView }: BrandsTab
       <TableCell className="text-right">
         <Button
           variant="ghost"
-          size="icon"
+          size="sm"
           aria-label={t("table.editBrand", { name: brand.name })}
           onClick={() => onEdit(brand)}
         >
-          <PencilIcon />
+          {tCommon("actions.edit")}
         </Button>
         <Button
           variant="ghost"
-          size="icon"
+          size="sm"
           aria-label={t("table.viewBrand", { name: brand.name })}
           onClick={() => onView(brand)}
         >
-          <EyeIcon />
+          {tCommon("actions.view")}
         </Button>
       </TableCell>
     </TableRow>

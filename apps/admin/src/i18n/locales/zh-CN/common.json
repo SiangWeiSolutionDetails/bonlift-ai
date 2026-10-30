@@ -3,9 +3,11 @@
     "cancel": "取消",
     "create": "创建",
     "creating": "创建中…",
+    "edit": "编辑",
     "save": "保存",
     "saving": "保存中…",
-    "showHint": "显示提示"
+    "showHint": "显示提示",
+    "view": "查看"
   },
   "confirmSave": {
     "title": "保存更改？",

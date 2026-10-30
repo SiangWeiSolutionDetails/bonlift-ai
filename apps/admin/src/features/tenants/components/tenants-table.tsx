@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { EyeIcon, PencilIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -83,19 +82,19 @@ function TenantsTableRows({ tenants, isPending, error, onEdit, onView }: Tenants
       <TableCell className="text-right">
         <Button
           variant="ghost"
-          size="icon"
+          size="sm"
           aria-label={t("table.editTenant", { name: tenant.name })}
           onClick={() => onEdit(tenant)}
         >
-          <PencilIcon />
+          {tCommon("actions.edit")}
         </Button>
         <Button
           variant="ghost"
-          size="icon"
+          size="sm"
           aria-label={t("table.viewTenant", { name: tenant.name })}
           onClick={() => onView(tenant)}
         >
-          <EyeIcon />
+          {tCommon("actions.view")}
         </Button>
       </TableCell>
     </TableRow>

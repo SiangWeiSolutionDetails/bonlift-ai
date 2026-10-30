@@ -38,7 +38,6 @@
     "publishConfirmDescription": "The ranking for {{window}} replaces the outlet's live ranking straight away."
   },
   "ranking": {
-    "title": "Popular items",
     "rank": "#",
     "item": "Item",
     "share": "Order share",

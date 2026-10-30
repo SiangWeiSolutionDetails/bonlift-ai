@@ -38,7 +38,6 @@
     "publishConfirmDescription": "{{window}} 的排名将立即替换该门店当前生效的排名。"
   },
   "ranking": {
-    "title": "热门商品",
     "rank": "#",
     "item": "商品",
     "share": "订单占比",

@@ -28,13 +28,9 @@ type RankingCardProps = {
 };
 
 export function RankingCard({ run }: RankingCardProps) {
-  const { t } = useTranslation("results");
-
   return (
-    <SectionCard title={t("ranking.title")}>
-      <div className="-mt-2">
-        <RunDetails run={run} />
-      </div>
+    <SectionCard>
+      <RunDetails run={run} />
       <RankingBody run={run} />
     </SectionCard>
   );

@@ -1,15 +1,9 @@
-import { Job, Worker } from "bullmq";
+import { Worker } from "bullmq";
 import { getRedisConnection } from "../connection.js";
+import { processOutletItemScores } from "../processors/outletItemScores.processor.js";
 import { CalculationJobData } from "../queues/createQueue.js";
 import { OUTLET_ITEM_SCORES_QUEUE_NAME } from "../queues/outletItemScores.queue.js";
 
-async function processOutletItemScores(
-  job: Job<CalculationJobData>,
-): Promise<void> {
-  console.log(
-    `[${OUTLET_ITEM_SCORES_QUEUE_NAME}] received run ${job.data.runId}`,
-  );
-}
 export function startOutletItemScoresWorker(): Worker<CalculationJobData> {
   const worker = new Worker<CalculationJobData>(
     OUTLET_ITEM_SCORES_QUEUE_NAME,

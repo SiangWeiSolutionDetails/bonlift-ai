@@ -5,6 +5,7 @@ import {
   DatasetSchemaType,
   OrderSnapshotCoverageSchemaType,
   OrderSnapshotDaySchemaType,
+  OrderSnapshotParamsSchema,
   OutletParamsSchema,
 } from "@ai-services/contracts";
 import { Pool } from "pg";
@@ -197,5 +198,45 @@ export async function getOrderSnapshotCoverage(
     outletId,
     publishedRun: mapPublishedRun(result.rows[0]),
     days: result.rows.filter((row) => row.date !== null).map(mapDayRow),
+  };
+}
+
+// Returned in the upload format, so a copied snapshot can be re-uploaded as is.
+export async function getOrderSnapshot(
+  pool: Pool,
+  outletId: string,
+  date: string,
+): Promise<DatasetSchemaType> {
+  assertValid(OrderSnapshotParamsSchema, { outletId, date });
+  assertValidDate(date, "YYYY-MM-DD");
+
+  // The outlet row tells "unknown outlet" (no row) apart from "no snapshot that day" (NULL orders).
+  const result = await pool.query(
+    `
+    SELECT
+        o.name AS outlet_name,
+        to_char(os.order_date, 'YYYYMMDD') AS date,
+        os.orders
+    FROM outlets o
+    LEFT JOIN order_snapshots os
+    ON os.outlet_id = o.id
+    AND os.order_date = $2::date
+    WHERE o.id = $1;
+    `,
+    [outletId, date],
+  );
+
+  if (result.rows.length === 0) {
+    throw new NotFoundError("Outlet does not exist.");
+  }
+
+  const row = result.rows[0];
+  if (row.orders === null) {
+    throw new NotFoundError("No snapshot is stored for this date.");
+  }
+
+  return {
+    outletName: row.outlet_name,
+    dates: [{ date: row.date, orders: row.orders }],
   };
 }

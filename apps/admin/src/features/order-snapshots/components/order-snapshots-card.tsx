@@ -30,10 +30,12 @@ import { formatWindow } from "@/features/outlet-item-scores/format";
 import { formatDate, formatTime } from "@/lib/date-format";
 import { getErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
+import { formatKilobytes } from "../format";
 import { useOrderSnapshotCoverage } from "../queries";
 import type { OrderSnapshotCoverage, OrderSnapshotDay } from "../type";
+import { OrderSnapshotDialog } from "./order-snapshot-dialog";
 
-const COLUMN_COUNT = 5;
+const COLUMN_COUNT = 6;
 const SKELETON_ROW_COUNT = 5;
 
 type SortDirection = "asc" | "desc";
@@ -65,6 +67,7 @@ export function OrderSnapshotsCard({ outletId }: { outletId: string }) {
   const coverage = useOrderSnapshotCoverage(outletId);
   const [dateSort, setDateSort] = useState<SortDirection>("desc");
   const [dayFilter, setDayFilter] = useState<DayFilter>("all");
+  const [viewingDay, setViewingDay] = useState<OrderSnapshotDay | undefined>();
 
   // The API returns newest first; ISO dates sort correctly as strings.
   const visibleDays = useMemo(() => {
@@ -75,6 +78,12 @@ export function OrderSnapshotsCard({ outletId }: { outletId: string }) {
 
   return (
     <SectionCard>
+      <OrderSnapshotDialog
+        outletId={outletId}
+        day={viewingDay}
+        onClose={() => setViewingDay(undefined)}
+      />
+
       {coverage.data && <CoverageSummary coverage={coverage.data} />}
 
       <div className="flex items-center gap-3">
@@ -128,7 +137,10 @@ export function OrderSnapshotsCard({ outletId }: { outletId: string }) {
               <TableHead>{t("card.status")}</TableHead>
               <TableHead className="text-right">{t("card.orders")}</TableHead>
               <TableHead>{t("card.updated")}</TableHead>
-              <TableHead className="pr-5 text-right">{t("card.size")}</TableHead>
+              <TableHead className="text-right">{t("card.size")}</TableHead>
+              <TableHead className="pr-5 text-right">
+                <span className="sr-only">{t("card.actions")}</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -137,6 +149,7 @@ export function OrderSnapshotsCard({ outletId }: { outletId: string }) {
               hasAnyDays={Boolean(coverage.data?.days.length)}
               isPending={coverage.isPending}
               error={coverage.error}
+              onView={setViewingDay}
             />
           </TableBody>
         </Table>
@@ -185,11 +198,13 @@ function DayRows({
   hasAnyDays,
   isPending,
   error,
+  onView,
 }: {
   days: OrderSnapshotDay[] | undefined;
   hasAnyDays: boolean;
   isPending: boolean;
   error: Error | null;
+  onView: (day: OrderSnapshotDay) => void;
 }) {
   const { t, i18n } = useTranslation("snapshots");
   const { t: tCommon } = useTranslation();
@@ -233,8 +248,15 @@ function DayRows({
           "—"
         )}
       </TableCell>
-      <TableCell className="pr-5 text-right tabular-nums">
+      <TableCell className="text-right tabular-nums">
         {day.sizeBytes === null ? "—" : formatKilobytes(day.sizeBytes, i18n.language)}
+      </TableCell>
+      <TableCell className="pr-5 text-right">
+        {day.isStored && (
+          <Button variant="ghost" size="sm" onClick={() => onView(day)}>
+            {t("card.viewSnapshot")}
+          </Button>
+        )}
       </TableCell>
     </TableRow>
   ));
@@ -264,10 +286,6 @@ function DayStatusBadge({ day }: { day: OrderSnapshotDay }) {
       {t("status.stored")}
     </Badge>
   );
-}
-
-function formatKilobytes(bytes: number, locale: string) {
-  return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(bytes / 1024)} KB`;
 }
 
 function MessageRow({

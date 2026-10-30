@@ -15,6 +15,14 @@ export const OrderSnapshotDaySchema = Type.Object(
 );
 export type OrderSnapshotDaySchemaType = Static<typeof OrderSnapshotDaySchema>;
 
+export const OrderSnapshotParamsSchema = Type.Object({
+  outletId: Type.String({ format: "uuid" }),
+  date: Type.String({ format: "date" }),
+});
+export type OrderSnapshotParamsSchemaType = Static<
+  typeof OrderSnapshotParamsSchema
+>;
+
 export const OrderSnapshotPublishedRunSchema = Type.Object(
   {
     id: Type.String({ format: "uuid" }),

@@ -1,6 +1,6 @@
 {
   "page": {
-    "title": "Order snapshots",
+    "title": "Order Snapshots",
     "noOutlet": "Choose a brand and an outlet to see which order dates are stored."
   },
   "card": {
@@ -9,7 +9,14 @@
     "size": "Size",
     "updated": "Last updated",
     "status": "Status",
-    "empty": "No order dates have been uploaded for this outlet yet."
+    "empty": "No order dates have been uploaded for this outlet yet.",
+    "actions": "Actions",
+    "viewSnapshot": "View Snapshot"
+  },
+  "dialog": {
+    "title": "Snapshot For {{date}}",
+    "copy": "Copy JSON",
+    "copied": "Copied"
   },
   "summary": {
     "stored": "Stored days",

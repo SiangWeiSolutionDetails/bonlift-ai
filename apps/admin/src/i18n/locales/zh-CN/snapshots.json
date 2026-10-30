@@ -9,7 +9,14 @@
     "size": "大小",
     "updated": "最后更新",
     "status": "状态",
-    "empty": "该门店尚未上传任何订单日期。"
+    "empty": "该门店尚未上传任何订单日期。",
+    "actions": "操作",
+    "viewSnapshot": "查看快照"
+  },
+  "dialog": {
+    "title": "{{date}} 的快照",
+    "copy": "复制 JSON",
+    "copied": "已复制"
   },
   "summary": {
     "stored": "已存储天数",

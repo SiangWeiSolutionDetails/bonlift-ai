@@ -2,7 +2,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DatasetSchemaType } from "@ai-services/contracts";
 import { NotFoundError, ValidationError } from "../errors.js";
 import { pgResult } from "../utils/pg.test-helpers.js";
-import { getOrderSnapshotCoverage, storeOrderSnapshots } from "./orderSnapshot.service.js";
+import {
+  getOrderSnapshot,
+  getOrderSnapshotCoverage,
+  storeOrderSnapshots,
+} from "./orderSnapshot.service.js";
 
 const OUTLET_ID = "33333333-3333-3333-3333-333333333333";
 const INVALID_ID = "invalid-id";
@@ -348,5 +352,63 @@ describe("getOrderSnapshotCoverage", () => {
     expect(sql).toContain("pg_column_size(os.orders)");
     expect(sql).not.toContain("jsonb_array_length");
     expect(values).toStrictEqual([OUTLET_ID]);
+  });
+});
+
+describe("getOrderSnapshot", () => {
+  it("throws ValidationError when the outlet id is invalid", async () => {
+    await expect(getOrderSnapshot(fakePool, INVALID_ID, "2026-06-26")).rejects.toThrow(
+      ValidationError,
+    );
+    expect(queryMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["the compact format", "20260626"],
+    ["an impossible date", "2026-02-30"],
+  ])("throws ValidationError for %s", async (_label, date) => {
+    await expect(getOrderSnapshot(fakePool, OUTLET_ID, date)).rejects.toThrow(ValidationError);
+    expect(queryMock).not.toHaveBeenCalled();
+  });
+
+  it("throws NotFoundError when the outlet does not exist", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([]));
+
+    await expect(getOrderSnapshot(fakePool, OUTLET_ID, "2026-06-26")).rejects.toThrow(
+      new NotFoundError("Outlet does not exist."),
+    );
+  });
+
+  it("throws NotFoundError when no snapshot is stored for the date", async () => {
+    queryMock.mockResolvedValueOnce(
+      pgResult([{ outlet_name: "BEDOK MALL", date: null, orders: null }]),
+    );
+
+    await expect(getOrderSnapshot(fakePool, OUTLET_ID, "2026-06-26")).rejects.toThrow(
+      new NotFoundError("No snapshot is stored for this date."),
+    );
+  });
+
+  it("returns the day in the upload format", async () => {
+    const orders = [order({ customerId: "CUS-1" })];
+    queryMock.mockResolvedValueOnce(
+      pgResult([{ outlet_name: "BEDOK MALL", date: "20260626", orders }]),
+    );
+
+    const result = await getOrderSnapshot(fakePool, OUTLET_ID, "2026-06-26");
+
+    expect(result).toStrictEqual(dataset([{ date: "20260626", orders }]));
+  });
+
+  it("looks up one outlet-day by its key", async () => {
+    queryMock.mockResolvedValueOnce(
+      pgResult([{ outlet_name: "BEDOK MALL", date: "20260626", orders: [] }]),
+    );
+
+    await getOrderSnapshot(fakePool, OUTLET_ID, "2026-06-26");
+
+    const [sql, values] = queryMock.mock.calls[0];
+    expect(sql).toContain("os.order_date = $2::date");
+    expect(values).toStrictEqual([OUTLET_ID, "2026-06-26"]);
   });
 });

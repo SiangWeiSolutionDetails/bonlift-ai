@@ -20,7 +20,8 @@
     "management": "管理",
     "tenants": "租户",
     "brands": "品牌",
-    "outlets": "门店"
+    "outlets": "门店",
+    "results": "计算结果"
   },
   "language": {
     "label": "语言"

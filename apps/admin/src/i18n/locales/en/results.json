@@ -1,0 +1,56 @@
+{
+  "page": {
+    "title": "Results",
+    "runCalculation": "Run calculation"
+  },
+  "picker": {
+    "brand": "Brand",
+    "brandPlaceholder": "Select a brand",
+    "outlet": "Outlet",
+    "outletPlaceholder": "Select an outlet",
+    "noOutlet": "Choose a brand and an outlet to see their popular items."
+  },
+  "status": {
+    "running": "Running",
+    "succeeded": "Succeeded",
+    "failed": "Failed"
+  },
+  "runs": {
+    "title": "Runs",
+    "empty": "No runs yet. Run a calculation to see results.",
+    "window": "Window",
+    "config": "Config",
+    "configVersion": "v{{version}}",
+    "halfLife": "Half-life {{halfLifeDays}} d",
+    "topN": "Top {{topN}}",
+    "status": "Status",
+    "rows": "Rows",
+    "duration": "Duration",
+    "started": "Started",
+    "actions": "Actions",
+    "published": "Published",
+    "view": "View"
+  },
+  "ranking": {
+    "title": "Popular items",
+    "run": "Run {{id}} · {{window}}",
+    "rank": "#",
+    "item": "Item",
+    "share": "Order share",
+    "shareHint": "Recency-weighted share of this daypart's orders that contain the item.",
+    "orders": "Orders",
+    "allDay": "All day",
+    "running": "Calculating…",
+    "failed": "This run failed: {{error}}",
+    "empty": "No orders in this window, so nothing was ranked."
+  },
+  "dialog": {
+    "title": "Run calculation",
+    "description": "Scores the outlet's orders in this date range with the brand's current settings. The result goes live unless a run covering later dates is already live.",
+    "from": "From",
+    "to": "To (inclusive)",
+    "invalidRange": "The end date must be on or after the start date.",
+    "submit": "Run",
+    "submitting": "Starting…"
+  }
+}

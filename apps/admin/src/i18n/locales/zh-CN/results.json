@@ -1,0 +1,56 @@
+{
+  "page": {
+    "title": "计算结果",
+    "runCalculation": "运行计算"
+  },
+  "picker": {
+    "brand": "品牌",
+    "brandPlaceholder": "选择品牌",
+    "outlet": "门店",
+    "outletPlaceholder": "选择门店",
+    "noOutlet": "选择品牌和门店以查看热门商品。"
+  },
+  "status": {
+    "running": "运行中",
+    "succeeded": "成功",
+    "failed": "失败"
+  },
+  "runs": {
+    "title": "运行记录",
+    "empty": "暂无运行记录。运行一次计算即可查看结果。",
+    "window": "日期范围",
+    "config": "配置",
+    "configVersion": "v{{version}}",
+    "halfLife": "半衰期 {{halfLifeDays}} 天",
+    "topN": "前 {{topN}} 名",
+    "status": "状态",
+    "rows": "行数",
+    "duration": "耗时",
+    "started": "开始时间",
+    "actions": "操作",
+    "published": "已发布",
+    "view": "查看"
+  },
+  "ranking": {
+    "title": "热门商品",
+    "run": "运行 {{id}} · {{window}}",
+    "rank": "#",
+    "item": "商品",
+    "share": "订单占比",
+    "shareHint": "按时间加权，该时段内包含此商品的订单所占比例。",
+    "orders": "订单数",
+    "allDay": "全天",
+    "running": "计算中…",
+    "failed": "本次运行失败：{{error}}",
+    "empty": "该日期范围内没有订单，因此没有排名。"
+  },
+  "dialog": {
+    "title": "运行计算",
+    "description": "使用品牌当前设置，对门店在该日期范围内的订单计算得分。除非已有覆盖更晚日期的运行正在生效，否则结果将上线。",
+    "from": "开始日期",
+    "to": "结束日期（含）",
+    "invalidRange": "结束日期不能早于开始日期。",
+    "submit": "运行",
+    "submitting": "启动中…"
+  }
+}

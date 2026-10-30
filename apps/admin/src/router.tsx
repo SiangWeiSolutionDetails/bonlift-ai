@@ -5,11 +5,13 @@ import {
   createRouter,
   redirect,
 } from "@tanstack/react-router";
-import { Building2Icon, StoreIcon, TagIcon } from "lucide-react";
+import { BarChart3Icon, Building2Icon, StoreIcon, TagIcon } from "lucide-react";
 import App from "@/App";
+import { validateResultsSearch } from "@/features/outlet-item-scores/search";
 import type enCommon from "@/i18n/locales/en/common.json";
 import { BrandsPage } from "@/pages/brands-page";
 import { OutletsPage } from "@/pages/outlets-page";
+import { ResultsPage } from "@/pages/results-page";
 import { TenantsPage } from "@/pages/tenants-page";
 
 const rootRoute = createRootRoute({ component: App });
@@ -43,12 +45,21 @@ const outletsRoute = createRoute({
   staticData: { titleKey: "nav.outlets", icon: <StoreIcon /> },
 });
 
+const resultsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/results",
+  component: ResultsPage,
+  validateSearch: validateResultsSearch,
+  staticData: { titleKey: "nav.results", icon: <BarChart3Icon /> },
+});
+
 // Order here is the sidebar order; routes with a staticData icon appear in the sidebar.
 const routeTree = rootRoute.addChildren([
   indexRoute,
   tenantsRoute,
   brandsRoute,
   outletsRoute,
+  resultsRoute,
 ]);
 
 export const router = createRouter({ routeTree });

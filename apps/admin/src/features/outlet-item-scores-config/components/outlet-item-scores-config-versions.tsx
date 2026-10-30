@@ -2,9 +2,11 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RotateCcwIcon } from "lucide-react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { SettingBadge } from "@/components/setting-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatDateTime } from "@/lib/date-format";
 import { getErrorMessage } from "@/lib/error-message";
 import {
   useCreateOutletItemScoresConfigVersion,
@@ -103,13 +105,11 @@ function VersionItem({
   isRestoring,
   onRestore,
 }: VersionItemProps) {
-  const { t, i18n } = useTranslation("brands");
+  const { t } = useTranslation("brands");
   const dayparts =
     version.dayparts.length === 0
-      ? t("outletItemScoresConfig.history.wholeDay")
-      : version.dayparts
-          .map(({ name, start, end }) => `${name} ${start}–${end}`)
-          .join(", ");
+      ? [t("outletItemScoresConfig.history.wholeDay")]
+      : version.dayparts.map(({ name, start, end }) => `${name} ${start}–${end}`);
 
   return (
     <li className="flex items-start justify-between gap-3 rounded-xl bg-card px-4 py-3 shadow-xs">
@@ -124,18 +124,26 @@ function VersionItem({
             </Badge>
           )}
           <span className="text-xs text-muted-foreground">
-            {new Date(version.createdAt).toLocaleString(i18n.language)}
+            {formatDateTime(version.createdAt)}
             {version.createdBy &&
               ` · ${t("outletItemScoresConfig.history.by", { name: version.createdBy })}`}
           </span>
         </div>
-        <p className="text-xs text-muted-foreground">
-          {t("outletItemScoresConfig.history.summary", {
-            halfLifeDays: version.halfLifeDays,
-            topN: version.topN,
-            dayparts,
-          })}
-        </p>
+        <div className="flex flex-wrap gap-1.5">
+          <SettingBadge>
+            {t("outletItemScoresConfig.history.halfLife", {
+              halfLifeDays: version.halfLifeDays,
+            })}
+          </SettingBadge>
+          <SettingBadge>
+            {t("outletItemScoresConfig.history.topN", { topN: version.topN })}
+          </SettingBadge>
+          {dayparts.map((daypart) => (
+            <SettingBadge key={daypart}>
+              {daypart}
+            </SettingBadge>
+          ))}
+        </div>
       </div>
       {canRestore && (
         <Button

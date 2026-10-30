@@ -20,7 +20,8 @@
     "management": "Management",
     "tenants": "Tenants",
     "brands": "Brands",
-    "outlets": "Outlets"
+    "outlets": "Outlets",
+    "results": "Results"
   },
   "language": {
     "label": "Language"

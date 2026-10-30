@@ -8,3 +8,4 @@ export * from "./outletItemScoresCalculation.schema.js";
 export * from "./calculationConfigVersion.schema.js";
 export * from "./outletItemScoresCalculationConfigVersion.schema.js";
 export * from "./dayparts.js";
+export * from "./outletItemScoresResult.schema.js";

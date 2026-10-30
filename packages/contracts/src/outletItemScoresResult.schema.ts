@@ -60,6 +60,14 @@ export const RunParamsSchema = Type.Object({
 });
 export type RunParamsSchemaType = Static<typeof RunParamsSchema>;
 
+export const PublishOutletItemScoresRunBodySchema = Type.Object(
+  { runId: Type.String({ format: "uuid" }) },
+  { additionalProperties: false },
+);
+export type PublishOutletItemScoresRunBodySchemaType = Static<
+  typeof PublishOutletItemScoresRunBodySchema
+>;
+
 export const OutletItemScoreRecordSchema = Type.Object(
   {
     daypart: Type.String(),

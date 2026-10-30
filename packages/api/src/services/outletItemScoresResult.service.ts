@@ -4,10 +4,12 @@ import {
   OutletItemScoresRunRecordSchemaType,
   OutletItemScoresRunResultSchemaType,
   OutletParamsSchema,
+  PublishOutletItemScoresRunBodySchema,
+  PublishOutletItemScoresRunBodySchemaType,
   RunParamsSchema,
 } from "@ai-services/contracts";
 import { Pool } from "pg";
-import { NotFoundError } from "../errors.js";
+import { ConflictError, NotFoundError } from "../errors.js";
 import { assertValid } from "../utils/validate.js";
 
 const DEFAULT_RUN_LIMIT = 50;
@@ -97,6 +99,69 @@ export async function getOutletItemScoresRuns(
   }
 
   return result.rows.filter((row) => row.id !== null).map(mapRunRow);
+}
+
+// Manual publish skips the worker's "later window wins" rule on purpose: repointing to an older run is the rollback.
+export async function publishOutletItemScoresRun(
+  pool: Pool,
+  outletId: string,
+  body: PublishOutletItemScoresRunBodySchemaType,
+): Promise<OutletItemScoresRunRecordSchemaType> {
+  assertValid(OutletParamsSchema, { outletId });
+  assertValid(PublishOutletItemScoresRunBodySchema, body);
+
+  const result = await pool.query(
+    `
+    WITH target AS (
+      SELECT id, outlet_id, job_type, status, row_count
+      FROM computation_runs
+      WHERE id = $2
+        AND outlet_id = $1
+        AND job_type = 'outlet_item_scores'
+    ),
+    published AS (
+      INSERT INTO published_runs (outlet_id, job_type, run_id)
+      SELECT outlet_id, job_type, id
+      FROM target
+      WHERE status = 'succeeded'
+        AND row_count > 0
+      ON CONFLICT (outlet_id, job_type) DO UPDATE
+      SET run_id = EXCLUDED.run_id,
+          updated_at = now()
+      RETURNING run_id
+    )
+    SELECT ${RUN_COLUMNS},
+           (SELECT run_id FROM published) IS NOT NULL AS was_published
+    FROM target t
+    JOIN computation_runs r
+      ON r.id = t.id
+    JOIN calculation_config_versions v
+      ON v.id = r.calculation_config_version_id
+    JOIN outlet_item_scores_calculation_config_versions c
+      ON c.id = r.calculation_config_version_id
+    LEFT JOIN published_runs p
+      ON p.outlet_id = r.outlet_id
+     AND p.job_type = r.job_type
+     AND p.run_id = r.id;
+    `,
+    [outletId, body.runId],
+  );
+
+  if (result.rows.length === 0) {
+    throw new NotFoundError("Run does not exist for this outlet.");
+  }
+
+  const row = result.rows[0];
+  if (!row.was_published) {
+    throw new ConflictError(
+      row.status === "succeeded"
+        ? "Run has no results to publish."
+        : "Only a succeeded run can be published.",
+    );
+  }
+
+  // The CTE's write is not visible to this statement's own read of published_runs, so set the flag from the write.
+  return mapRunRow({ ...row, is_published: true });
 }
 
 export async function getOutletItemScoresRunResult(

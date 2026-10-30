@@ -7,6 +7,7 @@ import {
 import {
   getOutletItemScoresRunResult,
   listOutletItemScoresRuns,
+  publishOutletItemScoresRun,
   startOutletItemScoresRun,
 } from "./api";
 import type { OutletItemScoresRun, StartRunInput } from "./type";
@@ -48,6 +49,18 @@ export function useOutletItemScoresRunResult(
       ? ({ signal }) => getOutletItemScoresRunResult(runId, signal)
       : skipToken,
     staleTime: status === "running" ? 0 : Infinity,
+  });
+}
+
+export function usePublishOutletItemScoresRun() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (run: OutletItemScoresRun) =>
+      publishOutletItemScoresRun(run.outletId, run.id),
+    onSuccess: (_data, run) =>
+      queryClient.invalidateQueries({
+        queryKey: outletItemScoresKeys.runs(run.outletId),
+      }),
   });
 }
 

@@ -2,9 +2,12 @@ import {
   OutletItemScoresRunListQuerySchema,
   OutletItemScoresRunListQuerySchemaType,
   OutletItemScoresRunListSchema,
+  OutletItemScoresRunRecordSchema,
   OutletItemScoresRunResultSchema,
   OutletParamsSchema,
   OutletParamsSchemaType,
+  PublishOutletItemScoresRunBodySchema,
+  PublishOutletItemScoresRunBodySchemaType,
   RunParamsSchema,
   RunParamsSchemaType,
 } from "@ai-services/contracts";
@@ -13,6 +16,7 @@ import { FastifyInstance } from "fastify";
 import {
   getOutletItemScoresRunResult,
   getOutletItemScoresRuns,
+  publishOutletItemScoresRun,
 } from "../services/outletItemScoresResult.service.js";
 
 export async function outletItemScoresResultRoutes(app: FastifyInstance) {
@@ -36,6 +40,29 @@ export async function outletItemScoresResultRoutes(app: FastifyInstance) {
         request.query,
       );
       return { runs };
+    },
+  );
+
+  // PUT: the resource is the outlet's live-run pointer, and publishing the same run again changes nothing.
+  app.put<{
+    Params: OutletParamsSchemaType;
+    Body: PublishOutletItemScoresRunBodySchemaType;
+  }>(
+    "/outlets/:outletId/published-runs/outlet-item-scores",
+    {
+      schema: {
+        params: OutletParamsSchema,
+        body: PublishOutletItemScoresRunBodySchema,
+        response: { 200: OutletItemScoresRunRecordSchema },
+      },
+    },
+    (request) => {
+      const pool = getPool();
+      return publishOutletItemScoresRun(
+        pool,
+        request.params.outletId,
+        request.body,
+      );
     },
   );
 

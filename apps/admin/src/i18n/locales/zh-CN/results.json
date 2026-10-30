@@ -32,7 +32,10 @@
     "halfLifeLabel": "半衰期",
     "halfLifeValue": "{{halfLifeDays}} 天",
     "topNLabel": "每个时段的商品数",
-    "daypartsLabel": "时段"
+    "daypartsLabel": "时段",
+    "publish": "发布",
+    "publishConfirmTitle": "发布此运行？",
+    "publishConfirmDescription": "{{window}} 的排名将立即替换该门店当前生效的排名。"
   },
   "ranking": {
     "title": "热门商品",

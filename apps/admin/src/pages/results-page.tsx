@@ -68,6 +68,7 @@ export function ResultsPage() {
             error={runs.error}
             viewingRunId={viewingRun?.id}
             onView={(runId) => updateSearch({ runId })}
+            onPublished={(runId) => updateSearch({ runId })}
           />
           <RunCalculationDialog
             outletId={search.outletId}

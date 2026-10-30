@@ -32,7 +32,10 @@
     "halfLifeLabel": "Half-life",
     "halfLifeValue": "{{halfLifeDays}} days",
     "topNLabel": "Items per daypart",
-    "daypartsLabel": "Dayparts"
+    "daypartsLabel": "Dayparts",
+    "publish": "Publish",
+    "publishConfirmTitle": "Publish this run?",
+    "publishConfirmDescription": "The ranking for {{window}} replaces the outlet's live ranking straight away."
   },
   "ranking": {
     "title": "Popular items",

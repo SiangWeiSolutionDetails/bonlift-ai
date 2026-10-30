@@ -27,6 +27,13 @@ export async function getOutletItemScoresRunResult(
   );
 }
 
+export async function publishOutletItemScoresRun(outletId: string, runId: string) {
+  return apiRequest<OutletItemScoresRun>(
+    `/outlets/${encodeURIComponent(outletId)}/published-runs/outlet-item-scores`,
+    { method: "PUT", body: { runId } },
+  );
+}
+
 export async function startOutletItemScoresRun(
   outletId: string,
   input: StartRunInput,

@@ -6,7 +6,16 @@ import { cn } from "@/lib/utils";
 
 const COPIED_FEEDBACK_MS = 1500;
 
-export function CopyableId({ id, className }: { id: string; className?: string }) {
+const SHORT_ID_LENGTH = 8;
+
+type CopyableIdProps = {
+  id: string;
+  // Show only the first segment; the full id stays in the tooltip and the clipboard
+  short?: boolean;
+  className?: string;
+};
+
+export function CopyableId({ id, short, className }: CopyableIdProps) {
   const { t } = useTranslation("results");
   const [copied, setCopied] = useState(false);
 
@@ -29,7 +38,9 @@ export function CopyableId({ id, className }: { id: string; className?: string }
 
   return (
     <span className={cn("inline-flex items-center gap-1 whitespace-nowrap", className)}>
-      <span>{id}</span>
+      <span title={short ? id : undefined}>
+        {short ? id.slice(0, SHORT_ID_LENGTH) : id}
+      </span>
       <Button
         type="button"
         variant="ghost"

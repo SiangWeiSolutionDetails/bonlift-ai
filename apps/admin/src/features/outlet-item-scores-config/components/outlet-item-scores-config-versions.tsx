@@ -2,10 +2,14 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RotateCcwIcon } from "lucide-react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { SettingBadge } from "@/components/setting-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { formatDateTime } from "@/lib/date-format";
 import { getErrorMessage } from "@/lib/error-message";
 import {
@@ -112,51 +116,61 @@ function VersionItem({
       : version.dayparts.map(({ name, start, end }) => `${name} ${start}–${end}`);
 
   return (
-    <li className="flex items-start justify-between gap-3 rounded-xl bg-card px-4 py-3 shadow-xs">
-      <div className="grid gap-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary">
-            {t("outletItemScoresConfig.version", { version: version.version })}
-          </Badge>
-          {isLatest && (
-            <Badge variant="success">
-              {t("outletItemScoresConfig.history.current")}
-            </Badge>
-          )}
-          <span className="text-xs text-muted-foreground">
-            {formatDateTime(version.createdAt)}
-            {version.createdBy &&
-              ` · ${t("outletItemScoresConfig.history.by", { name: version.createdBy })}`}
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          <SettingBadge>
-            {t("outletItemScoresConfig.history.halfLife", {
-              halfLifeDays: version.halfLifeDays,
-            })}
-          </SettingBadge>
-          <SettingBadge>
-            {t("outletItemScoresConfig.history.topN", { topN: version.topN })}
-          </SettingBadge>
-          {dayparts.map((daypart) => (
-            <SettingBadge key={daypart}>
-              {daypart}
-            </SettingBadge>
-          ))}
-        </div>
-      </div>
-      {canRestore && (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={isRestoring}
-          onClick={onRestore}
-        >
-          <RotateCcwIcon />
-          {t("outletItemScoresConfig.history.restore")}
-        </Button>
-      )}
+    <li className="rounded-xl bg-card px-4 py-3 shadow-xs">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div tabIndex={0} className="grid cursor-default gap-1 rounded-md">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="secondary">
+                  {t("outletItemScoresConfig.version", { version: version.version })}
+                </Badge>
+                {isLatest && (
+                  <Badge variant="success">
+                    {t("outletItemScoresConfig.history.current")}
+                  </Badge>
+                )}
+              </div>
+              {canRestore && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  className="shrink-0"
+                  disabled={isRestoring}
+                  onClick={onRestore}
+                >
+                  <RotateCcwIcon />
+                  {t("outletItemScoresConfig.history.restore")}
+                </Button>
+              )}
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {formatDateTime(version.createdAt)}
+              {version.createdBy &&
+                ` · ${t("outletItemScoresConfig.history.by", { name: version.createdBy })}`}
+            </span>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" align="start">
+          <dl className="grid grid-cols-[auto_auto] gap-x-3 gap-y-1">
+            <dt className="opacity-70">
+              {t("outletItemScoresConfig.halfLifeDays")}
+            </dt>
+            <dd>{version.halfLifeDays}</dd>
+            <dt className="opacity-70">{t("outletItemScoresConfig.topN")}</dt>
+            <dd>{version.topN}</dd>
+            <dt className="opacity-70">
+              {t("outletItemScoresConfig.dayparts")}
+            </dt>
+            <dd className="grid">
+              {dayparts.map((daypart) => (
+                <span key={daypart}>{daypart}</span>
+              ))}
+            </dd>
+          </dl>
+        </TooltipContent>
+      </Tooltip>
     </li>
   );
 }

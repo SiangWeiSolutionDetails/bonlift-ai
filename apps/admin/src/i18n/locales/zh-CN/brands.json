@@ -25,8 +25,8 @@
   "view": {
     "title": "品牌详情"
   },
-  "details": {
-    "title": "品牌"
+  "tabs": {
+    "general": "基本信息"
   },
   "dataSource": {
     "title": "数据源",

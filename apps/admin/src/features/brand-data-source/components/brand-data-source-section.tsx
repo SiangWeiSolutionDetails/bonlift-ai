@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { DatabaseIcon } from "lucide-react";
 import { useForm, type UseFormRegisterReturn } from "react-hook-form";
 import { UpdateBrandDataSourceBodySchema } from "@ai-services/contracts";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FieldError } from "@/components/field-error";
 import { FieldHint } from "@/components/field-hint";
-import { SectionCard } from "@/components/section-card";
 import { Button } from "@/components/ui/button";
+import { DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,23 +22,6 @@ type BrandDataSourceSectionProps = {
 };
 
 export function BrandDataSourceSection({
-  brandId,
-  readOnly,
-}: BrandDataSourceSectionProps) {
-  const { t } = useTranslation("brands");
-
-  return (
-    <SectionCard
-      title={t("dataSource.title")}
-      icon={DatabaseIcon}
-      className="lg:col-span-2"
-    >
-      <BrandDataSourceContent brandId={brandId} readOnly={readOnly} />
-    </SectionCard>
-  );
-}
-
-function BrandDataSourceContent({
   brandId,
   readOnly,
 }: BrandDataSourceSectionProps) {
@@ -123,79 +105,86 @@ function BrandDataSourceForm({
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col gap-4">
       <ConfirmDialog
         open={pendingSave !== null}
         onCancel={() => setPendingSave(null)}
         onConfirm={() => pendingSave && save(pendingSave)}
       />
-      <div className="grid gap-2">
-        <Label htmlFor="data-source-url">{t("dataSource.url")}</Label>
-        <Input
-          id="data-source-url"
-          type="url"
-          inputMode="url"
-          readOnly={readOnly}
-          placeholder={
-            readOnly
-              ? t("dataSource.notConfigured")
-              : t("dataSource.urlPlaceholder")
-          }
-          aria-invalid={!!errors.url}
-          {...register("url", {
-            // An untouched, unconfigured URL is left out of the body instead of failing the pattern
-            setValueAs: (value: string) => value.trim() || undefined,
-          })}
-        />
-        <FieldError
-          message={
-            errors.url?.type === "pattern"
-              ? "brands:dataSource.urlInvalid"
-              : errors.url?.message
-          }
-        />
-      </div>
+      <div className="-mx-6 grid min-h-0 flex-1 content-start gap-6 overflow-y-auto px-6 pb-1">
+        <div className="grid gap-2">
+          <Label htmlFor="data-source-url">{t("dataSource.url")}</Label>
+          <Input
+            id="data-source-url"
+            type="url"
+            inputMode="url"
+            readOnly={readOnly}
+            placeholder={
+              readOnly
+                ? t("dataSource.notConfigured")
+                : t("dataSource.urlPlaceholder")
+            }
+            aria-invalid={!!errors.url}
+            {...register("url", {
+              // An untouched, unconfigured URL is left out of the body instead of failing the pattern
+              setValueAs: (value: string) => value.trim() || undefined,
+            })}
+          />
+          <FieldError
+            message={
+              errors.url?.type === "pattern"
+                ? "brands:dataSource.urlInvalid"
+                : errors.url?.message
+            }
+          />
+        </div>
 
-      <NumberField
-        id="data-source-timeout"
-        label={t("dataSource.timeoutMs")}
-        hint={t("dataSource.timeoutMsHint")}
-        readOnly={readOnly}
-        error={errors.timeoutMs?.message}
-        registration={register("timeoutMs", { valueAsNumber: true })}
-      />
-
-      <div className="grid gap-x-4 gap-y-6 sm:grid-cols-2">
         <NumberField
-          id="data-source-refetch-days"
-          label={t("dataSource.refetchDays")}
-          hint={t("dataSource.refetchDaysHint")}
+          id="data-source-timeout"
+          label={t("dataSource.timeoutMs")}
+          hint={t("dataSource.timeoutMsHint")}
           readOnly={readOnly}
-          error={errors.refetchDays?.message}
-          registration={register("refetchDays", { valueAsNumber: true })}
+          error={errors.timeoutMs?.message}
+          registration={register("timeoutMs", { valueAsNumber: true })}
         />
-        <NumberField
-          id="data-source-max-chunk-days"
-          label={t("dataSource.maxChunkDays")}
-          hint={t("dataSource.maxChunkDaysHint")}
-          readOnly={readOnly}
-          error={errors.maxChunkDays?.message}
-          registration={register("maxChunkDays", { valueAsNumber: true })}
-        />
-      </div>
 
-      {submitError && (
-        <p className="text-sm text-destructive">
-          {getErrorMessage(submitError, tCommon)}
-        </p>
-      )}
+        <div className="grid gap-x-4 gap-y-6 sm:grid-cols-2">
+          <NumberField
+            id="data-source-refetch-days"
+            label={t("dataSource.refetchDays")}
+            hint={t("dataSource.refetchDaysHint")}
+            readOnly={readOnly}
+            error={errors.refetchDays?.message}
+            registration={register("refetchDays", { valueAsNumber: true })}
+          />
+          <NumberField
+            id="data-source-max-chunk-days"
+            label={t("dataSource.maxChunkDays")}
+            hint={t("dataSource.maxChunkDaysHint")}
+            readOnly={readOnly}
+            error={errors.maxChunkDays?.message}
+            registration={register("maxChunkDays", { valueAsNumber: true })}
+          />
+        </div>
+
+        {submitError && (
+          <p className="text-sm text-destructive">
+            {getErrorMessage(submitError, tCommon)}
+          </p>
+        )}
+      </div>
 
       {!readOnly && (
-        <div className="flex justify-end">
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button type="button" variant="outline">
+              {tCommon("actions.cancel")}
+            </Button>
+          </DialogClose>
           <Button type="submit" disabled={!isDirty || isSubmitting}>
             {isSubmitting ? tCommon("actions.saving") : t("dataSource.save")}
           </Button>
-        </div>
+        </DialogFooter>
       )}
     </form>
   );

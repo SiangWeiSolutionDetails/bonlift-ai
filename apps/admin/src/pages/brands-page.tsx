@@ -13,17 +13,20 @@ import { useTenants } from "@/features/tenants/queries";
 export function BrandsPage() {
   const { t } = useTranslation("brands");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
+  const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
   // Not reset on close, so the title doesn't flip while the dialog animates out
   const [isReadOnly, setIsReadOnly] = useState(false);
 
   function openBrand(brand: Brand, readOnly: boolean) {
-    setSelectedBrand(brand);
+    setSelectedBrandId(brand.id);
     setIsReadOnly(readOnly);
   }
 
   const { data: brands, error, isPending } = useBrands();
   const { data: tenants = [] } = useTenants();
+  // Derived from the list so the open dialog sees saved changes
+  const selectedBrand =
+    brands?.find((brand) => brand.id === selectedBrandId) ?? null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -53,7 +56,7 @@ export function BrandsPage() {
       <BrandDialog
         brand={selectedBrand}
         readOnly={isReadOnly}
-        onClose={() => setSelectedBrand(null)}
+        onClose={() => setSelectedBrandId(null)}
       />
     </div>
   );

@@ -1,16 +1,11 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
   useFieldArray,
   useForm,
   type UseFormRegisterReturn,
 } from "react-hook-form";
-import {
-  HistoryIcon,
-  PlusIcon,
-  Trash2Icon,
-  TrendingUpIcon,
-} from "lucide-react";
+import { ChevronRightIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import {
   CreateOutletItemScoresCalculationConfigVersionBodySchema,
   findDaypartIssue,
@@ -19,9 +14,14 @@ import {
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FieldError } from "@/components/field-error";
 import { FieldHint } from "@/components/field-hint";
-import { SectionCard } from "@/components/section-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DialogClose, DialogFooter } from "@/components/ui/dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -48,49 +48,10 @@ export function OutletItemScoresConfigSection({
   readOnly,
 }: OutletItemScoresConfigSectionProps) {
   const { t } = useTranslation("brands");
-  const { data: config, isPending } = useOutletItemScoresConfig(brandId);
-
-  return (
-    <>
-      <SectionCard
-        title={t("outletItemScoresConfig.title")}
-        icon={TrendingUpIcon}
-        action={
-          config && (
-            <Badge variant="secondary">
-              {t("outletItemScoresConfig.version", { version: config.version })}
-            </Badge>
-          )
-        }
-        className="lg:col-span-2"
-      >
-        <OutletItemScoresConfigContent brandId={brandId} readOnly={readOnly} />
-      </SectionCard>
-      <SectionCard
-        title={t("outletItemScoresConfig.history.title")}
-        icon={HistoryIcon}
-        tone="primary"
-      >
-        {config ? (
-          <OutletItemScoresConfigVersions
-            brandId={brandId}
-            latestVersionId={config.id}
-            readOnly={readOnly}
-          />
-        ) : (
-          isPending && <Skeleton className="h-16 w-full" />
-        )}
-      </SectionCard>
-    </>
-  );
-}
-
-function OutletItemScoresConfigContent({
-  brandId,
-  readOnly,
-}: OutletItemScoresConfigSectionProps) {
   const { t: tCommon } = useTranslation();
   const { data: config, error, isPending } = useOutletItemScoresConfig(brandId);
+  // Held here because the form remounts on every new version, which would collapse the history
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   if (isPending) {
     return (
@@ -111,11 +72,32 @@ function OutletItemScoresConfigContent({
 
   return (
     // key remounts the form with the new defaults whenever a new version becomes the latest
-    <OutletItemScoresConfigForm
-      key={config.id}
-      config={config}
-      readOnly={readOnly}
-    />
+    <OutletItemScoresConfigForm key={config.id} config={config} readOnly={readOnly}>
+      <Collapsible
+        open={isHistoryOpen}
+        onOpenChange={setIsHistoryOpen}
+        className="grid gap-3 border-t pt-4"
+      >
+        <CollapsibleTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="group w-fit"
+          >
+            <ChevronRightIcon className="transition-transform group-data-[state=open]:rotate-90" />
+            {t("outletItemScoresConfig.history.title")}
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <OutletItemScoresConfigVersions
+            brandId={brandId}
+            latestVersionId={config.id}
+            readOnly={readOnly}
+          />
+        </CollapsibleContent>
+      </Collapsible>
+    </OutletItemScoresConfigForm>
   );
 }
 
@@ -145,11 +127,14 @@ function toComparable(dayparts: Daypart[] = []) {
 type OutletItemScoresConfigFormProps = {
   config: OutletItemScoresConfigVersion;
   readOnly: boolean;
+  // Rendered at the end of the scrollable body, above the footer
+  children: ReactNode;
 };
 
 function OutletItemScoresConfigForm({
   config,
   readOnly,
+  children,
 }: OutletItemScoresConfigFormProps) {
   const { t } = useTranslation("brands");
   const { t: tCommon } = useTranslation();
@@ -198,7 +183,7 @@ function OutletItemScoresConfigForm({
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col gap-4">
       <ConfirmDialog
         open={pendingChanges !== null}
         onCancel={() => setPendingChanges(null)}
@@ -210,146 +195,160 @@ function OutletItemScoresConfigForm({
           })
         }
       />
-      <p className="text-sm text-muted-foreground">
-        {t("outletItemScoresConfig.currentHint")}
-      </p>
+      <div className="-mx-6 grid min-h-0 flex-1 content-start gap-6 overflow-y-auto px-6 pb-1">
+        <div className="flex items-start gap-2">
+          <Badge variant="secondary" className="shrink-0">
+            {t("outletItemScoresConfig.version", { version: config.version })}
+          </Badge>
+          <p className="text-sm text-muted-foreground">
+            {t("outletItemScoresConfig.currentHint")}
+          </p>
+        </div>
 
-      <div className="grid gap-x-4 gap-y-6 sm:grid-cols-2">
-        <NumberField
-          id="outlet-item-scores-half-life-days"
-          label={t("outletItemScoresConfig.halfLifeDays")}
-          hint={t("outletItemScoresConfig.halfLifeDaysHint")}
-          readOnly={readOnly}
-          error={errors.halfLifeDays?.message}
-          registration={register("halfLifeDays", { valueAsNumber: true })}
-        />
-        <NumberField
-          id="outlet-item-scores-top-n"
-          label={t("outletItemScoresConfig.topN")}
-          hint={t("outletItemScoresConfig.topNHint")}
-          readOnly={readOnly}
-          error={errors.topN?.message}
-          registration={register("topN", { valueAsNumber: true })}
-        />
+        <div className="grid gap-x-4 gap-y-6 sm:grid-cols-2">
+          <NumberField
+            id="outlet-item-scores-half-life-days"
+            label={t("outletItemScoresConfig.halfLifeDays")}
+            hint={t("outletItemScoresConfig.halfLifeDaysHint")}
+            readOnly={readOnly}
+            error={errors.halfLifeDays?.message}
+            registration={register("halfLifeDays", { valueAsNumber: true })}
+          />
+          <NumberField
+            id="outlet-item-scores-top-n"
+            label={t("outletItemScoresConfig.topN")}
+            hint={t("outletItemScoresConfig.topNHint")}
+            readOnly={readOnly}
+            error={errors.topN?.message}
+            registration={register("topN", { valueAsNumber: true })}
+          />
+        </div>
+
+        <fieldset
+          className="grid gap-3"
+          aria-describedby="outlet-item-scores-dayparts-hint"
+        >
+          <legend className="mb-1 flex items-center gap-1.5 text-sm font-medium">
+            {t("outletItemScoresConfig.dayparts")}
+            <FieldHint
+              id="outlet-item-scores-dayparts-hint"
+              hint={t("outletItemScoresConfig.daypartsHint")}
+            />
+          </legend>
+
+          {fields.length === 0 && (
+            <p className="rounded-xl bg-muted px-4 py-3 text-sm text-muted-foreground">
+              {t("outletItemScoresConfig.wholeDay")}
+            </p>
+          )}
+
+          {fields.map((field, index) => {
+            const daypartErrors = errors.dayparts?.[index];
+            return (
+              <div key={field.id} className="grid gap-3 rounded-xl border p-3">
+                <div className="flex items-start gap-2">
+                  <div className="grid flex-1 gap-1">
+                    <Label htmlFor={`daypart-${index}-name`}>
+                      {t("outletItemScoresConfig.daypartName")}
+                    </Label>
+                    <Input
+                      id={`daypart-${index}-name`}
+                      readOnly={readOnly}
+                      aria-invalid={!!daypartErrors?.name}
+                      {...register(`dayparts.${index}.name`, {
+                        setValueAs: (value: string) => value.trim(),
+                      })}
+                    />
+                    <FieldError message={daypartErrors?.name?.message} />
+                  </div>
+                  {!readOnly && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="mt-6"
+                      aria-label={t("outletItemScoresConfig.removeDaypart")}
+                      onClick={() => remove(index)}
+                    >
+                      <Trash2Icon />
+                    </Button>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="grid gap-1">
+                    <Label htmlFor={`daypart-${index}-start`}>
+                      {t("outletItemScoresConfig.daypartStart")}
+                    </Label>
+                    <Input
+                      id={`daypart-${index}-start`}
+                      type="time"
+                      readOnly={readOnly}
+                      aria-invalid={!!daypartErrors?.start}
+                      {...register(`dayparts.${index}.start`)}
+                    />
+                    <FieldError message={daypartErrors?.start?.message} />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label htmlFor={`daypart-${index}-end`}>
+                      {t("outletItemScoresConfig.daypartEnd")}
+                    </Label>
+                    <Input
+                      id={`daypart-${index}-end`}
+                      type="time"
+                      readOnly={readOnly}
+                      aria-invalid={!!daypartErrors?.end}
+                      {...register(`dayparts.${index}.end`)}
+                    />
+                    <FieldError message={daypartErrors?.end?.message} />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {daypartIssue && (
+            <p className="text-sm text-destructive">
+              {t(`outletItemScoresConfig.issues.${daypartIssue.code}`, daypartIssue)}
+            </p>
+          )}
+
+          {!readOnly && (
+            <div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => append({ name: "", start: "", end: "" })}
+              >
+                <PlusIcon />
+                {t("outletItemScoresConfig.addDaypart")}
+              </Button>
+            </div>
+          )}
+        </fieldset>
+
+        {submitError && (
+          <p className="text-sm text-destructive">
+            {getErrorMessage(submitError, tCommon)}
+          </p>
+        )}
+
+        {children}
       </div>
 
-      <fieldset
-        className="grid gap-3"
-        aria-describedby="outlet-item-scores-dayparts-hint"
-      >
-        <legend className="mb-1 flex items-center gap-1.5 text-sm font-medium">
-          {t("outletItemScoresConfig.dayparts")}
-          <FieldHint
-            id="outlet-item-scores-dayparts-hint"
-            hint={t("outletItemScoresConfig.daypartsHint")}
-          />
-        </legend>
-
-        {fields.length === 0 && (
-          <p className="rounded-xl bg-muted px-4 py-3 text-sm text-muted-foreground">
-            {t("outletItemScoresConfig.wholeDay")}
-          </p>
-        )}
-
-        {fields.map((field, index) => {
-          const daypartErrors = errors.dayparts?.[index];
-          return (
-            <div key={field.id} className="grid gap-3 rounded-xl border p-3">
-              <div className="flex items-start gap-2">
-                <div className="grid flex-1 gap-1">
-                  <Label htmlFor={`daypart-${index}-name`}>
-                    {t("outletItemScoresConfig.daypartName")}
-                  </Label>
-                  <Input
-                    id={`daypart-${index}-name`}
-                    readOnly={readOnly}
-                    aria-invalid={!!daypartErrors?.name}
-                    {...register(`dayparts.${index}.name`, {
-                      setValueAs: (value: string) => value.trim(),
-                    })}
-                  />
-                  <FieldError message={daypartErrors?.name?.message} />
-                </div>
-                {!readOnly && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="mt-6"
-                    aria-label={t("outletItemScoresConfig.removeDaypart")}
-                    onClick={() => remove(index)}
-                  >
-                    <Trash2Icon />
-                  </Button>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="grid gap-1">
-                  <Label htmlFor={`daypart-${index}-start`}>
-                    {t("outletItemScoresConfig.daypartStart")}
-                  </Label>
-                  <Input
-                    id={`daypart-${index}-start`}
-                    type="time"
-                    readOnly={readOnly}
-                    aria-invalid={!!daypartErrors?.start}
-                    {...register(`dayparts.${index}.start`)}
-                  />
-                  <FieldError message={daypartErrors?.start?.message} />
-                </div>
-                <div className="grid gap-1">
-                  <Label htmlFor={`daypart-${index}-end`}>
-                    {t("outletItemScoresConfig.daypartEnd")}
-                  </Label>
-                  <Input
-                    id={`daypart-${index}-end`}
-                    type="time"
-                    readOnly={readOnly}
-                    aria-invalid={!!daypartErrors?.end}
-                    {...register(`dayparts.${index}.end`)}
-                  />
-                  <FieldError message={daypartErrors?.end?.message} />
-                </div>
-              </div>
-            </div>
-          );
-        })}
-
-        {daypartIssue && (
-          <p className="text-sm text-destructive">
-            {t(`outletItemScoresConfig.issues.${daypartIssue.code}`, daypartIssue)}
-          </p>
-        )}
-
-        {!readOnly && (
-          <div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => append({ name: "", start: "", end: "" })}
-            >
-              <PlusIcon />
-              {t("outletItemScoresConfig.addDaypart")}
-            </Button>
-          </div>
-        )}
-      </fieldset>
-
-      {submitError && (
-        <p className="text-sm text-destructive">
-          {getErrorMessage(submitError, tCommon)}
-        </p>
-      )}
-
       {!readOnly && (
-        <div className="flex justify-end">
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button type="button" variant="outline">
+              {tCommon("actions.cancel")}
+            </Button>
+          </DialogClose>
           <Button type="submit" disabled={!isDirty || isSubmitting}>
             {isSubmitting
               ? tCommon("actions.saving")
               : t("outletItemScoresConfig.save")}
           </Button>
-        </div>
+        </DialogFooter>
       )}
     </form>
   );

@@ -4,7 +4,9 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -70,19 +72,7 @@ function SnapshotBody({ outletId, day }: { outletId: string; day: OrderSnapshotD
 
   return (
     <div className="grid min-w-0 gap-4">
-      <div className="flex items-end justify-between gap-4">
-        <SnapshotDetails day={day} />
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={copy}
-          disabled={!snapshot.data}
-        >
-          {copied ? <CheckIcon data-icon="inline-start" /> : <CopyIcon data-icon="inline-start" />}
-          {copied ? t("dialog.copied") : t("dialog.copy")}
-        </Button>
-      </div>
+      <SnapshotDetails day={day} />
 
       {snapshot.isPending ? (
         <Skeleton className="h-80 w-full" />
@@ -95,6 +85,18 @@ function SnapshotBody({ outletId, day }: { outletId: string; day: OrderSnapshotD
           {json}
         </pre>
       )}
+
+      <DialogFooter>
+        <DialogClose asChild>
+          <Button type="button" variant="outline">
+            {tCommon("actions.close")}
+          </Button>
+        </DialogClose>
+        <Button type="button" onClick={copy} disabled={!snapshot.data}>
+          {copied ? <CheckIcon data-icon="inline-start" /> : <CopyIcon data-icon="inline-start" />}
+          {copied ? t("dialog.copied") : t("dialog.copy")}
+        </Button>
+      </DialogFooter>
     </div>
   );
 }

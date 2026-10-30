@@ -15,7 +15,7 @@ import {
 } from "../errors.js";
 import { isUniqueViolationOf } from "../utils/pgErrors.js";
 
-export const OUTLET_ITEM_SCORES_CALCULATION_ALGORITHM_VERSION = "p2-count";
+export const OUTLET_ITEM_SCORES_CALCULATION_ALGORITHM_VERSION = "p3-popularity";
 
 async function insertRun(
   pool: Pool,

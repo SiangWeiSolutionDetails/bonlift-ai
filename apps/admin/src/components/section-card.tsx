@@ -3,7 +3,7 @@ import { cn } from "cn";
 
 type SectionCardProps = {
   title: ReactNode;
-  icon: ComponentType<{ className?: string }>;
+  icon?: ComponentType<{ className?: string }>;
   tone?: "default" | "primary";
   action?: ReactNode;
   className?: string;
@@ -30,9 +30,11 @@ export function SectionCard({
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-3">
-          <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-            <Icon className="size-4" />
-          </span>
+          {Icon && (
+            <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+              <Icon className="size-4" />
+            </span>
+          )}
           <h3 className="font-heading text-base font-semibold">{title}</h3>
         </div>
         {action}

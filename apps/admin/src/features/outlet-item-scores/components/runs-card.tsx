@@ -1,8 +1,6 @@
 import type { ReactNode } from "react";
-import { HistoryIcon, Loader2Icon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SectionCard } from "@/components/section-card";
-import { SettingBadge } from "@/components/setting-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,15 +17,10 @@ import { getErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
 import { formatDuration, formatWindow } from "../format";
 import type { OutletItemScoresRun } from "../type";
+import { RunConfigBadges, RunStatusBadge } from "./run-badges";
 
 const COLUMN_COUNT = 7;
 const SKELETON_ROW_COUNT = 3;
-
-const STATUS_VARIANT = {
-  running: "secondary",
-  succeeded: "success",
-  failed: "destructive",
-} as const;
 
 type RunsCardProps = {
   runs: OutletItemScoresRun[] | undefined;
@@ -41,7 +34,7 @@ export function RunsCard(props: RunsCardProps) {
   const { t } = useTranslation("results");
 
   return (
-    <SectionCard title={t("runs.title")} icon={HistoryIcon}>
+    <SectionCard title={t("runs.title")}>
       <div className="-mx-5 -mb-5 overflow-x-auto border-t">
         <Table>
           <TableHeader>
@@ -109,22 +102,11 @@ function RunRows({
             {run.isPublished && <Badge>{t("runs.published")}</Badge>}
           </div>
         </TableCell>
-        <TableCell>
-          <div className="flex min-w-56 flex-wrap gap-1.5">
-            <Badge>{t("runs.configVersion", { version: run.configVersion })}</Badge>
-            <SettingBadge>
-              {t("runs.halfLife", { halfLifeDays: run.halfLifeDays })}
-            </SettingBadge>
-            <SettingBadge>
-              {t("runs.topN", { topN: run.topN })}
-            </SettingBadge>
-          </div>
+        <TableCell className="min-w-60">
+          <RunConfigBadges run={run} />
         </TableCell>
         <TableCell>
-          <Badge variant={STATUS_VARIANT[run.status]} title={run.error ?? undefined}>
-            {run.status === "running" && <Loader2Icon className="animate-spin" />}
-            {t(`status.${run.status}`)}
-          </Badge>
+          <RunStatusBadge run={run} />
         </TableCell>
         <TableCell className="text-right tabular-nums">
           {run.rowCount ?? "—"}

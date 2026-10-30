@@ -27,7 +27,3 @@ export function formatShare(score: number, locale: string) {
     maximumFractionDigits: 1,
   }).format(score);
 }
-
-export function shortId(id: string) {
-  return id.slice(0, 8);
-}

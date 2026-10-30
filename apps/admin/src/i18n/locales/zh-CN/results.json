@@ -16,6 +16,7 @@
     "failed": "失败"
   },
   "runs": {
+    "runId": "运行 ID",
     "title": "运行记录",
     "empty": "暂无运行记录。运行一次计算即可查看结果。",
     "window": "日期范围",
@@ -33,7 +34,6 @@
   },
   "ranking": {
     "title": "热门商品",
-    "run": "运行 {{id}} · {{window}}",
     "rank": "#",
     "item": "商品",
     "share": "订单占比",
@@ -42,7 +42,9 @@
     "allDay": "全天",
     "running": "计算中…",
     "failed": "本次运行失败：{{error}}",
-    "empty": "该日期范围内没有订单，因此没有排名。"
+    "empty": "该日期范围内没有订单，因此没有排名。",
+    "copyRunId": "复制运行 ID",
+    "copied": "已复制"
   },
   "dialog": {
     "title": "运行计算",

@@ -1,5 +1,4 @@
-import { useMemo } from "react";
-import { TrendingUpIcon } from "lucide-react";
+import { useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ALL_DAY_DAYPART } from "@ai-services/contracts";
 import { FieldHint } from "@/components/field-hint";
@@ -14,12 +13,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { formatDateTime } from "@/lib/date-format";
 import { getErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
-import { formatShare, formatWindow, shortId } from "../format";
+import { formatDuration, formatShare, formatWindow } from "../format";
 import { useOutletItemScoresRunResult } from "../queries";
 import { groupByDaypart, orderDayparts } from "../ranking";
 import type { OutletItemScore, OutletItemScoresRun } from "../type";
+import { CopyableId } from "./copyable-id";
+import { RunConfigBadges, RunStatusBadge } from "./run-badges";
 
 type RankingCardProps = {
   run: OutletItemScoresRun;
@@ -29,15 +31,50 @@ export function RankingCard({ run }: RankingCardProps) {
   const { t } = useTranslation("results");
 
   return (
-    <SectionCard title={t("ranking.title")} icon={TrendingUpIcon}>
-      <p className="-mt-3 text-sm text-muted-foreground">
-        {t("ranking.run", {
-          id: shortId(run.id),
-          window: formatWindow(run.from, run.to),
-        })}
-      </p>
+    <SectionCard title={t("ranking.title")}>
+      <div className="-mt-2">
+        <RunDetails run={run} />
+      </div>
       <RankingBody run={run} />
     </SectionCard>
+  );
+}
+
+// Same facts as the run's row in the runs table, so the ranking can be read without scrolling down
+function RunDetails({ run }: RankingCardProps) {
+  const { t } = useTranslation("results");
+
+  return (
+    <dl className="flex flex-wrap gap-x-8 gap-y-3 text-sm">
+      <Detail label={t("runs.runId")}>
+        <CopyableId id={run.id} />
+      </Detail>
+      <Detail label={t("runs.window")}>{formatWindow(run.from, run.to)}</Detail>
+      <Detail label={t("runs.config")}>
+        <RunConfigBadges run={run} />
+      </Detail>
+      <Detail label={t("runs.status")}>
+        <RunStatusBadge run={run} />
+      </Detail>
+      <Detail label={t("runs.rows")}>
+        <span className="tabular-nums">{run.rowCount ?? "—"}</span>
+      </Detail>
+      <Detail label={t("runs.duration")}>
+        <span className="tabular-nums">
+          {formatDuration(run.startedAt, run.finishedAt) ?? "—"}
+        </span>
+      </Detail>
+      <Detail label={t("runs.started")}>{formatDateTime(run.startedAt)}</Detail>
+    </dl>
+  );
+}
+
+function Detail({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="grid content-start gap-1.5">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd>{children}</dd>
+    </div>
   );
 }
 

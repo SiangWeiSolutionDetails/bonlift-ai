@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { CircleCheckIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -76,6 +77,7 @@ function TenantsTableRows({ tenants, isPending, error, onEdit, onView }: Tenants
       <TableCell className="font-medium">{tenant.name}</TableCell>
       <TableCell>
         <Badge variant={tenant.isActive ? "success" : "secondary"}>
+          {tenant.isActive && <CircleCheckIcon />}
           {tenant.isActive ? tCommon("status.active") : tCommon("status.inactive")}
         </Badge>
       </TableCell>

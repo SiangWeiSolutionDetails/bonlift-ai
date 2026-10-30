@@ -115,9 +115,9 @@ function VersionItem({
     <li className="flex items-start justify-between gap-3 rounded-xl bg-card px-4 py-3 shadow-xs">
       <div className="grid gap-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-medium">
+          <Badge variant="secondary">
             {t("outletItemScoresConfig.version", { version: version.version })}
-          </span>
+          </Badge>
           {isLatest && (
             <Badge variant="success">
               {t("outletItemScoresConfig.history.current")}

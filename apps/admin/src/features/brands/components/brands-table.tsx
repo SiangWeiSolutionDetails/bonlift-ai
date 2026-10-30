@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { CircleCheckIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -76,6 +77,7 @@ function BrandsTableRows({ brands, isPending, error, onEdit, onView }: BrandsTab
       <TableCell className="font-medium">{brand.name}</TableCell>
       <TableCell>
         <Badge variant={brand.isActive ? "success" : "secondary"}>
+          {brand.isActive && <CircleCheckIcon />}
           {brand.isActive ? tCommon("status.active") : tCommon("status.inactive")}
         </Badge>
       </TableCell>

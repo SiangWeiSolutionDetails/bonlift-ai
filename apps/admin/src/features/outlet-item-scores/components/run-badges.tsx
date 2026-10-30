@@ -1,4 +1,4 @@
-import { Loader2Icon } from "lucide-react";
+import { CircleCheckIcon, CircleXIcon, Loader2Icon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -24,7 +24,7 @@ export function RunConfigBadge({ run }: { run: OutletItemScoresRun }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Badge tabIndex={0} className="cursor-default">
+        <Badge variant="secondary" tabIndex={0} className="cursor-default">
           {t("runs.configVersion", { version: run.configVersion })}
         </Badge>
       </TooltipTrigger>
@@ -52,6 +52,8 @@ export function RunStatusBadge({ run }: { run: OutletItemScoresRun }) {
   return (
     <Badge variant={STATUS_VARIANT[run.status]} title={run.error ?? undefined}>
       {run.status === "running" && <Loader2Icon className="animate-spin" />}
+      {run.status === "succeeded" && <CircleCheckIcon />}
+      {run.status === "failed" && <CircleXIcon />}
       {t(`status.${run.status}`)}
     </Badge>
   );

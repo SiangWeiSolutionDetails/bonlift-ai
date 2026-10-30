@@ -1,4 +1,5 @@
 import { useMemo, type ReactNode } from "react";
+import { CircleCheckIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -94,6 +95,7 @@ function OutletsTableRows({
       </TableCell>
       <TableCell>
         <Badge variant={outlet.isActive ? "success" : "secondary"}>
+          {outlet.isActive && <CircleCheckIcon />}
           {outlet.isActive ? tCommon("status.active") : tCommon("status.inactive")}
         </Badge>
       </TableCell>

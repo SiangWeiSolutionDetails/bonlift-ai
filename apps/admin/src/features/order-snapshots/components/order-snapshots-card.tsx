@@ -2,10 +2,8 @@ import { useMemo, useState, type ReactNode } from "react";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
-  CircleAlertIcon,
-  ClockAlertIcon,
-  DatabaseIcon,
-  ListIcon,
+  CircleCheckIcon,
+  CircleXIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { SectionCard } from "@/components/section-card";
@@ -51,9 +49,9 @@ const FILTER_BADGE_VARIANT = {
 } as const;
 
 const FILTER_BADGE_ICON = {
-  all: ListIcon,
-  stored: DatabaseIcon,
-  missing: CircleAlertIcon,
+  all: null,
+  stored: CircleCheckIcon,
+  missing: CircleXIcon,
 };
 
 function matchesFilter(day: OrderSnapshotDay, filter: DayFilter) {
@@ -96,7 +94,7 @@ export function OrderSnapshotsCard({ outletId }: { outletId: string }) {
               return (
                 <SelectItem key={filter} value={filter}>
                   <Badge variant={FILTER_BADGE_VARIANT[filter]}>
-                    <Icon />
+                    {Icon && <Icon />}
                     {t(`filter.${filter}`)}
                   </Badge>
                 </SelectItem>
@@ -248,7 +246,7 @@ function DayStatusBadge({ day }: { day: OrderSnapshotDay }) {
   if (!day.isStored) {
     return (
       <Badge variant="destructive">
-        <CircleAlertIcon />
+        <CircleXIcon />
         {t("status.missing")}
       </Badge>
     );
@@ -256,14 +254,13 @@ function DayStatusBadge({ day }: { day: OrderSnapshotDay }) {
   if (day.isStale) {
     return (
       <Badge variant="secondary" title={t("status.staleHint")}>
-        <ClockAlertIcon />
         {t("status.stale")}
       </Badge>
     );
   }
   return (
     <Badge variant="success">
-      <DatabaseIcon />
+      <CircleCheckIcon />
       {t("status.stored")}
     </Badge>
   );

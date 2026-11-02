@@ -15,6 +15,11 @@ import { customerItemScoresCalculationConfigVersionRoutes } from "./routes/custo
 import { customerItemScoresResultRoutes } from "./routes/customerItemScoresResult.route.js";
 import { itemAffinityCalculationConfigVersionRoutes } from "./routes/itemAffinityCalculationConfigVersion.route.js";
 import { itemAffinityResultRoutes } from "./routes/itemAffinityResult.route.js";
+import { recommendationRoutes } from "./routes/recommendation.route.js";
+import {
+  createServingAuthHook,
+  parseServingApiKeys,
+} from "./plugins/servingAuth.js";
 
 export function buildApp(): FastifyInstance {
   const app = Fastify({
@@ -58,6 +63,19 @@ export function buildApp(): FastifyInstance {
   app.register(customerItemScoresResultRoutes);
   app.register(itemAffinityCalculationConfigVersionRoutes);
   app.register(itemAffinityResultRoutes);
+
+  // Serving routes for TQR, POS and kiosk: versioned, and the API key hook is encapsulated to this prefix only.
+  const servingApiKeys = parseServingApiKeys(process.env.SERVING_API_KEYS);
+  app.register(
+    async (serving) => {
+      serving.addHook(
+        "onRequest",
+        createServingAuthHook(servingApiKeys, serving.log),
+      );
+      serving.register(recommendationRoutes);
+    },
+    { prefix: "/v1" },
+  );
 
   if (process.env.NODE_ENV !== "production") {
     app.register(mockDatasetRoutes);

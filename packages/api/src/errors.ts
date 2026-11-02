@@ -3,6 +3,11 @@ export abstract class AppError extends Error {
   abstract readonly code: string;
 }
 
+export class UnauthorizedError extends AppError {
+  readonly statusCode = 401;
+  readonly code = "UNAUTHORIZED";
+}
+
 export class NotFoundError extends AppError {
   readonly statusCode = 404;
   readonly code = "NOT_FOUND";

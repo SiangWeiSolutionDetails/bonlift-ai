@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { Tabs as TabsPrimitive } from "radix-ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FieldError } from "@/components/field-error";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,20 @@ import { useUpdateBrand } from "../queries";
 import { BrandDataSourceSection } from "@/features/brand-data-source/components/brand-data-source-section";
 import { OutletItemScoresConfigSection } from "@/features/outlet-item-scores-config/components/outlet-item-scores-config-section";
 import { CustomerItemScoresConfigSection } from "@/features/customer-item-scores-config/components/customer-item-scores-config-section";
+
+const CALCULATIONS = [
+  {
+    value: "popularItems",
+    titleKey: "outletItemScoresConfig.title",
+    Section: OutletItemScoresConfigSection,
+  },
+  {
+    value: "customerItems",
+    titleKey: "customerItemScoresConfig.title",
+    Section: CustomerItemScoresConfigSection,
+  },
+] as const;
+
 type BrandDialogProps = {
   brand: Brand | null;
   readOnly?: boolean;
@@ -38,7 +53,7 @@ export function BrandDialog({ brand, readOnly = false, onClose }: BrandDialogPro
 
   return (
     <Dialog open={brand !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden sm:max-w-2xl">
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{t(`${mode}.title`)}</DialogTitle>
           <DialogDescription>{brand?.name}</DialogDescription>
@@ -54,11 +69,8 @@ export function BrandDialog({ brand, readOnly = false, onClose }: BrandDialogPro
               <TabsTrigger value="dataSource" className="flex-none">
                 {t("dataSource.title")}
               </TabsTrigger>
-              <TabsTrigger value="popularItems" className="flex-none">
-                {t("outletItemScoresConfig.title")}
-              </TabsTrigger>
-              <TabsTrigger value="customerItems" className="flex-none">
-                {t("customerItemScoresConfig.title")}
+              <TabsTrigger value="calculationConfigs" className="flex-none">
+                {t("tabs.calculationConfigs")}
               </TabsTrigger>
             </TabsList>
             <BrandTab value="general">
@@ -67,17 +79,8 @@ export function BrandDialog({ brand, readOnly = false, onClose }: BrandDialogPro
             <BrandTab value="dataSource">
               <BrandDataSourceSection brandId={brand.id} readOnly={readOnly} />
             </BrandTab>
-            <BrandTab value="popularItems">
-              <OutletItemScoresConfigSection
-                brandId={brand.id}
-                readOnly={readOnly}
-              />
-            </BrandTab>
-            <BrandTab value="customerItems">
-              <CustomerItemScoresConfigSection
-                brandId={brand.id}
-                readOnly={readOnly}
-              />
+            <BrandTab value="calculationConfigs">
+              <BrandCalculationConfigs brandId={brand.id} readOnly={readOnly} />
             </BrandTab>
           </Tabs>
         )}
@@ -93,10 +96,47 @@ function BrandTab({ value, children }: { value: string; children: ReactNode }) {
     <TabsContent
       value={value}
       forceMount
-      className="flex min-h-0 flex-col data-[state=inactive]:hidden"
+      className="flex min-h-0 min-w-0 flex-col data-[state=inactive]:hidden"
     >
       {children}
     </TabsContent>
+  );
+}
+
+type BrandCalculationConfigsProps = {
+  brandId: string;
+  readOnly: boolean;
+};
+
+// Uses the Radix primitive because ui/tabs styles triggers by the nearest group/tabs,
+// which would also match the horizontal tabs this is nested in.
+// gap-6 absorbs the -mx-6 overhang of each section's scroll body so it can't cover the nav.
+function BrandCalculationConfigs({ brandId, readOnly }: BrandCalculationConfigsProps) {
+  const { t } = useTranslation("brands");
+
+  return (
+    <TabsPrimitive.Root
+      orientation="vertical"
+      defaultValue={CALCULATIONS[0].value}
+      className="flex min-h-0 flex-1 flex-col gap-4 sm:flex-row sm:gap-6"
+    >
+      <TabsPrimitive.List className="flex shrink-0 gap-1 overflow-x-auto [scrollbar-width:none] sm:w-44 sm:flex-col sm:overflow-x-hidden sm:overflow-y-auto sm:[scrollbar-width:auto]">
+        {CALCULATIONS.map(({ value, titleKey }) => (
+          <TabsPrimitive.Trigger
+            key={value}
+            value={value}
+            className="shrink-0 rounded-md px-3 py-2 text-left text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset data-[state=active]:bg-muted data-[state=active]:text-foreground sm:whitespace-normal"
+          >
+            {t(titleKey)}
+          </TabsPrimitive.Trigger>
+        ))}
+      </TabsPrimitive.List>
+      {CALCULATIONS.map(({ value, Section }) => (
+        <BrandTab key={value} value={value}>
+          <Section brandId={brandId} readOnly={readOnly} />
+        </BrandTab>
+      ))}
+    </TabsPrimitive.Root>
   );
 }
 

@@ -26,7 +26,8 @@
     "title": "Brand Details"
   },
   "tabs": {
-    "general": "General"
+    "general": "General",
+    "calculationConfigs": "Calculation Configs"
   },
   "dataSource": {
     "title": "Data Source",

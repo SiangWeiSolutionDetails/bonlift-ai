@@ -26,7 +26,8 @@
     "title": "品牌详情"
   },
   "tabs": {
-    "general": "基本信息"
+    "general": "基本信息",
+    "calculationConfigs": "计算配置"
   },
   "dataSource": {
     "title": "数据源",

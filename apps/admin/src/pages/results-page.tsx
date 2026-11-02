@@ -8,6 +8,7 @@ import { OutletPicker } from "@/features/outlet-item-scores/components/outlet-pi
 import { RankingCard } from "@/features/outlet-item-scores/components/ranking-card";
 import { RunCalculationDialog } from "@/features/outlet-item-scores/components/run-calculation-dialog";
 import { RunsCard } from "@/features/outlet-item-scores/components/runs-card";
+import { ScoreFormula } from "@/features/outlet-item-scores/components/score-formula";
 import { useOutletItemScoresRuns } from "@/features/outlet-item-scores/queries";
 import type { ResultsSearch } from "@/features/outlet-item-scores/search";
 
@@ -36,13 +37,16 @@ export function ResultsPage() {
       <PageHeader
         title={t("page.title")}
         action={
-          <Button
-            disabled={!search.outletId}
-            onClick={() => setIsRunDialogOpen(true)}
-          >
-            <PlayIcon data-icon="inline-start" />
-            {t("page.runCalculation")}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <ScoreFormula />
+            <Button
+              disabled={!search.outletId}
+              onClick={() => setIsRunDialogOpen(true)}
+            >
+              <PlayIcon data-icon="inline-start" />
+              {t("page.runCalculation")}
+            </Button>
+          </div>
         }
       />
 

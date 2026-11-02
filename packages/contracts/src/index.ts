@@ -10,3 +10,6 @@ export * from "./calculationConfigVersion.schema.js";
 export * from "./outletItemScoresCalculationConfigVersion.schema.js";
 export * from "./dayparts.js";
 export * from "./outletItemScoresResult.schema.js";
+export * from "./customerItemScoresCalculation.schema.js";
+export * from "./customerItemScoresCalculationConfigVersion.schema.js";
+export * from "./customerItemScoresResult.schema.js";

@@ -108,7 +108,7 @@ async function insertRun(
   }
 }
 
-async function queueRun(
+export async function queueRun(
   pool: Pool,
   queue: (runId: string) => Promise<void>,
   runId: string,

@@ -11,6 +11,8 @@ import { orderSnapshotRoutes } from "./routes/orderSnapshot.route.js";
 import { calculationRoutes } from "./routes/calculation.route.js";
 import { outletItemScoresCalculationConfigVersionRoutes } from "./routes/outletItemScoresCalculationConfigVersion.route.js";
 import { outletItemScoresResultRoutes } from "./routes/outletItemScoresResult.route.js";
+import { customerItemScoresCalculationConfigVersionRoutes } from "./routes/customerItemScoresCalculationConfigVersion.route.js";
+import { customerItemScoresResultRoutes } from "./routes/customerItemScoresResult.route.js";
 
 export function buildApp(): FastifyInstance {
   const app = Fastify({
@@ -50,6 +52,8 @@ export function buildApp(): FastifyInstance {
   app.register(calculationRoutes);
   app.register(outletItemScoresCalculationConfigVersionRoutes);
   app.register(outletItemScoresResultRoutes);
+  app.register(customerItemScoresCalculationConfigVersionRoutes);
+  app.register(customerItemScoresResultRoutes);
 
   if (process.env.NODE_ENV !== "production") {
     app.register(mockDatasetRoutes);

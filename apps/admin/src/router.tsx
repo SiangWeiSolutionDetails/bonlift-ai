@@ -11,12 +11,15 @@ import {
   DatabaseIcon,
   StoreIcon,
   TagIcon,
+  UsersIcon,
 } from "lucide-react";
 import App from "@/App";
+import { validateCustomerScoresSearch } from "@/features/customer-item-scores/search";
 import { validateSnapshotsSearch } from "@/features/order-snapshots/search";
 import { validateResultsSearch } from "@/features/outlet-item-scores/search";
 import type enCommon from "@/i18n/locales/en/common.json";
 import { BrandsPage } from "@/pages/brands-page";
+import { CustomerScoresPage } from "@/pages/customer-scores-page";
 import { OrderSnapshotsPage } from "@/pages/order-snapshots-page";
 import { OutletsPage } from "@/pages/outlets-page";
 import { ResultsPage } from "@/pages/results-page";
@@ -69,6 +72,14 @@ const resultsRoute = createRoute({
   staticData: { titleKey: "nav.results", groupKey: "nav.computation", icon: <BarChart3Icon /> },
 });
 
+const customerScoresRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/customer-scores",
+  component: CustomerScoresPage,
+  validateSearch: validateCustomerScoresSearch,
+  staticData: { titleKey: "nav.customerScores", groupKey: "nav.computation", icon: <UsersIcon /> },
+});
+
 // Order here is the sidebar order; routes with a staticData icon and groupKey appear in the sidebar.
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -77,6 +88,7 @@ const routeTree = rootRoute.addChildren([
   outletsRoute,
   snapshotsRoute,
   resultsRoute,
+  customerScoresRoute,
 ]);
 
 export const router = createRouter({ routeTree });

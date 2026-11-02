@@ -76,5 +76,23 @@
       "restoreConfirmTitle": "恢复版本 {{version}}？",
       "restoreConfirmDescription": "将使用这些设置创建一个新版本，并设为当前版本。"
     }
+  },
+  "customerItemScoresConfig": {
+    "title": "顾客商品计算",
+    "version": "v{{version}}",
+    "currentHint": "保存会创建新版本；已完成的计算保留其所用的版本。",
+    "halfLifeDays": "半衰期（天）",
+    "halfLifeDaysHint": "距今这么多天的订单，权重为新订单的一半。",
+    "topN": "每位顾客的商品数",
+    "topNHint": "每位顾客保留的热门商品数量。",
+    "save": "保存为新版本",
+    "history": {
+      "title": "版本历史",
+      "current": "当前",
+      "by": "由 {{name}}",
+      "restore": "恢复",
+      "restoreConfirmTitle": "恢复版本 {{version}}？",
+      "restoreConfirmDescription": "将使用这些设置创建一个新版本，并设为当前版本。"
+    }
   }
 }

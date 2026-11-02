@@ -3,7 +3,7 @@ import { Pool } from "pg";
 
 export interface Run {
   id: string;
-  outletId: string;
+  outletId: string | null;
   jobType: CalculationJobTypeSchemaType;
   calculationConfigVersionId: string;
   from: string;

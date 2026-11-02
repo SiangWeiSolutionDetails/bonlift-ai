@@ -76,5 +76,23 @@
       "restoreConfirmTitle": "Restore version {{version}}?",
       "restoreConfirmDescription": "This creates a new version with these settings and makes it the current one."
     }
+  },
+  "customerItemScoresConfig": {
+    "title": "Customer Items Calculation",
+    "version": "v{{version}}",
+    "currentHint": "Saving creates a new version; past runs keep the version they used.",
+    "halfLifeDays": "Half-Life (Days)",
+    "halfLifeDaysHint": "An order this many days old counts half as much as a new one.",
+    "topN": "Items Per Customer",
+    "topNHint": "How many top items are kept for each customer.",
+    "save": "Save As New Version",
+    "history": {
+      "title": "Version History",
+      "current": "Current",
+      "by": "by {{name}}",
+      "restore": "Restore",
+      "restoreConfirmTitle": "Restore version {{version}}?",
+      "restoreConfirmDescription": "This creates a new version with these settings and makes it the current one."
+    }
   }
 }

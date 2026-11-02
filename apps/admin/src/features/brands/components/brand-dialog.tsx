@@ -25,6 +25,7 @@ import { UpdateBrandBodySchema } from "@ai-services/contracts";
 import { useUpdateBrand } from "../queries";
 import { BrandDataSourceSection } from "@/features/brand-data-source/components/brand-data-source-section";
 import { OutletItemScoresConfigSection } from "@/features/outlet-item-scores-config/components/outlet-item-scores-config-section";
+import { CustomerItemScoresConfigSection } from "@/features/customer-item-scores-config/components/customer-item-scores-config-section";
 type BrandDialogProps = {
   brand: Brand | null;
   readOnly?: boolean;
@@ -56,6 +57,9 @@ export function BrandDialog({ brand, readOnly = false, onClose }: BrandDialogPro
               <TabsTrigger value="popularItems" className="flex-none">
                 {t("outletItemScoresConfig.title")}
               </TabsTrigger>
+              <TabsTrigger value="customerItems" className="flex-none">
+                {t("customerItemScoresConfig.title")}
+              </TabsTrigger>
             </TabsList>
             <BrandTab value="general">
               <BrandForm brand={brand} readOnly={readOnly} />
@@ -65,6 +69,12 @@ export function BrandDialog({ brand, readOnly = false, onClose }: BrandDialogPro
             </BrandTab>
             <BrandTab value="popularItems">
               <OutletItemScoresConfigSection
+                brandId={brand.id}
+                readOnly={readOnly}
+              />
+            </BrandTab>
+            <BrandTab value="customerItems">
+              <CustomerItemScoresConfigSection
                 brandId={brand.id}
                 readOnly={readOnly}
               />

@@ -1,0 +1,64 @@
+{
+  "page": {
+    "title": "Customer Item Scoring",
+    "runCalculation": "Run Calculation"
+  },
+  "picker": {
+    "brand": "Brand",
+    "brandPlaceholder": "Select a brand",
+    "noBrand": "Choose a brand to see its customers' favourite items."
+  },
+  "status": {
+    "running": "Running",
+    "succeeded": "Succeeded",
+    "failed": "Failed"
+  },
+  "runs": {
+    "runId": "Run ID",
+    "title": "Runs",
+    "empty": "No runs yet. Run a calculation to see results.",
+    "window": "Window",
+    "config": "Config",
+    "configVersion": "v{{version}}",
+    "status": "Status",
+    "rows": "Rows",
+    "duration": "Duration",
+    "started": "Started",
+    "actions": "Actions",
+    "published": "Published",
+    "view": "View",
+    "halfLifeLabel": "Half-Life",
+    "halfLifeValue": "{{halfLifeDays}} days",
+    "topNLabel": "Items Per Customer",
+    "publish": "Publish",
+    "publishConfirmTitle": "Publish this run?",
+    "publishConfirmDescription": "The scores for {{window}} replace the brand's live customer scores straight away."
+  },
+  "customers": {
+    "search": "Search by customer ID",
+    "empty": "No matching customers.",
+    "itemCount_one": "{{count}} item",
+    "itemCount_other": "{{count}} items",
+    "loadMore": "Load More"
+  },
+  "ranking": {
+    "rank": "#",
+    "item": "Item",
+    "share": "Order Share",
+    "shareHint": "Recency-weighted share of this customer's orders that contain the item.",
+    "orders": "Orders",
+    "running": "Calculating…",
+    "failed": "This run failed: {{error}}",
+    "empty": "No orders with a customer in this window, so nothing was ranked.",
+    "noCustomer": "Select a customer to see their items."
+  },
+  "dialog": {
+    "title": "Run Calculation",
+    "description": "Scores each customer's orders across all the brand's outlets in this date range, with the brand's current settings. The result goes live unless a run covering later dates is already live.",
+    "from": "From",
+    "to": "To (Inclusive)",
+    "invalidRange": "The end date must be on or after the start date.",
+    "submit": "Run",
+    "submitting": "Starting…"
+  }
+}

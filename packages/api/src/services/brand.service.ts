@@ -115,6 +115,15 @@ export async function createBrand(
       oisccv AS (
         INSERT INTO outlet_item_scores_calculation_config_versions (id)
         SELECT ccv.id FROM ccv
+      ),
+      customer_ccv AS (
+        INSERT INTO calculation_config_versions (brand_id, job_type)
+        SELECT b.id, 'customer_item_scores' FROM b
+        RETURNING id
+      ),
+      cisccv AS (
+        INSERT INTO customer_item_scores_calculation_config_versions (id)
+        SELECT customer_ccv.id FROM customer_ccv
       )
       SELECT ${BRAND_COLUMNS} FROM b;
       `,

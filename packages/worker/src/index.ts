@@ -3,3 +3,7 @@ export {
   OUTLET_ITEM_SCORES_QUEUE_NAME,
   queueOutletItemScores,
 } from "./queues/outletItemScores.queue.js";
+export {
+  CUSTOMER_ITEM_SCORES_QUEUE_NAME,
+  queueCustomerItemScores,
+} from "./queues/customerItemScores.queue.js";

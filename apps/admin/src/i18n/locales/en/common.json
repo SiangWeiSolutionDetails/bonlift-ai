@@ -26,7 +26,8 @@
     "brands": "Brands",
     "outlets": "Outlets",
     "snapshots": "Order Snapshots",
-    "results": "Outlet Item Scoring"
+    "results": "Outlet Item Scoring",
+    "customerScores": "Customer Item Scoring"
   },
   "language": {
     "label": "Language"

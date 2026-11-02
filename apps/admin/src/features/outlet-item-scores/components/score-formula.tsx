@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 
 const EXAMPLE_WEIGHTS = [
   { days: 0, weight: 1 },
-  { days: 7, weight: 0.75 },
+  { days: 7, weight: 0.71 },
   { days: 14, weight: 0.5 },
   { days: 28, weight: 0.25 },
 ];

@@ -42,6 +42,11 @@
     "maxChunkDaysHint": "Days per request, 1 to 92.",
     "save": "Save Data Source"
   },
+  "halfLifePreview": {
+    "title": "Order weight by age",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days"
+  },
   "outletItemScoresConfig": {
     "title": "Popular Items Calculation",
     "version": "v{{version}}",

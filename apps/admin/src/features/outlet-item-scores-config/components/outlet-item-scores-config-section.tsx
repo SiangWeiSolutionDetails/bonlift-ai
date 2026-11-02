@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   useFieldArray,
   useForm,
+  useWatch,
   type UseFormRegisterReturn,
 } from "react-hook-form";
 import { ChevronRightIcon, PlusIcon, Trash2Icon } from "lucide-react";
@@ -14,6 +15,7 @@ import {
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FieldError } from "@/components/field-error";
 import { FieldHint } from "@/components/field-hint";
+import { HalfLifePreview } from "@/components/half-life-preview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DialogClose, DialogFooter } from "@/components/ui/dialog";
@@ -162,6 +164,7 @@ function OutletItemScoresConfigForm({
     control,
     name: "dayparts",
   });
+  const halfLifeDays = useWatch({ control, name: "halfLifeDays" });
   const [daypartIssue, setDaypartIssue] = useState<DaypartIssue | null>(null);
   const [pendingChanges, setPendingChanges] =
     useState<CreateOutletItemScoresConfigVersionInput | null>(null);
@@ -206,14 +209,17 @@ function OutletItemScoresConfigForm({
         </div>
 
         <div className="grid gap-x-4 gap-y-6 sm:grid-cols-2">
-          <NumberField
-            id="outlet-item-scores-half-life-days"
-            label={t("outletItemScoresConfig.halfLifeDays")}
-            hint={t("outletItemScoresConfig.halfLifeDaysHint")}
-            readOnly={readOnly}
-            error={errors.halfLifeDays?.message}
-            registration={register("halfLifeDays", { valueAsNumber: true })}
-          />
+          <div className="grid content-start gap-3">
+            <NumberField
+              id="outlet-item-scores-half-life-days"
+              label={t("outletItemScoresConfig.halfLifeDays")}
+              hint={t("outletItemScoresConfig.halfLifeDaysHint")}
+              readOnly={readOnly}
+              error={errors.halfLifeDays?.message}
+              registration={register("halfLifeDays", { valueAsNumber: true })}
+            />
+            <HalfLifePreview halfLifeDays={halfLifeDays} />
+          </div>
           <NumberField
             id="outlet-item-scores-top-n"
             label={t("outletItemScoresConfig.topN")}

@@ -42,6 +42,11 @@
     "maxChunkDaysHint": "每次请求的天数，1 至 92。",
     "save": "保存数据源"
   },
+  "halfLifePreview": {
+    "title": "不同订单时间的权重",
+    "days_one": "{{count}} 天",
+    "days_other": "{{count}} 天"
+  },
   "outletItemScoresConfig": {
     "title": "热门商品计算",
     "version": "v{{version}}",

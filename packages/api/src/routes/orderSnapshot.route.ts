@@ -1,5 +1,7 @@
 import {
+  DatasetResultSchema,
   DatasetSchema,
+  DatasetSchemaType,
   OrderSnapshotCoverageSchema,
   OrderSnapshotParamsSchema,
   OrderSnapshotParamsSchemaType,
@@ -11,9 +13,26 @@ import { FastifyInstance } from "fastify";
 import {
   getOrderSnapshot,
   getOrderSnapshotCoverage,
+  storeOrderSnapshots,
 } from "../services/orderSnapshot.service.js";
 
 export async function orderSnapshotRoutes(app: FastifyInstance) {
+  app.post<{ Params: OutletParamsSchemaType; Body: DatasetSchemaType }>(
+    "/outlets/:outletId/order-snapshots",
+    {
+      bodyLimit: 15 * 1024 * 1024,
+      schema: {
+        params: OutletParamsSchema,
+        body: DatasetSchema,
+        response: { 200: DatasetResultSchema },
+      },
+    },
+    (request) => {
+      const pool = getPool();
+      return storeOrderSnapshots(pool, request.params.outletId, request.body);
+    },
+  );
+
   app.get<{ Params: OutletParamsSchemaType }>(
     "/outlets/:outletId/order-snapshots",
     {

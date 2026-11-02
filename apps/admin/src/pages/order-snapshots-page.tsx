@@ -13,8 +13,9 @@ export function OrderSnapshotsPage() {
   const navigate = routeApi.useNavigate();
 
   // replace: picking an outlet should not fill the back button history
+  // resetScroll: a filter change should keep the user's scroll position
   function updateSearch(patch: Partial<SnapshotsSearch>) {
-    navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true });
+    navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true, resetScroll: false });
   }
 
   return (

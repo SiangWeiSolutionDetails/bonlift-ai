@@ -37,8 +37,9 @@ export function CustomerScoresPage() {
     runList.find((run) => run.id === search.runId) ?? publishedRun ?? runList[0];
 
   // replace: picking a brand, run or customer should not fill the back button history
+  // resetScroll: a selection change should keep the user's scroll position
   function updateSearch(patch: Partial<CustomerScoresSearch>) {
-    navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true });
+    navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true, resetScroll: false });
   }
 
   function viewRun(runId: string) {

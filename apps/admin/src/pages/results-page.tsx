@@ -28,8 +28,9 @@ export function ResultsPage() {
     runList.find((run) => run.id === search.runId) ?? publishedRun ?? runList[0];
 
   // replace: picking an outlet or run should not fill the back button history
+  // resetScroll: a filter change should keep the user's scroll position
   function updateSearch(patch: Partial<ResultsSearch>) {
-    navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true });
+    navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true, resetScroll: false });
   }
 
   return (

@@ -2,9 +2,11 @@
 
 **Source:** Email from management on the proposed "AI" upselling platform
 **Status:** Draft for discussion
-**Last updated:** 7 October 2026
+**Last updated:** 2 November 2026
 
 > Priorities (Must / Should / Could) are proposed, not confirmed. Management explicitly marked only the exclusion rules as "die-die-must-have". Requirement IDs are stable and can be referenced in discussion.
+>
+> **Status** covers this repository only, as audited and cross-checked against `docs/module-roadmap.md` on 2 November 2026. **Done** means fully met as written and usable in the ordering flow. **Partly done** states what exists, what is missing, and where the rest is planned. **Not started** means no work exists here; the brackets give the roadmap module or owning system, and progress in other systems has not been checked. **No roadmap module** means neither this engine's plan nor its list of external owners covers it.
 
 ---
 
@@ -20,114 +22,114 @@
 
 ## 1. Customer Identification & Consent
 
-| ID | Requirement | Priority |
-|---|---|---|
-| CI-1 | Diners enter a mobile number to receive an e-receipt. The mobile number is the unique customer identifier, including for non-members. | Must |
-| CI-2 | Purchase history, preferences, likes and dislikes are linked to the mobile number profile. | Must |
-| CI-3 | Returning diners entering the same mobile number are recognised, and their profile is loaded for recommendations. | Must |
-| CI-4 | Promotional updates are sent primarily via email, which means an email address must also be collected (see G-2). | Must |
-| CI-5 | Explicit opt-in for personalisation, separate from marketing consent and from the e-receipt itself. | Must |
-| CI-6 | Diners can update preferences anytime and withdraw consent. | Must |
-| CI-7 | The mobile number is verified via OTP before a profile is loaded, linked, or merged (see G-1). | Must |
+| ID | Requirement | Priority | Status |
+|---|---|---|---|
+| CI-1 | Diners enter a mobile number to receive an e-receipt. The mobile number is the unique customer identifier, including for non-members. | Must | Not started (CRM) |
+| CI-2 | Purchase history, preferences, likes and dislikes are linked to the mobile number profile. | Must | Partly done: purchase history is linked to an opaque customer ID through order snapshots and customer item scores. No mobile number profile, preferences, likes or dislikes. Remaining: CRM. |
+| CI-3 | Returning diners entering the same mobile number are recognised, and their profile is loaded for recommendations. | Must | Not started (CRM) |
+| CI-4 | Promotional updates are sent primarily via email, which means an email address must also be collected (see G-2). | Must | Not started (CRM) |
+| CI-5 | Explicit opt-in for personalisation, separate from marketing consent and from the e-receipt itself. | Must | Not started (CRM) |
+| CI-6 | Diners can update preferences anytime and withdraw consent. | Must | Not started (CRM) |
+| CI-7 | The mobile number is verified via OTP before a profile is loaded, linked, or merged (see G-1). | Must | Not started (CRM) |
 
 ## 2. Preference Survey & Incentive
 
-| ID | Requirement | Priority |
-|---|---|---|
-| PS-1 | Short questionnaire offered through TQR, with a $5 voucher on completion. | Must |
-| PS-2 | Questions cover eating preference, proteins, fibre, flavours, ordering interests, decision factors, desired recommendation types, dislikes, and allergies/exclusions (9 questions per the draft). | Must |
-| PS-3 | Selection limits are enforced per question: "up to three" for Q1–Q7, "all that apply" for Q8–Q9. | Must |
-| PS-4 | Free-text "Other" fields for eating preference, dislikes and allergies. | Should |
-| PS-5 | Completion takes under one minute on mobile. | Should |
-| PS-6 | The voucher is issued once per customer globally, with defined expiry and redemption rules. | Must |
-| PS-7 | Contradictory answers are prevented or resolved, with the most restrictive answer winning (see G-6). | Must |
+| ID | Requirement | Priority | Status |
+|---|---|---|---|
+| PS-1 | Short questionnaire offered through TQR, with a $5 voucher on completion. | Must | Not started (CRM) |
+| PS-2 | Questions cover eating preference, proteins, fibre, flavours, ordering interests, decision factors, desired recommendation types, dislikes, and allergies/exclusions (9 questions per the draft). | Must | Not started (CRM) |
+| PS-3 | Selection limits are enforced per question: "up to three" for Q1–Q7, "all that apply" for Q8–Q9. | Must | Not started (CRM) |
+| PS-4 | Free-text "Other" fields for eating preference, dislikes and allergies. | Should | Not started (CRM) |
+| PS-5 | Completion takes under one minute on mobile. | Should | Not started (CRM) |
+| PS-6 | The voucher is issued once per customer globally, with defined expiry and redemption rules. | Must | Not started (CRM) |
+| PS-7 | Contradictory answers are prevented or resolved, with the most restrictive answer winning (see G-6). | Must | Not started (CRM) |
 
 ## 3. Menu Data Prerequisites
 
 The hard exclusion rules cannot work unless menu items carry this data. All tags follow a **shared platform taxonomy** (see XB-5).
 
-| ID | Requirement | Priority |
-|---|---|---|
-| MD-1 | Each item is tagged with allergens, aligned to the Q9 list. | Must |
-| MD-2 | Each item is tagged with dietary attributes: contains pork, contains beef, vegetarian, vegan, pescatarian-safe, halal-certified. | Must |
-| MD-3 | Each item is tagged with key ingredients for dislike matching (coriander, garlic, onion, mushroom, etc.). | Must |
-| MD-4 | Each item is tagged with its category/role: main, side, drink, dessert, add-on, sharing, set/bundle. | Must |
-| MD-5 | Each item is tagged with portion type (individual / sharing) and daypart availability (breakfast / lunch / tea / dinner). | Must |
-| MD-6 | Each item is tagged with flavour profile and protein/fibre type, to match Q2–Q4. | Should |
-| MD-7 | Pairing rules can be configured manually (e.g. Burger → fries, drink, side). | Must |
-| MD-8 | Merchant-level attributes are available: margin, merchant priority flag, new/limited-time flag. | Should |
+| ID | Requirement | Priority | Status |
+|---|---|---|---|
+| MD-1 | Each item is tagged with allergens, aligned to the Q9 list. | Must | Not started (POS) |
+| MD-2 | Each item is tagged with dietary attributes: contains pork, contains beef, vegetarian, vegan, pescatarian-safe, halal-certified. | Must | Not started (POS) |
+| MD-3 | Each item is tagged with key ingredients for dislike matching (coriander, garlic, onion, mushroom, etc.). | Must | Not started (POS) |
+| MD-4 | Each item is tagged with its category/role: main, side, drink, dessert, add-on, sharing, set/bundle. | Must | Not started (POS) |
+| MD-5 | Each item is tagged with portion type (individual / sharing) and daypart availability (breakfast / lunch / tea / dinner). | Must | Not started (POS) |
+| MD-6 | Each item is tagged with flavour profile and protein/fibre type, to match Q2–Q4. | Should | Not started (POS) |
+| MD-7 | Pairing rules can be configured manually (e.g. Burger → fries, drink, side). | Must | Not started (owner undecided) |
+| MD-8 | Merchant-level attributes are available: margin, merchant priority flag, new/limited-time flag. | Should | Not started (no roadmap module) |
 
 ## 4. Recommendation Engine: Six-Stage Waterfall
 
 ### Stage 1: Remove ineligible items (hard filters)
 
-| ID | Requirement | Priority |
-|---|---|---|
-| RE-1.1 | Exclude items marked unavailable in POS ("86") in real time. | Must |
-| RE-1.2 | Exclude items not available at the outlet, for the current daypart, or for the current ordering channel. | Must |
-| RE-1.3 | Exclude items that conflict with the customer's dietary or religious restrictions. | Must |
-| RE-1.4 | Exclude items that contain the customer's declared allergens. | Must |
-| RE-1.5 | Exclude items already in the cart or included as part of a set in the cart. | Must |
-| RE-1.6 | Hard filters always override scoring signals. For example, "No Beef" means no beef is ever shown, even if beef is the top co-purchase. | Must |
+| ID | Requirement | Priority | Status |
+|---|---|---|---|
+| RE-1.1 | Exclude items marked unavailable in POS ("86") in real time. | Must | Not started (ordering API) |
+| RE-1.2 | Exclude items not available at the outlet, for the current daypart, or for the current ordering channel. | Must | Not started (ordering API) |
+| RE-1.3 | Exclude items that conflict with the customer's dietary or religious restrictions. | Must | Not started (ordering API) |
+| RE-1.4 | Exclude items that contain the customer's declared allergens. | Must | Not started (ordering API) |
+| RE-1.5 | Exclude items already in the cart or included as part of a set in the cart. | Must | Partly done: `POST /v1/recommendations` leaves out items already in the cart. Items included as part of a set in the cart need set data from POS. Remaining: ordering API. |
+| RE-1.6 | Hard filters always override scoring signals. For example, "No Beef" means no beef is ever shown, even if beef is the top co-purchase. | Must | Not started (ordering API) |
 
 ### Stage 2: Understand cart intent
 
-| ID | Requirement | Priority |
-|---|---|---|
-| RE-2.1 | Classify cart contents into main items and add-ons. | Must |
-| RE-2.2 | Determine the meal occasion from the daypart. | Must |
-| RE-2.3 | Capture dine-in or takeaway and the number of pax. | Must |
-| RE-2.4 | Identify missing meal components (e.g. a main with no drink). | Should |
-| RE-2.5 | For single-pax orders, suppress sharing-size items. For group orders, allow platters, sharing dishes and bundles. | Must |
+| ID | Requirement | Priority | Status |
+|---|---|---|---|
+| RE-2.1 | Classify cart contents into main items and add-ons. | Must | Not started (P5; P4 leaves addons out of pairs) |
+| RE-2.2 | Determine the meal occasion from the daypart. | Must | Partly done: `POST /v1/recommendations` maps the order time (local, with offset) to the daypart in the published run's config. Not yet called from the ordering flow. Remaining: TQR and kiosk integration. |
+| RE-2.3 | Capture dine-in or takeaway and the number of pax. | Must | Not started (P5, pax only; dine-in/takeaway has no roadmap module) |
+| RE-2.4 | Identify missing meal components (e.g. a main with no drink). | Should | Not started (no roadmap module) |
+| RE-2.5 | For single-pax orders, suppress sharing-size items. For group orders, allow platters, sharing dishes and bundles. | Must | Not started (no roadmap module) |
 
 ### Stage 3: Generate candidates
 
-| ID | Requirement | Priority |
-|---|---|---|
-| RE-3.1 | Generate "items purchased together" candidates for current cart items, computed per brand/outlet (see XB-3). | Must |
-| RE-3.2 | Generate candidates from configured complementary pairing rules (MD-7). | Must |
-| RE-3.3 | Generate set, bundle and upgrade opportunities. | Should |
-| RE-3.4 | Generate outlet-level popular add-ons, which also serve as the fallback for new or anonymous customers (see G-8). | Must |
+| ID | Requirement | Priority | Status |
+|---|---|---|---|
+| RE-3.1 | Generate "items purchased together" candidates for current cart items, computed per brand/outlet (see XB-3). | Must | Partly done: item affinity (confidence and lift) is calculated and published per brand. Not yet served for a cart. Remaining: P5. |
+| RE-3.2 | Generate candidates from configured complementary pairing rules (MD-7). | Must | Not started (owner undecided) |
+| RE-3.3 | Generate set, bundle and upgrade opportunities. | Should | Not started (no roadmap module) |
+| RE-3.4 | Generate outlet-level popular add-ons, which also serve as the fallback for new or anonymous customers (see G-8). | Must | Partly done: outlet popularity is calculated, published and served per daypart by `POST /v1/recommendations`, which is the fallback for every cart today. It covers all items rather than only add-ons, which needs category tags from POS (MD-4). Remaining: MD-4 (POS). |
 
 ### Stage 4: Personalise ranking
 
-| ID | Requirement | Priority |
-|---|---|---|
-| RE-4.1 | Boost candidates that match the customer's likes, favourites, and eating, protein and fibre preferences. | Must |
-| RE-4.2 | Use frequently purchased items (last 6–8 orders) as a behavioural signal for preferred categories and habitual combinations. | Must |
-| RE-4.3 | Frequent purchases must not override cart relevance. An item is not recommended just because it is a favourite if it doesn't complement the cart. | Must |
-| RE-4.4 | Apply diversity so the same favourite isn't recommended every time, and introduce related or similar items. | Should |
-| RE-4.5 | Demote items matching dislikes. Filter vs demotion is unresolved (see G-4). | Must |
+| ID | Requirement | Priority | Status |
+|---|---|---|---|
+| RE-4.1 | Boost candidates that match the customer's likes, favourites, and eating, protein and fibre preferences. | Must | Not started (no roadmap module) |
+| RE-4.2 | Use frequently purchased items (last 6–8 orders) as a behavioural signal for preferred categories and habitual combinations. | Must | Partly done: recency-weighted customer item scores are calculated and published per brand. Not yet used in ranking, no category or combination signals, and a time window with half-life replaces "last 6–8 orders". Remaining: P5. |
+| RE-4.3 | Frequent purchases must not override cart relevance. An item is not recommended just because it is a favourite if it doesn't complement the cart. | Must | Not started (P5) |
+| RE-4.4 | Apply diversity so the same favourite isn't recommended every time, and introduce related or similar items. | Should | Not started (P5) |
+| RE-4.5 | Demote items matching dislikes. Filter vs demotion is unresolved (see G-4). | Must | Not started (no roadmap module) |
 
 ### Stage 5: Commercial and contextual adjustments
 
-| ID | Requirement | Priority |
-|---|---|---|
-| RE-5.1 | Apply promotion and voucher eligibility, plus savings from upgrading or bundling. | Should |
-| RE-5.2 | Nudge toward minimum-spend thresholds. | Should |
-| RE-5.3 | Weight by margin, merchant priority, and stock level. | Should |
-| RE-5.4 | Boost new or limited-time items. | Could |
-| RE-5.5 | Use weather as a contextual signal. | Could |
+| ID | Requirement | Priority | Status |
+|---|---|---|---|
+| RE-5.1 | Apply promotion and voucher eligibility, plus savings from upgrading or bundling. | Should | Not started (deferred to v2) |
+| RE-5.2 | Nudge toward minimum-spend thresholds. | Should | Not started (deferred to v2) |
+| RE-5.3 | Weight by margin, merchant priority, and stock level. | Should | Not started (deferred to v2) |
+| RE-5.4 | Boost new or limited-time items. | Could | Not started (deferred to v2) |
+| RE-5.5 | Use weather as a contextual signal. | Could | Not started (deferred to v2) |
 
 ### Stage 6: Present the recommendation
 
-| ID | Requirement | Priority |
-|---|---|---|
-| RE-6.1 | Show the top 1–3 recommendations. | Must |
-| RE-6.2 | Show a short, templated reason (e.g. "Goes well with your Grilled Chicken Rice"), subject to CH-2 on kiosk. | Should |
-| RE-6.3 | Don't repeat recommendations the customer has rejected. | Must |
-| RE-6.4 | Record the outcome of each recommendation: accepted, ignored, or rejected. | Must |
+| ID | Requirement | Priority | Status |
+|---|---|---|---|
+| RE-6.1 | Show the top 1–3 recommendations. | Must | Partly done: `POST /v1/recommendations` returns a ranked list for the caller to show its top 1–3 after hard filters. No TQR or kiosk screen shows it yet. Remaining: TQR and kiosk integration. |
+| RE-6.2 | Show a short, templated reason (e.g. "Goes well with your Grilled Chicken Rice"), subject to CH-2 on kiosk. | Should | Partly done: each item carries a reason code (`popular_at_outlet`), with no sensitive data. The display templates are not defined yet. Remaining: P5 and TQR. |
+| RE-6.3 | Don't repeat recommendations the customer has rejected. | Must | Not started (H4, blocked by OQ-9) |
+| RE-6.4 | Record the outcome of each recommendation: accepted, ignored, or rejected. | Must | Not started (H4) |
 
 ## 5. Non-Functional Requirements
 
-| ID | Requirement |
-|---|---|
-| NF-1 | The recommendation response must not slow the cart flow. Target to be agreed (e.g. p95 under 300ms). |
-| NF-2 | If the recommendation service fails or times out, ordering continues normally, with no recommendations or cached popular items. |
-| NF-3 | 86/availability status is near-real-time, so a sold-out item is never upsold. |
-| NF-4 | Customer profiles, especially allergy and religious data, are encrypted at rest, access-controlled, and audit-logged. |
-| NF-5 | Every recommendation is traceable to the rules and signals that produced it, for debugging and complaint handling. |
-| NF-6 | Metrics: recommendation acceptance rate, average order value uplift, and ideally A/B comparison against no recommendations. |
+| ID | Requirement | Status |
+|---|---|---|
+| NF-1 | The recommendation response must not slow the cart flow. Target to be agreed (e.g. p95 under 300ms). | Partly done: about 3–5 ms per call warm on a local machine (2 Nov 2026), from one indexed query. Target not agreed and no load test. Remaining: H8. |
+| NF-2 | If the recommendation service fails or times out, ordering continues normally, with no recommendations or cached popular items. | Partly done: the engine returns `200` with an empty list on any database error, missing published run or unknown outlet. Callers still need a short timeout and to continue without recommendations. Remaining: TQR, POS and kiosk integration. |
+| NF-3 | 86/availability status is near-real-time, so a sold-out item is never upsold. | Not started (no roadmap module) |
+| NF-4 | Customer profiles, especially allergy and religious data, are encrypted at rest, access-controlled, and audit-logged. | Not started (H1) |
+| NF-5 | Every recommendation is traceable to the rules and signals that produced it, for debugging and complaint handling. | Partly done: each score links to its run, config version and input window. Responses include the run ID. No request logs yet, and runs do not record which snapshots they used. Remaining: P5. |
+| NF-6 | Metrics: recommendation acceptance rate, average order value uplift, and ideally A/B comparison against no recommendations. | Not started (H7) |
 
 ## 6. Approach Recommendation: Deterministic First
 
@@ -140,41 +142,41 @@ Almost everything described is deterministic: Stages 1–2 are rules, Stage 3 is
 
 ## 7. Cross-Brand Profiles (D-1)
 
-| ID | Requirement | Priority |
-|---|---|---|
-| XB-1 | A single global customer identity (verified mobile number), with brand-level data linked underneath it. | Must |
-| XB-2 | Dietary restrictions, allergies, dislikes and survey preferences are global: declared once and applied at every brand. | Must |
-| XB-3 | "Items purchased together" is computed per brand (or per outlet), because menus differ across brands. | Must |
-| XB-4 | Frequently purchased items stay brand-specific at the item level. At the category level (e.g. "likes cold coffee"), they can carry across brands as a weaker signal. | Should |
-| XB-5 | All brands use a shared platform taxonomy for allergens, dietary attributes and key ingredients, so exclusions declared at one brand are enforceable at another. | Must |
-| XB-6 | The survey is completed once across all brands. The voucher is claimable once per customer globally, with rules defining which brand(s) it can be redeemed at. | Must |
-| XB-7 | Consent withdrawal and preference updates propagate to all brands immediately. | Must |
-| XB-8 | Consent wording states that data is shared across brands, and names or describes those brands. | Must |
+| ID | Requirement | Priority | Status |
+|---|---|---|---|
+| XB-1 | A single global customer identity (verified mobile number), with brand-level data linked underneath it. | Must | Not started (CRM) |
+| XB-2 | Dietary restrictions, allergies, dislikes and survey preferences are global: declared once and applied at every brand. | Must | Not started (no roadmap module) |
+| XB-3 | "Items purchased together" is computed per brand (or per outlet), because menus differ across brands. | Must | Partly done: "items purchased together" is calculated per brand. Not yet served for a cart. Remaining: P5. |
+| XB-4 | Frequently purchased items stay brand-specific at the item level. At the category level (e.g. "likes cold coffee"), they can carry across brands as a weaker signal. | Should | Partly done: customer item scores are stored per brand at item level. No category-level signal across brands. Remaining: no roadmap module; excluded by H5 design. |
+| XB-5 | All brands use a shared platform taxonomy for allergens, dietary attributes and key ingredients, so exclusions declared at one brand are enforceable at another. | Must | Not started (no roadmap module) |
+| XB-6 | The survey is completed once across all brands. The voucher is claimable once per customer globally, with rules defining which brand(s) it can be redeemed at. | Must | Not started (CRM) |
+| XB-7 | Consent withdrawal and preference updates propagate to all brands immediately. | Must | Not started (CRM) |
+| XB-8 | Consent wording states that data is shared across brands, and names or describes those brands. | Must | Not started (CRM) |
 
 ## 8. Channels: TQR and Kiosk (D-2)
 
-| ID | Requirement | Priority |
-|---|---|---|
-| CH-1 | Recommendations work on both TQR and kiosk, with channel availability enforced via RE-1.2. | Must |
-| CH-2 | On the kiosk, recommendation reasons must not reveal sensitive data (no "Because you're halal", "Avoiding peanuts for you", or "Your usual order"). | Must |
-| CH-3 | Kiosk sessions auto-clear on order completion, on inactivity timeout, and on explicit sign-out. A loaded profile never carries over to the next person. | Must |
-| CH-4 | Mobile number entry on the kiosk is masked after input, and identification uses OTP sent to the diner's phone. | Must |
-| CH-5 | The full survey is offered on TQR only. The kiosk shows a QR code or link to complete it on the diner's phone. | Should |
-| CH-6 | Pax count capture is supported on both channels (needed for RE-2.5). | Must |
-| CH-7 | Recommendations load asynchronously on the kiosk and never block the ordering flow. | Must |
+| ID | Requirement | Priority | Status |
+|---|---|---|---|
+| CH-1 | Recommendations work on both TQR and kiosk, with channel availability enforced via RE-1.2. | Must | Not started (no roadmap module) |
+| CH-2 | On the kiosk, recommendation reasons must not reveal sensitive data (no "Because you're halal", "Avoiding peanuts for you", or "Your usual order"). | Must | Not started (kiosk app) |
+| CH-3 | Kiosk sessions auto-clear on order completion, on inactivity timeout, and on explicit sign-out. A loaded profile never carries over to the next person. | Must | Not started (kiosk app) |
+| CH-4 | Mobile number entry on the kiosk is masked after input, and identification uses OTP sent to the diner's phone. | Must | Not started (kiosk app) |
+| CH-5 | The full survey is offered on TQR only. The kiosk shows a QR code or link to complete it on the diner's phone. | Should | Not started (kiosk app) |
+| CH-6 | Pax count capture is supported on both channels (needed for RE-2.5). | Must | Not started (kiosk app) |
+| CH-7 | Recommendations load asynchronously on the kiosk and never block the ordering flow. | Must | Not started (kiosk app) |
 
 ## 9. Profile Merge: Member and Non-Member (D-3)
 
-| ID | Requirement | Priority |
-|---|---|---|
-| MG-1 | Profiles merge only when they share the same OTP-verified mobile number. | Must |
-| MG-2 | Purchase history is merged as a union. | Must |
-| MG-3 | Allergies and dietary restrictions merge using the most restrictive rule (union of all declared exclusions). | Must |
-| MG-4 | For soft preferences (likes, flavours, interests), the most recently updated value wins. | Should |
-| MG-5 | Consent merges conservatively: if either profile opted out, the merged profile is opted out until the customer re-consents. | Must |
-| MG-6 | The survey voucher cannot be claimed twice through a merge. | Must |
-| MG-7 | Every merge is audit-logged, with a manual unmerge procedure for wrong merges, including recycled mobile numbers. | Must |
-| MG-8 | When a member changes their mobile number, the new number is re-verified and the profile is re-keyed. | Must |
+| ID | Requirement | Priority | Status |
+|---|---|---|---|
+| MG-1 | Profiles merge only when they share the same OTP-verified mobile number. | Must | Not started (CRM) |
+| MG-2 | Purchase history is merged as a union. | Must | Not started (CRM) |
+| MG-3 | Allergies and dietary restrictions merge using the most restrictive rule (union of all declared exclusions). | Must | Not started (CRM) |
+| MG-4 | For soft preferences (likes, flavours, interests), the most recently updated value wins. | Should | Not started (CRM) |
+| MG-5 | Consent merges conservatively: if either profile opted out, the merged profile is opted out until the customer re-consents. | Must | Not started (CRM) |
+| MG-6 | The survey voucher cannot be claimed twice through a merge. | Must | Not started (CRM) |
+| MG-7 | Every merge is audit-logged, with a manual unmerge procedure for wrong merges, including recycled mobile numbers. | Must | Not started (CRM) |
+| MG-8 | When a member changes their mobile number, the new number is re-verified and the profile is re-keyed. | Must | Not started (CRM) |
 
 ---
 

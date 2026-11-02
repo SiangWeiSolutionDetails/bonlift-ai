@@ -3,6 +3,11 @@
     "title": "顾客商品评分",
     "runCalculation": "运行计算"
   },
+  "formula": {
+    "title": "计算方式",
+    "share": "订单占比 = 该顾客包含此商品的订单数 ÷ 该顾客的所有订单数",
+    "recency": "越近期的订单权重越高：半衰期为 14 天时，比日期范围最后一天早 14 天的订单按半笔计算。"
+  },
   "picker": {
     "brand": "品牌",
     "brandPlaceholder": "选择品牌",

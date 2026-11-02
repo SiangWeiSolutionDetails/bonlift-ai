@@ -3,6 +3,11 @@
     "title": "Customer Item Scoring",
     "runCalculation": "Run Calculation"
   },
+  "formula": {
+    "title": "How this is calculated",
+    "share": "Order Share = Orders containing the item ÷ All of the customer's orders",
+    "recency": "Recent orders count more: with a 14-day half-life, an order 14 days before the window's last day counts as half an order."
+  },
   "picker": {
     "brand": "Brand",
     "brandPlaceholder": "Select a brand",

@@ -16,6 +16,7 @@ import { useBrands } from "@/features/brands/queries";
 import { RunCalculationDialog } from "@/features/customer-item-scores/components/run-calculation-dialog";
 import { RunResultsCard } from "@/features/customer-item-scores/components/run-results-card";
 import { RunsCard } from "@/features/customer-item-scores/components/runs-card";
+import { ScoreFormula } from "@/features/customer-item-scores/components/score-formula";
 import { useCustomerItemScoresRuns } from "@/features/customer-item-scores/queries";
 import type { CustomerScoresSearch } from "@/features/customer-item-scores/search";
 
@@ -49,13 +50,16 @@ export function CustomerScoresPage() {
       <PageHeader
         title={t("page.title")}
         action={
-          <Button
-            disabled={!search.brandId}
-            onClick={() => setIsRunDialogOpen(true)}
-          >
-            <PlayIcon data-icon="inline-start" />
-            {t("page.runCalculation")}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <ScoreFormula />
+            <Button
+              disabled={!search.brandId}
+              onClick={() => setIsRunDialogOpen(true)}
+            >
+              <PlayIcon data-icon="inline-start" />
+              {t("page.runCalculation")}
+            </Button>
+          </div>
         }
       />
 

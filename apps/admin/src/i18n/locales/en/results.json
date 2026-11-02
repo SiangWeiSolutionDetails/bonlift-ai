@@ -5,8 +5,18 @@
   },
   "formula": {
     "title": "How this is calculated",
-    "share": "Order Share = Orders containing the item ÷ All orders in the daypart",
-    "recency": "Recent orders count more: with a 14-day half-life, an order 14 days before the window's last day counts as half an order."
+    "ranking": "Items are ranked by Order Share, highest first.",
+    "tieBreak": "Ties go to the item with more orders, then by item ID.",
+    "shareLabel": "Order Share",
+    "shareNumerator": "Total weight of orders containing the item",
+    "shareDenominator": "Total weight of all orders in the daypart",
+    "weightLabel": "Order Weight",
+    "weightExponent": "Days old ÷ Half-life",
+    "weightHint": "Days old = days before the window's last day",
+    "exampleTitle": "Example with a 14-day half-life",
+    "exampleDays_one": "{{count}} day",
+    "exampleDays_other": "{{count}} days",
+    "note": "The half-life is set per brand, and each run's value is shown in its config. The Orders column is an unweighted count."
   },
   "picker": {
     "brand": "Brand",

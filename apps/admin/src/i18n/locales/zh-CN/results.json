@@ -5,8 +5,18 @@
   },
   "formula": {
     "title": "计算方式",
-    "share": "订单占比 = 包含此商品的订单数 ÷ 该时段内所有订单数",
-    "recency": "越近期的订单权重越高：半衰期为 14 天时，比日期范围最后一天早 14 天的订单按半笔计算。"
+    "ranking": "商品按订单占比从高到低排名。",
+    "tieBreak": "占比相同时，订单数较多的商品靠前，再按商品 ID 排序。",
+    "shareLabel": "订单占比",
+    "shareNumerator": "包含此商品的订单总权重",
+    "shareDenominator": "该时段内所有订单的总权重",
+    "weightLabel": "订单权重",
+    "weightExponent": "订单天数 ÷ 半衰期",
+    "weightHint": "订单天数 = 距日期范围最后一天的天数",
+    "exampleTitle": "半衰期为 14 天时的示例",
+    "exampleDays_one": "{{count}} 天",
+    "exampleDays_other": "{{count}} 天",
+    "note": "半衰期按品牌设置，每次运行使用的值显示在其配置中。“订单数”列为未加权的计数。"
   },
   "picker": {
     "brand": "品牌",

@@ -169,7 +169,7 @@ describe("getCustomerItemScoresCustomers", () => {
     }).catch(() => undefined);
 
     expect(queryMock).toHaveBeenCalledWith(
-      expect.stringContaining("starts_with"),
+      expect.stringContaining("strpos(lower(s.customer_external_id), lower($3)) > 0"),
       [RUN_ID, null, "50%_a/b", 51],
     );
   });

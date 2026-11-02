@@ -172,7 +172,7 @@ export async function getCustomerItemScoresCustomers(
   const limit = query.limit ?? DEFAULT_CUSTOMER_LIMIT;
 
   // Keyset paging over the primary key's prefix. One extra row tells whether another page exists.
-  // starts_with, not LIKE: a % or _ in the search text must match literally.
+  // strpos, not LIKE: a % or _ in the search text must match literally.
   const result = await pool.query(
     `
     WITH run AS (
@@ -188,7 +188,7 @@ export async function getCustomerItemScoresCustomers(
       FROM customer_item_scores s
       WHERE s.run_id = run.id
         AND ($2::text IS NULL OR s.customer_external_id > $2)
-        AND ($3::text IS NULL OR starts_with(s.customer_external_id, $3))
+        AND ($3::text IS NULL OR strpos(lower(s.customer_external_id), lower($3)) > 0)
       GROUP BY s.customer_external_id
       ORDER BY s.customer_external_id
       LIMIT $4

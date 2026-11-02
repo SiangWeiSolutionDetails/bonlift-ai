@@ -1,9 +1,14 @@
 import { closePool } from "@ai-services/db";
 import { getRedisConnection } from "./connection.js";
 import { startCustomerItemScoresWorker } from "./workers/customerItemScores.worker.js";
+import { startItemAffinityWorker } from "./workers/itemAffinity.worker.js";
 import { startOutletItemScoresWorker } from "./workers/outletItemScores.worker.js";
 
-const workers = [startOutletItemScoresWorker(), startCustomerItemScoresWorker()];
+const workers = [
+  startOutletItemScoresWorker(),
+  startCustomerItemScoresWorker(),
+  startItemAffinityWorker(),
+];
 
 let shuttingDown = false;
 

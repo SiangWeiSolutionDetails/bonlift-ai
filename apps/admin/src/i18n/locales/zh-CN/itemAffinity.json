@@ -1,0 +1,81 @@
+{
+  "page": {
+    "title": "商品关联",
+    "runCalculation": "运行计算"
+  },
+  "formula": {
+    "title": "计算方式",
+    "ranking": "搭配商品按置信度从高到低排名，只保留提升度大于 1 的搭配。",
+    "tieBreak": "置信度相同时，提升度较高的靠前，再按商品 ID 排序。",
+    "confidenceLabel": "置信度",
+    "confidenceNumerator": "同时包含两件商品的订单数",
+    "confidenceDenominator": "包含所选商品的订单数",
+    "liftLabel": "提升度",
+    "liftNumerator": "置信度",
+    "liftDenominator": "包含搭配商品的订单占全部订单的比例",
+    "liftHint": "2.00 表示可能性是平时的两倍，1.00 表示没有关联。",
+    "note": "只统计付费的主行商品，加购项和免费行不计入。最少共同订单数和每单最多商品数按品牌设置，每次运行使用的值显示在其配置中。"
+  },
+  "picker": {
+    "brand": "品牌",
+    "brandPlaceholder": "选择品牌",
+    "noBrand": "选择品牌以查看哪些商品常被一起点购。"
+  },
+  "status": {
+    "running": "运行中",
+    "succeeded": "成功",
+    "failed": "失败"
+  },
+  "runs": {
+    "runId": "运行 ID",
+    "title": "运行记录",
+    "empty": "暂无运行记录。运行一次计算即可查看结果。",
+    "window": "日期范围",
+    "config": "配置",
+    "configVersion": "v{{version}}",
+    "status": "状态",
+    "rows": "行数",
+    "duration": "耗时",
+    "started": "开始时间",
+    "actions": "操作",
+    "published": "已发布",
+    "view": "查看",
+    "topNLabel": "每件商品的搭配数",
+    "minPairOrdersLabel": "最少共同订单数",
+    "maxOrderItemsLabel": "每单最多商品数",
+    "publish": "发布",
+    "publishConfirmTitle": "发布此运行？",
+    "publishConfirmDescription": "{{window}} 的搭配将立即替换该品牌当前生效的搭配。"
+  },
+  "items": {
+    "search": "按名称或 ID 搜索",
+    "empty": "没有匹配的商品。",
+    "orderCount_one": "{{count}} 笔订单",
+    "orderCount_other": "{{count}} 笔订单"
+  },
+  "partners": {
+    "title": "常与 {{item}} 一起点购",
+    "basis_one": "基于 {{count}} 笔包含此商品的订单。",
+    "basis_other": "基于 {{count}} 笔包含此商品的订单。",
+    "rank": "#",
+    "item": "商品",
+    "confidence": "置信度",
+    "confidenceHint": "在包含所选商品的订单中，同时包含此商品的比例。",
+    "lift": "提升度",
+    "liftHint": "订单中有所选商品时，此商品出现的可能性提高了多少。大于 1 表示比平时更可能出现。",
+    "together": "共同订单数",
+    "running": "计算中…",
+    "failed": "本次运行失败：{{error}}",
+    "empty": "该日期范围内没有达到最低要求的搭配，因此没有排名。",
+    "noItem": "选择一件商品以查看常与它一起点购的商品。"
+  },
+  "dialog": {
+    "title": "运行计算",
+    "description": "使用品牌当前设置，统计该日期范围内品牌所有门店中哪些商品出现在同一订单。除非已有覆盖更晚日期的运行正在生效，否则结果将上线。",
+    "from": "开始日期",
+    "to": "结束日期（含）",
+    "invalidRange": "结束日期不能早于开始日期。",
+    "submit": "运行",
+    "submitting": "启动中…"
+  }
+}

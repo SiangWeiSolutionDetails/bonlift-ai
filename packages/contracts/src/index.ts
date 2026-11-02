@@ -13,3 +13,6 @@ export * from "./outletItemScoresResult.schema.js";
 export * from "./customerItemScoresCalculation.schema.js";
 export * from "./customerItemScoresCalculationConfigVersion.schema.js";
 export * from "./customerItemScoresResult.schema.js";
+export * from "./itemAffinityCalculation.schema.js";
+export * from "./itemAffinityCalculationConfigVersion.schema.js";
+export * from "./itemAffinityResult.schema.js";

@@ -1,0 +1,81 @@
+{
+  "page": {
+    "title": "Item Affinity",
+    "runCalculation": "Run Calculation"
+  },
+  "formula": {
+    "title": "How this is calculated",
+    "ranking": "Partners are ranked by Confidence, highest first. Only pairs with Lift above 1 are kept.",
+    "tieBreak": "Ties go to the higher Lift, then by item ID.",
+    "confidenceLabel": "Confidence",
+    "confidenceNumerator": "Orders containing both items",
+    "confidenceDenominator": "Orders containing the selected item",
+    "liftLabel": "Lift",
+    "liftNumerator": "Confidence",
+    "liftDenominator": "Share of all orders containing the partner",
+    "liftHint": "2.00 means twice as likely as usual. 1.00 means no connection.",
+    "note": "Only paid top-level lines count: addons and free lines are ignored. The minimum orders together and maximum items per order are set per brand, and each run's values are shown in its config."
+  },
+  "picker": {
+    "brand": "Brand",
+    "brandPlaceholder": "Select a brand",
+    "noBrand": "Choose a brand to see which items are often ordered together."
+  },
+  "status": {
+    "running": "Running",
+    "succeeded": "Succeeded",
+    "failed": "Failed"
+  },
+  "runs": {
+    "runId": "Run ID",
+    "title": "Runs",
+    "empty": "No runs yet. Run a calculation to see results.",
+    "window": "Window",
+    "config": "Config",
+    "configVersion": "v{{version}}",
+    "status": "Status",
+    "rows": "Rows",
+    "duration": "Duration",
+    "started": "Started",
+    "actions": "Actions",
+    "published": "Published",
+    "view": "View",
+    "topNLabel": "Partners Per Item",
+    "minPairOrdersLabel": "Minimum Orders Together",
+    "maxOrderItemsLabel": "Maximum Items Per Order",
+    "publish": "Publish",
+    "publishConfirmTitle": "Publish this run?",
+    "publishConfirmDescription": "The pairs for {{window}} replace the brand's live pairs straight away."
+  },
+  "items": {
+    "search": "Search by name or ID",
+    "empty": "No matching items.",
+    "orderCount_one": "{{count}} order",
+    "orderCount_other": "{{count}} orders"
+  },
+  "partners": {
+    "title": "Often ordered with {{item}}",
+    "basis_one": "Based on {{count}} order containing this item.",
+    "basis_other": "Based on {{count}} orders containing this item.",
+    "rank": "#",
+    "item": "Item",
+    "confidence": "Confidence",
+    "confidenceHint": "Of the orders with the selected item, the share that also has this one.",
+    "lift": "Lift",
+    "liftHint": "How much more likely this item is when the selected item is in the order. Above 1 means more likely than usual.",
+    "together": "Orders Together",
+    "running": "Calculating…",
+    "failed": "This run failed: {{error}}",
+    "empty": "No pairs met the minimum in this window, so nothing was ranked.",
+    "noItem": "Select an item to see what is often ordered with it."
+  },
+  "dialog": {
+    "title": "Run Calculation",
+    "description": "Counts which items share an order across all the brand's outlets in this date range, with the brand's current settings. The result goes live unless a run covering later dates is already live.",
+    "from": "From",
+    "to": "To (Inclusive)",
+    "invalidRange": "The end date must be on or after the start date.",
+    "submit": "Run",
+    "submitting": "Starting…"
+  }
+}

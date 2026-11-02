@@ -28,7 +28,8 @@
     "outlets": "Outlets",
     "snapshots": "Order Snapshots",
     "results": "Outlet Item Scoring",
-    "customerScores": "Customer Item Scoring"
+    "customerScores": "Customer Item Scoring",
+    "itemAffinity": "Item Affinity"
   },
   "language": {
     "label": "Language"

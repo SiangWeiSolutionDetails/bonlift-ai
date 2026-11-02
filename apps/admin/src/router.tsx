@@ -10,16 +10,19 @@ import {
   Building2Icon,
   ChartBarIcon,
   DatabaseIcon,
+  SquareStackIcon,
   StoreIcon,
   TagIcon,
 } from "lucide-react";
 import App from "@/App";
 import { validateCustomerScoresSearch } from "@/features/customer-item-scores/search";
+import { validateItemAffinitySearch } from "@/features/item-affinity/search";
 import { validateSnapshotsSearch } from "@/features/order-snapshots/search";
 import { validateResultsSearch } from "@/features/outlet-item-scores/search";
 import type enCommon from "@/i18n/locales/en/common.json";
 import { BrandsPage } from "@/pages/brands-page";
 import { CustomerScoresPage } from "@/pages/customer-scores-page";
+import { ItemAffinityPage } from "@/pages/item-affinity-page";
 import { OrderSnapshotsPage } from "@/pages/order-snapshots-page";
 import { OutletsPage } from "@/pages/outlets-page";
 import { ResultsPage } from "@/pages/results-page";
@@ -80,6 +83,14 @@ const customerScoresRoute = createRoute({
   staticData: { titleKey: "nav.customerScores", groupKey: "nav.computation", icon: <ChartBarIcon /> },
 });
 
+const itemAffinityRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/item-affinity",
+  component: ItemAffinityPage,
+  validateSearch: validateItemAffinitySearch,
+  staticData: { titleKey: "nav.itemAffinity", groupKey: "nav.computation", icon: <SquareStackIcon /> },
+});
+
 // Order here is the sidebar order; routes with a staticData icon and groupKey appear in the sidebar.
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -89,6 +100,7 @@ const routeTree = rootRoute.addChildren([
   snapshotsRoute,
   resultsRoute,
   customerScoresRoute,
+  itemAffinityRoute,
 ]);
 
 export const router = createRouter({ routeTree });

@@ -7,3 +7,7 @@ export {
   CUSTOMER_ITEM_SCORES_QUEUE_NAME,
   queueCustomerItemScores,
 } from "./queues/customerItemScores.queue.js";
+export {
+  ITEM_AFFINITY_QUEUE_NAME,
+  queueItemAffinity,
+} from "./queues/itemAffinity.queue.js";

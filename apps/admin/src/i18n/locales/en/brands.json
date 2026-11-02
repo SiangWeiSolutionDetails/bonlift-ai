@@ -100,5 +100,25 @@
       "restoreConfirmTitle": "Restore version {{version}}?",
       "restoreConfirmDescription": "This creates a new version with these settings and makes it the current one."
     }
+  },
+  "itemAffinityConfig": {
+    "title": "Item Affinity Calculation",
+    "version": "v{{version}}",
+    "currentHint": "Saving creates a new version; past runs keep the version they used.",
+    "topN": "Partners Per Item",
+    "topNHint": "How many partner items are kept for each item.",
+    "minPairOrders": "Minimum Orders Together",
+    "minPairOrdersHint": "Two items must share at least this many orders. Raise it to drop rare pairs.",
+    "maxOrderItems": "Maximum Items Per Order",
+    "maxOrderItemsHint": "Larger orders are left out of the calculation, so big group bills don't create false pairs.",
+    "save": "Save As New Version",
+    "history": {
+      "title": "Version History",
+      "current": "Current",
+      "by": "by {{name}}",
+      "restore": "Restore",
+      "restoreConfirmTitle": "Restore version {{version}}?",
+      "restoreConfirmDescription": "This creates a new version with these settings and makes it the current one."
+    }
   }
 }

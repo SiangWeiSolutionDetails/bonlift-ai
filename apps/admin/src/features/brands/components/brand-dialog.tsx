@@ -27,6 +27,7 @@ import { useUpdateBrand } from "../queries";
 import { BrandDataSourceSection } from "@/features/brand-data-source/components/brand-data-source-section";
 import { OutletItemScoresConfigSection } from "@/features/outlet-item-scores-config/components/outlet-item-scores-config-section";
 import { CustomerItemScoresConfigSection } from "@/features/customer-item-scores-config/components/customer-item-scores-config-section";
+import { ItemAffinityConfigSection } from "@/features/item-affinity-config/components/item-affinity-config-section";
 
 const CALCULATIONS = [
   {
@@ -38,6 +39,11 @@ const CALCULATIONS = [
     value: "customerItems",
     titleKey: "customerItemScoresConfig.title",
     Section: CustomerItemScoresConfigSection,
+  },
+  {
+    value: "itemAffinity",
+    titleKey: "itemAffinityConfig.title",
+    Section: ItemAffinityConfigSection,
   },
 ] as const;
 

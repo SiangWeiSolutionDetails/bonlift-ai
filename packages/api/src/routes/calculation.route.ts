@@ -1,6 +1,7 @@
 import { FastifyInstance } from "fastify";
 import {
   queueCustomerItemScores,
+  queueItemAffinity,
   queueOutletItemScores,
 } from "@ai-services/worker";
 import { getPool } from "@ai-services/db";
@@ -10,6 +11,9 @@ import {
   CustomerItemScoresCalculationQuerySchema,
   CustomerItemScoresCalculationQuerySchemaType,
   CustomerItemScoresCalculationResponseSchema,
+  ItemAffinityCalculationQuerySchema,
+  ItemAffinityCalculationQuerySchemaType,
+  ItemAffinityCalculationResponseSchema,
   OutletItemScoresCalculationQuerySchema,
   OutletItemScoresCalculationQuerySchemaType,
   OutletItemScoresCalculationResponseSchema,
@@ -18,6 +22,7 @@ import {
 } from "@ai-services/contracts";
 import { startOutletItemScoresCalculation } from "../services/calculation.service.js";
 import { startCustomerItemScoresCalculation } from "../services/customerItemScoresCalculation.service.js";
+import { startItemAffinityCalculation } from "../services/itemAffinityCalculation.service.js";
 
 export async function calculationRoutes(app: FastifyInstance) {
   app.post<{
@@ -63,6 +68,32 @@ export async function calculationRoutes(app: FastifyInstance) {
       const result = await startCustomerItemScoresCalculation(
         pool,
         queueCustomerItemScores,
+        request.params.brandId,
+        request.query,
+        { type: "manual", by: "api" },
+      );
+      reply.status(202);
+      return result;
+    },
+  );
+
+  app.post<{
+    Params: BrandParamsSchemaType;
+    Querystring: ItemAffinityCalculationQuerySchemaType;
+  }>(
+    "/calculate/item-affinity/:brandId",
+    {
+      schema: {
+        params: BrandParamsSchema,
+        querystring: ItemAffinityCalculationQuerySchema,
+        response: { 202: ItemAffinityCalculationResponseSchema },
+      },
+    },
+    async (request, reply) => {
+      const pool = getPool();
+      const result = await startItemAffinityCalculation(
+        pool,
+        queueItemAffinity,
         request.params.brandId,
         request.query,
         { type: "manual", by: "api" },

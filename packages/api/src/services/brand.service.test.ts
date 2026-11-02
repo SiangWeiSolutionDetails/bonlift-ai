@@ -179,6 +179,19 @@ describe("createBrand", () => {
     );
   });
 
+  it("creates version 1 of the item affinity config with the brand", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([fakeBrandRow()]));
+
+    await createBrand(fakePool, CREATE_DATA);
+
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "INSERT INTO item_affinity_calculation_config_versions",
+      ),
+      expect.anything(),
+    );
+  });
+
   it("throws NotFoundError when the tenant does not exist", async () => {
     queryMock.mockRejectedValueOnce({ code: FOREIGN_KEY_VIOLATION });
 

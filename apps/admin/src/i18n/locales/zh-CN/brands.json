@@ -100,5 +100,25 @@
       "restoreConfirmTitle": "恢复版本 {{version}}？",
       "restoreConfirmDescription": "将使用这些设置创建一个新版本，并设为当前版本。"
     }
+  },
+  "itemAffinityConfig": {
+    "title": "商品关联计算",
+    "version": "v{{version}}",
+    "currentHint": "保存会创建新版本；已完成的计算保留其所用的版本。",
+    "topN": "每件商品的搭配数",
+    "topNHint": "每件商品保留的搭配商品数量。",
+    "minPairOrders": "最少共同订单数",
+    "minPairOrdersHint": "两件商品至少要同时出现在这么多订单中。调高可剔除少见的搭配。",
+    "maxOrderItems": "每单最多商品数",
+    "maxOrderItemsHint": "超过此数量的订单不参与计算，避免大型团体账单产生虚假搭配。",
+    "save": "保存为新版本",
+    "history": {
+      "title": "版本历史",
+      "current": "当前",
+      "by": "由 {{name}}",
+      "restore": "恢复",
+      "restoreConfirmTitle": "恢复版本 {{version}}？",
+      "restoreConfirmDescription": "将使用这些设置创建一个新版本，并设为当前版本。"
+    }
   }
 }

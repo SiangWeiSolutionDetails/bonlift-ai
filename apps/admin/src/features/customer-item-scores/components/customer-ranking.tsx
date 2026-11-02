@@ -36,8 +36,6 @@ export function CustomerRanking({ runId, customerId }: CustomerRankingProps) {
   }
 
   const items = result.data.items;
-  // Bars are relative to the customer's top item, so the spread stays readable when scores are small
-  const maxScore = items[0]?.score || 1;
 
   return (
     <div className="overflow-x-auto rounded-xl border">
@@ -69,7 +67,7 @@ export function CustomerRanking({ runId, customerId }: CustomerRankingProps) {
                   <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
                     <div
                       className="h-full rounded-full bg-primary"
-                      style={{ width: `${(item.score / maxScore) * 100}%` }}
+                      style={{ width: `${item.score * 100}%` }}
                     />
                   </div>
                   <span className="w-14 text-right text-sm tabular-nums">

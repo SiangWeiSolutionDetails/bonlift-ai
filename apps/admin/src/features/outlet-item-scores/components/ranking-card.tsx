@@ -132,8 +132,6 @@ function RankingBody({ run }: RankingCardProps) {
 
 function DaypartRanking({ items }: { items: OutletItemScore[] }) {
   const { t, i18n } = useTranslation("results");
-  // Bars are relative to the daypart's leader, so the spread stays readable when scores are small
-  const maxScore = items[0]?.score || 1;
 
   return (
     <div className="overflow-x-auto rounded-xl border">
@@ -165,7 +163,7 @@ function DaypartRanking({ items }: { items: OutletItemScore[] }) {
                   <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
                     <div
                       className="h-full rounded-full bg-primary"
-                      style={{ width: `${(item.score / maxScore) * 100}%` }}
+                      style={{ width: `${item.score * 100}%` }}
                     />
                   </div>
                   <span className="w-14 text-right text-sm tabular-nums">

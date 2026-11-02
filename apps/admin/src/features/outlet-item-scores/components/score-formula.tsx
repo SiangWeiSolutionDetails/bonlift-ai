@@ -49,12 +49,12 @@ export function ScoreFormula() {
           <PopoverTitle>{t("formula.ranking")}</PopoverTitle>
           <PopoverDescription>{t("formula.tieBreak")}</PopoverDescription>
         </div>
-        <FormulaPanel label={t("formula.shareLabel")}>
+        <FormulaPanel label={t("formula.scoreLabel")}>
           <div className="mx-auto flex w-fit flex-col items-center gap-1 text-center font-medium">
-            <span>{t("formula.shareNumerator")}</span>
+            <span>{t("formula.scoreNumerator")}</span>
             <span className="sr-only">÷</span>
             <Separator className="bg-muted-foreground" />
-            <span>{t("formula.shareDenominator")}</span>
+            <span>{t("formula.scoreDenominator")}</span>
           </div>
         </FormulaPanel>
         <FormulaPanel label={t("formula.weightLabel")}>

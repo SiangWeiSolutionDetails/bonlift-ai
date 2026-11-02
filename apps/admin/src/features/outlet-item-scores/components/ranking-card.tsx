@@ -16,7 +16,13 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { formatDateTime } from "@/lib/date-format";
 import { getErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
-import { formatDuration, formatShare, formatWindow } from "../format";
+import {
+  formatDuration,
+  formatShare,
+  formatWindow,
+  getMaxValue,
+  toBarWidth,
+} from "../format";
 import { useOutletItemScoresRunResult } from "../queries";
 import { groupByDaypart, orderDayparts } from "../ranking";
 import type { OutletItemScore, OutletItemScoresRun } from "../type";
@@ -132,6 +138,7 @@ function RankingBody({ run }: RankingCardProps) {
 
 function DaypartRanking({ items }: { items: OutletItemScore[] }) {
   const { t, i18n } = useTranslation("results");
+  const topScore = getMaxValue(items.map((item) => item.score));
 
   return (
     <div className="overflow-x-auto rounded-xl border">
@@ -142,8 +149,8 @@ function DaypartRanking({ items }: { items: OutletItemScore[] }) {
             <TableHead>{t("ranking.item")}</TableHead>
             <TableHead className="min-w-56">
               <span className="inline-flex items-center gap-1.5">
-                {t("ranking.share")}
-                <FieldHint id="ranking-share-hint" hint={t("ranking.shareHint")} />
+                {t("ranking.score")}
+                <FieldHint id="ranking-score-hint" hint={t("ranking.scoreHint")} />
               </span>
             </TableHead>
             <TableHead className="text-right">{t("ranking.orders")}</TableHead>
@@ -160,10 +167,10 @@ function DaypartRanking({ items }: { items: OutletItemScore[] }) {
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-3">
-                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                  <div className="h-2.5 flex-1">
                     <div
-                      className="h-full rounded-full bg-primary"
-                      style={{ width: `${item.score * 100}%` }}
+                      className="h-full min-w-0.5 rounded-sm bg-primary"
+                      style={{ width: toBarWidth(item.score, topScore) }}
                     />
                   </div>
                   <span className="w-14 text-right text-sm tabular-nums">

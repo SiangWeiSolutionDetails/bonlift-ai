@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatShare } from "@/features/outlet-item-scores/format";
+import { formatShare, getMaxValue, toBarWidth } from "@/features/outlet-item-scores/format";
 import { getErrorMessage } from "@/lib/error-message";
 import { useRunCustomer } from "../queries";
 import type { CustomerItemScore } from "../type";
@@ -36,6 +36,7 @@ export function CustomerRanking({ runId, customerId }: CustomerRankingProps) {
   }
 
   const items = result.data.items;
+  const topScore = getMaxValue(items.map((item) => item.score));
 
   return (
     <div className="overflow-x-auto rounded-xl border">
@@ -46,8 +47,8 @@ export function CustomerRanking({ runId, customerId }: CustomerRankingProps) {
             <TableHead>{t("ranking.item")}</TableHead>
             <TableHead className="min-w-56">
               <span className="inline-flex items-center gap-1.5">
-                {t("ranking.share")}
-                <FieldHint id="customer-ranking-share-hint" hint={t("ranking.shareHint")} />
+                {t("ranking.score")}
+                <FieldHint id="customer-ranking-score-hint" hint={t("ranking.scoreHint")} />
               </span>
             </TableHead>
             <TableHead className="text-right">{t("ranking.orders")}</TableHead>
@@ -64,10 +65,10 @@ export function CustomerRanking({ runId, customerId }: CustomerRankingProps) {
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-3">
-                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                  <div className="h-2.5 flex-1">
                     <div
-                      className="h-full rounded-full bg-primary"
-                      style={{ width: `${item.score * 100}%` }}
+                      className="h-full min-w-0.5 rounded-sm bg-primary"
+                      style={{ width: toBarWidth(item.score, topScore) }}
                     />
                   </div>
                   <span className="w-14 text-right text-sm tabular-nums">

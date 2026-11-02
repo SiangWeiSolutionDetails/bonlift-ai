@@ -20,6 +20,15 @@ export function formatDuration(startedAt: string, finishedAt: string | null) {
   return `${seconds.toFixed(seconds < 10 ? 2 : 0)} s`;
 }
 
+export function getMaxValue(values: number[]) {
+  return Math.max(0, ...values);
+}
+
+// Bars are relative to the list's top item, so the 1st-ranked item always fills the column.
+export function toBarWidth(value: number, maxValue: number) {
+  return maxValue > 0 ? `${(value / maxValue) * 100}%` : "0%";
+}
+
 export function formatShare(score: number, locale: string) {
   return new Intl.NumberFormat(locale, {
     style: "percent",

@@ -21,7 +21,8 @@
   "nav": {
     "admin": "Admin",
     "management": "Management",
-    "computation": "Computation",
+    "dataset": "Dataset",
+    "computation": "Calculation",
     "tenants": "Tenants",
     "brands": "Brands",
     "outlets": "Outlets",

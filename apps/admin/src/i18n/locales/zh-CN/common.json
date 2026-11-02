@@ -21,6 +21,7 @@
   "nav": {
     "admin": "管理后台",
     "management": "管理",
+    "dataset": "数据集",
     "computation": "计算",
     "tenants": "租户",
     "brands": "品牌",

@@ -8,10 +8,10 @@ import {
 import {
   BarChart3Icon,
   Building2Icon,
+  ChartBarIcon,
   DatabaseIcon,
   StoreIcon,
   TagIcon,
-  UsersIcon,
 } from "lucide-react";
 import App from "@/App";
 import { validateCustomerScoresSearch } from "@/features/customer-item-scores/search";
@@ -61,7 +61,7 @@ const snapshotsRoute = createRoute({
   path: "/snapshots",
   component: OrderSnapshotsPage,
   validateSearch: validateSnapshotsSearch,
-  staticData: { titleKey: "nav.snapshots", groupKey: "nav.computation", icon: <DatabaseIcon /> },
+  staticData: { titleKey: "nav.snapshots", groupKey: "nav.dataset", icon: <DatabaseIcon /> },
 });
 
 const resultsRoute = createRoute({
@@ -77,7 +77,7 @@ const customerScoresRoute = createRoute({
   path: "/customer-scores",
   component: CustomerScoresPage,
   validateSearch: validateCustomerScoresSearch,
-  staticData: { titleKey: "nav.customerScores", groupKey: "nav.computation", icon: <UsersIcon /> },
+  staticData: { titleKey: "nav.customerScores", groupKey: "nav.computation", icon: <ChartBarIcon /> },
 });
 
 // Order here is the sidebar order; routes with a staticData icon and groupKey appear in the sidebar.

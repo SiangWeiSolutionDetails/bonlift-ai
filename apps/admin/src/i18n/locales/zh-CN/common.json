@@ -14,6 +14,9 @@
     "title": "保存更改？",
     "description": "更改将立即生效。"
   },
+  "confirmDelete": {
+    "prompt": "输入 <name>{{name}}</name> 以确认"
+  },
   "status": {
     "active": "启用",
     "inactive": "停用"

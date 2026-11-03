@@ -14,6 +14,9 @@
     "title": "Save changes?",
     "description": "Your changes will be applied immediately."
   },
+  "confirmDelete": {
+    "prompt": "Type <name>{{name}}</name> to confirm"
+  },
   "status": {
     "active": "Active",
     "inactive": "Inactive"

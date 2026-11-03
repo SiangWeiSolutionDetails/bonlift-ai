@@ -95,7 +95,8 @@ function RunResultsBody({
   }
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[18rem_minmax(0,1fr)]">
+    // Fixed height side by side, so the list and the ranking line up and each scrolls inside
+    <div className="grid gap-4 xl:h-[32rem] xl:grid-cols-[18rem_minmax(0,1fr)]">
       <CustomerList
         runId={run.id}
         selectedCustomerId={customerId}

@@ -37,7 +37,7 @@ export function CustomerList({
   const rows = customers.data?.pages.flatMap((page) => page.customers) ?? [];
 
   return (
-    <div className="grid content-start gap-3">
+    <div className="flex min-h-0 flex-col gap-3">
       <Input
         type="search"
         aria-label={t("customers.search")}
@@ -61,7 +61,7 @@ export function CustomerList({
       )}
 
       {rows.length > 0 && (
-        <ul className="grid max-h-48 gap-1 xl:max-h-96 overflow-y-auto rounded-xl border p-1">
+        <ul className="grid max-h-48 min-h-0 content-start gap-1 overflow-y-auto rounded-xl border p-1 xl:max-h-none xl:flex-1">
           {rows.map((customer) => (
             <li key={customer.customerId}>
               <button

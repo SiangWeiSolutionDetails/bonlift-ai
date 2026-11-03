@@ -39,9 +39,11 @@ export function CustomerRanking({ runId, customerId }: CustomerRankingProps) {
   const topScore = getMaxValue(items.map((item) => item.score));
 
   return (
-    <div className="overflow-x-auto rounded-xl border">
+    // The Table's own container does the scrolling, so the sticky header stays inside the box
+    <div className="flex max-h-96 min-h-0 flex-col overflow-hidden rounded-xl border xl:max-h-none [&>[data-slot=table-container]]:min-h-0 [&>[data-slot=table-container]]:overflow-auto">
       <Table>
-        <TableHeader>
+        {/* Cells carry the background and rule: a stuck header loses the row border and lets rows show through */}
+        <TableHeader className="sticky top-0 z-10 [&_th]:bg-card [&_th]:shadow-[inset_0_-1px_0_var(--border)]">
           <TableRow>
             <TableHead className="w-12 text-right">{t("ranking.rank")}</TableHead>
             <TableHead>{t("ranking.item")}</TableHead>

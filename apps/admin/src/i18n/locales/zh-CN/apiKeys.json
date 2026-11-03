@@ -1,0 +1,46 @@
+{
+  "page": {
+    "title": "API 密钥"
+  },
+  "picker": {
+    "brand": "品牌",
+    "brandPlaceholder": "选择品牌",
+    "noBrand": "请选择品牌以查看其 API 密钥。"
+  },
+  "list": {
+    "create": "创建密钥",
+    "empty": "暂无 API 密钥。",
+    "name": "名称",
+    "key": "密钥",
+    "created": "创建时间",
+    "expires": "过期时间",
+    "status": "状态",
+    "actions": "操作",
+    "never": "永不过期",
+    "statuses": {
+      "live": "有效",
+      "revoked": "已撤销",
+      "expired": "已过期"
+    },
+    "revoke": "撤销",
+    "revokeLabel": "撤销 {{name}}",
+    "revokeConfirmTitle": "撤销 {{name}}？",
+    "revokeConfirmDescription": "使用此密钥的系统将在一分钟内停止获取推荐。此操作无法撤回。",
+    "delete": "删除",
+    "deleteLabel": "删除 {{name}}",
+    "deleteConfirmTitle": "删除 {{name}}？",
+    "deleteConfirmDescription": "密钥及其记录将被永久删除。此操作无法撤回。",
+    "createTitle": "创建 API 密钥",
+    "createDescription": "请以使用该密钥的系统命名。",
+    "expiresInDays": "有效期（天）",
+    "expiresInDaysHint": "1 至 3,650 天。留空则永不过期。",
+    "createdTitle": "{{name}} 的密钥",
+    "createdDescription": "请将其保存到调用系统的配置或密钥存储中。",
+    "createdWarning": "请立即复制密钥。密钥无法再次显示；如果丢失，请撤销后重新创建。",
+    "show": "显示密钥",
+    "hide": "隐藏密钥",
+    "copy": "复制密钥",
+    "copied": "已复制",
+    "done": "完成"
+  }
+}

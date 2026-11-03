@@ -23,13 +23,15 @@
     "management": "管理",
     "dataset": "数据集",
     "computation": "计算",
+    "integration": "集成",
     "tenants": "租户",
     "brands": "品牌",
     "outlets": "门店",
     "snapshots": "订单快照",
     "results": "门店商品评分",
     "customerScores": "顾客商品评分",
-    "itemAffinity": "商品关联"
+    "itemAffinity": "商品关联",
+    "apiKeys": "API 密钥"
   },
   "language": {
     "label": "语言"

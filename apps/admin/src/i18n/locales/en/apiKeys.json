@@ -1,0 +1,46 @@
+{
+  "page": {
+    "title": "API Keys"
+  },
+  "picker": {
+    "brand": "Brand",
+    "brandPlaceholder": "Select a brand",
+    "noBrand": "Select a brand to see its API keys."
+  },
+  "list": {
+    "create": "Create Key",
+    "empty": "No API keys yet.",
+    "name": "Name",
+    "key": "Key",
+    "created": "Created",
+    "expires": "Expires",
+    "status": "Status",
+    "actions": "Actions",
+    "never": "Never",
+    "statuses": {
+      "live": "Live",
+      "revoked": "Revoked",
+      "expired": "Expired"
+    },
+    "revoke": "Revoke",
+    "revokeLabel": "Revoke {{name}}",
+    "revokeConfirmTitle": "Revoke {{name}}?",
+    "revokeConfirmDescription": "Systems using this key stop getting recommendations within a minute. This can’t be undone.",
+    "delete": "Delete",
+    "deleteLabel": "Delete {{name}}",
+    "deleteConfirmTitle": "Delete {{name}}?",
+    "deleteConfirmDescription": "The key and its record are removed permanently. This can’t be undone.",
+    "createTitle": "Create API Key",
+    "createDescription": "Name the key after the system that will use it.",
+    "expiresInDays": "Expires In (Days)",
+    "expiresInDaysHint": "1 to 3,650 days. Leave empty for a key that never expires.",
+    "createdTitle": "Key for {{name}}",
+    "createdDescription": "Store it in the calling system’s configuration or secret store.",
+    "createdWarning": "Copy the key now. It can’t be shown again; if it’s lost, revoke it and create a new one.",
+    "show": "Show Key",
+    "hide": "Hide Key",
+    "copy": "Copy Key",
+    "copied": "Copied",
+    "done": "Done"
+  }
+}

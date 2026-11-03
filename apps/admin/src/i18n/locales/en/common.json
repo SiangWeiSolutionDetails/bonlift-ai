@@ -23,13 +23,15 @@
     "management": "Management",
     "dataset": "Dataset",
     "computation": "Calculation",
+    "integration": "Integration",
     "tenants": "Tenants",
     "brands": "Brands",
     "outlets": "Outlets",
     "snapshots": "Order Snapshots",
     "results": "Outlet Item Scoring",
     "customerScores": "Customer Item Scoring",
-    "itemAffinity": "Item Affinity"
+    "itemAffinity": "Item Affinity",
+    "apiKeys": "API Keys"
   },
   "language": {
     "label": "Language"

@@ -10,16 +10,19 @@ import {
   Building2Icon,
   ChartBarIcon,
   DatabaseIcon,
+  KeyRoundIcon,
   SquareStackIcon,
   StoreIcon,
   TagIcon,
 } from "lucide-react";
 import App from "@/App";
+import { validateApiKeysSearch } from "@/features/brand-api-keys/search";
 import { validateCustomerScoresSearch } from "@/features/customer-item-scores/search";
 import { validateItemAffinitySearch } from "@/features/item-affinity/search";
 import { validateSnapshotsSearch } from "@/features/order-snapshots/search";
 import { validateResultsSearch } from "@/features/outlet-item-scores/search";
 import type enCommon from "@/i18n/locales/en/common.json";
+import { ApiKeysPage } from "@/pages/api-keys-page";
 import { BrandsPage } from "@/pages/brands-page";
 import { CustomerScoresPage } from "@/pages/customer-scores-page";
 import { ItemAffinityPage } from "@/pages/item-affinity-page";
@@ -91,6 +94,15 @@ const itemAffinityRoute = createRoute({
   staticData: { titleKey: "nav.itemAffinity", groupKey: "nav.computation", icon: <SquareStackIcon /> },
 });
 
+const apiKeysRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  // Not "/api-keys": the dev proxy (and any production proxy) forwards every path starting with "/api" to the API.
+  path: "/brand-api-keys",
+  component: ApiKeysPage,
+  validateSearch: validateApiKeysSearch,
+  staticData: { titleKey: "nav.apiKeys", groupKey: "nav.integration", icon: <KeyRoundIcon /> },
+});
+
 // Order here is the sidebar order; routes with a staticData icon and groupKey appear in the sidebar.
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -101,6 +113,7 @@ const routeTree = rootRoute.addChildren([
   resultsRoute,
   customerScoresRoute,
   itemAffinityRoute,
+  apiKeysRoute,
 ]);
 
 export const router = createRouter({ routeTree });

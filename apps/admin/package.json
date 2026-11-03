@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@ai-services/contracts": "^0.0.1",
-    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource-variable/geist": "^5.2.8",
+    "@fontsource-variable/geist-mono": "^5.2.7",
     "@tanstack/react-query": "^5.104.1",
     "@tanstack/react-router": "^1.170.45",
     "class-variance-authority": "^0.7.1",

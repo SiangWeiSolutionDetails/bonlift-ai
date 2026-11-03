@@ -16,11 +16,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 import { getErrorMessage } from "@/lib/error-message";
 import { typeboxResolver } from "@/lib/typebox-resolver";
 import { useCreateBrandApiKey } from "../queries";
 import type { CreateBrandApiKeyInput, CreatedBrandApiKey } from "../type";
 import { SecretKeyField } from "./secret-key-field";
+
+const EXPIRES_IN_DAYS_MAX = 3650;
 
 type CreateApiKeyDialogProps = {
   brandId: string;
@@ -68,6 +71,7 @@ function CreateKeyForm({ brandId, onCreated, onCancel }: CreateKeyFormProps) {
     register,
     handleSubmit,
     control,
+    setValue,
     formState: { errors },
   } = useForm<CreateBrandApiKeyInput>({
     resolver: typeboxResolver(CreateBrandApiKeyBodySchema),
@@ -75,7 +79,26 @@ function CreateKeyForm({ brandId, onCreated, onCancel }: CreateKeyFormProps) {
   });
   // Already trimmed by setValueAs, so a name of only spaces keeps the button disabled
   const name = useWatch({ control, name: "name" });
+  // "0" is never expires. Kept as text so clearing the box does not snap back mid-typing.
+  const [expiresText, setExpiresText] = useState("0");
   const createMutation = useCreateBrandApiKey();
+
+  function applyExpires(raw: string) {
+    setExpiresText(raw);
+    const trimmed = raw.trim();
+    const days = trimmed === "" ? 0 : Number(trimmed);
+    // 0 is left out of the body: a missing expiry is a key that never expires.
+    setValue("expiresInDays", days === 0 ? undefined : days, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+  }
+
+  const parsedExpires = Number(expiresText);
+  const sliderDays =
+    expiresText.trim() === "" || !Number.isFinite(parsedExpires)
+      ? 0
+      : Math.min(EXPIRES_IN_DAYS_MAX, Math.max(0, parsedExpires));
 
   function onSubmit(input: CreateBrandApiKeyInput) {
     createMutation.mutate(
@@ -91,7 +114,7 @@ function CreateKeyForm({ brandId, onCreated, onCancel }: CreateKeyFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
+    <form noValidate onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
       <DialogHeader>
         <DialogTitle>{t("list.createTitle")}</DialogTitle>
         <DialogDescription>{t("list.createDescription")}</DialogDescription>
@@ -113,20 +136,43 @@ function CreateKeyForm({ brandId, onCreated, onCancel }: CreateKeyFormProps) {
           <Label htmlFor="api-key-expires">{t("list.expiresInDays")}</Label>
           <FieldHint id="api-key-expires-hint" hint={t("list.expiresInDaysHint")} />
         </div>
-        <Input
-          id="api-key-expires"
-          type="number"
-          inputMode="numeric"
-          step={1}
-          placeholder={t("list.never")}
-          aria-invalid={!!errors.expiresInDays}
-          aria-describedby="api-key-expires-hint"
-          {...register("expiresInDays", {
-            // An empty field means "never expires", so it is left out of the body
-            setValueAs: (value: string) => (value.trim() === "" ? undefined : Number(value)),
-          })}
+        <div className="flex items-start gap-4">
+          <div className="grid flex-1 gap-1 pt-2.5">
+            <Slider
+              thumbLabel={t("list.expiresInDays")}
+              value={[sliderDays]}
+              min={0}
+              max={EXPIRES_IN_DAYS_MAX}
+              step={1}
+              onValueChange={([days]) => applyExpires(String(days))}
+              aria-describedby="api-key-expires-hint"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground tabular-nums">
+              <span>{t("list.expiresInDaysNeverMark")}</span>
+              <span>{EXPIRES_IN_DAYS_MAX.toLocaleString()}</span>
+            </div>
+          </div>
+          <Input
+            id="api-key-expires"
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={EXPIRES_IN_DAYS_MAX}
+            step={1}
+            value={expiresText}
+            aria-invalid={!!errors.expiresInDays}
+            aria-describedby="api-key-expires-hint"
+            onChange={(event) => applyExpires(event.target.value)}
+            className="w-28 shrink-0"
+          />
+        </div>
+        <FieldError
+          message={
+            errors.expiresInDays?.type === "maximum"
+              ? "apiKeys:list.expiresInDaysMaximum"
+              : errors.expiresInDays?.message
+          }
         />
-        <FieldError message={errors.expiresInDays?.message} />
       </div>
 
       {createMutation.error && (

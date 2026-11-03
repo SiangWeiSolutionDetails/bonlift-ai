@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useForm, type UseFormRegisterReturn } from "react-hook-form";
+import { useForm, useWatch, type UseFormRegisterReturn } from "react-hook-form";
 import { UpdateBrandDataSourceBodySchema } from "@ai-services/contracts";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FieldError } from "@/components/field-error";
@@ -10,11 +10,16 @@ import { DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Slider } from "@/components/ui/slider";
 import { getErrorMessage } from "@/lib/error-message";
 import { typeboxResolver } from "@/lib/typebox-resolver";
 import { useBrandDataSource, useUpdateBrandDataSource } from "../queries";
 import type { BrandDataSource, UpdateBrandDataSourceInput } from "../type";
 import { getChanges } from "@/lib/get-changes";
+
+const TIMEOUT_MIN_MS = 1000;
+const TIMEOUT_MAX_MS = 120000;
+const TIMEOUT_SLIDER_STEP_MS = 1000;
 
 type BrandDataSourceSectionProps = {
   brandId: string;
@@ -74,12 +79,15 @@ function BrandDataSourceForm({
   const {
     register,
     handleSubmit,
+    setValue,
+    control,
     formState: { errors, isDirty },
     reset,
   } = useForm<UpdateBrandDataSourceInput>({
     resolver: typeboxResolver(UpdateBrandDataSourceBodySchema),
     defaultValues,
   });
+  const timeoutMs = useWatch({ control, name: "timeoutMs" });
 
   const updateBrandDataSourceMutation = useUpdateBrandDataSource();
   const isSubmitting = updateBrandDataSourceMutation.isPending;
@@ -139,13 +147,23 @@ function BrandDataSourceForm({
           />
         </div>
 
-        <NumberField
+        <SliderNumberField
           id="data-source-timeout"
           label={t("dataSource.timeoutMs")}
           hint={t("dataSource.timeoutMsHint")}
           readOnly={readOnly}
           error={errors.timeoutMs?.message}
           registration={register("timeoutMs", { valueAsNumber: true })}
+          value={timeoutMs}
+          min={TIMEOUT_MIN_MS}
+          max={TIMEOUT_MAX_MS}
+          sliderStep={TIMEOUT_SLIDER_STEP_MS}
+          onSliderChange={(value) =>
+            setValue("timeoutMs", value, {
+              shouldDirty: true,
+              shouldValidate: true,
+            })
+          }
         />
 
         <div className="grid gap-x-4 gap-y-6 sm:grid-cols-2">
@@ -223,6 +241,67 @@ function NumberField({
         aria-describedby={`${id}-hint`}
         {...registration}
       />
+      <FieldError message={error} />
+    </div>
+  );
+}
+
+type SliderNumberFieldProps = NumberFieldProps & {
+  value: number | undefined;
+  min: number;
+  max: number;
+  sliderStep: number;
+  onSliderChange: (value: number) => void;
+};
+
+function SliderNumberField({
+  id,
+  label,
+  hint,
+  readOnly,
+  error,
+  registration,
+  value,
+  min,
+  max,
+  sliderStep,
+  onSliderChange,
+}: SliderNumberFieldProps) {
+  return (
+    <div className="grid content-start gap-2">
+      <div className="flex items-center gap-1.5">
+        <Label htmlFor={id}>{label}</Label>
+        <FieldHint id={`${id}-hint`} hint={hint} />
+      </div>
+      <div className="flex items-start gap-4">
+        <div className="grid flex-1 gap-1 pt-2.5">
+          <Slider
+            thumbLabel={label}
+            // An emptied input reads as NaN, which the slider cannot position
+            value={[Number.isFinite(value) ? (value as number) : min]}
+            min={min}
+            max={max}
+            step={sliderStep}
+            disabled={readOnly}
+            onValueChange={([next]) => onSliderChange(next)}
+          />
+          <div className="flex justify-between text-xs text-muted-foreground tabular-nums">
+            <span>{min.toLocaleString()}</span>
+            <span>{max.toLocaleString()}</span>
+          </div>
+        </div>
+        <Input
+          id={id}
+          type="number"
+          inputMode="numeric"
+          step={1}
+          readOnly={readOnly}
+          aria-invalid={!!error}
+          aria-describedby={`${id}-hint`}
+          className="w-28 shrink-0"
+          {...registration}
+        />
+      </div>
       <FieldError message={error} />
     </div>
   );

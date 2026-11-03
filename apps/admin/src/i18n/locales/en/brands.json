@@ -27,7 +27,7 @@
   },
   "tabs": {
     "general": "General",
-    "calculationConfigs": "Computation Configs"
+    "calculationConfigs": "Calculation Configs"
   },
   "dataSource": {
     "title": "Data Source",
@@ -38,9 +38,9 @@
     "timeoutMs": "Timeout (ms)",
     "timeoutMsHint": "1,000 to 120,000 milliseconds.",
     "refetchDays": "Refetch Days",
-    "refetchDaysHint": "Recent days fetched again on every run, 0 to 92.",
+    "refetchDaysHint": "Recent days fetched again on every run. 0 or more.",
     "maxChunkDays": "Max Chunk Days",
-    "maxChunkDaysHint": "Days per request, 1 to 92.",
+    "maxChunkDaysHint": "Days per request. 1 or more.",
     "save": "Save Data Source"
   },
   "halfLifePreview": {

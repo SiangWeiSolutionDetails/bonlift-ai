@@ -38,9 +38,9 @@
     "timeoutMs": "超时（毫秒）",
     "timeoutMsHint": "1,000 至 120,000 毫秒。",
     "refetchDays": "重新拉取天数",
-    "refetchDaysHint": "每次运行时重新拉取的最近天数，0 至 92。",
+    "refetchDaysHint": "每次运行时重新拉取的最近天数，不少于 0。",
     "maxChunkDays": "每批最大天数",
-    "maxChunkDaysHint": "每次请求的天数，1 至 92。",
+    "maxChunkDaysHint": "每次请求的天数，不少于 1。",
     "save": "保存数据源"
   },
   "halfLifePreview": {

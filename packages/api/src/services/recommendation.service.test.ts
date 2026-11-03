@@ -4,6 +4,7 @@ import { pgResult } from "../utils/pg.test-helpers.js";
 import { getRecommendations } from "./recommendation.service.js";
 
 const OUTLET_ID = "11111111-1111-1111-1111-111111111111";
+const BRAND_ID = "33333333-3333-3333-3333-333333333333";
 const RUN_ID = "22222222-2222-2222-2222-222222222222";
 const AT = "2026-11-02T12:30:00+08:00";
 const REQUEST = { outletId: OUTLET_ID, at: AT, cart: [] };
@@ -11,19 +12,21 @@ const REQUEST = { outletId: OUTLET_ID, at: AT, cart: [] };
 const queryMock = vi.fn();
 const logErrorMock = vi.fn();
 const fakePool = { query: queryMock } as any;
-const fakeLog = { error: logErrorMock } as any;
+const logWarnMock = vi.fn();
+const fakeLog = { error: logErrorMock, warn: logWarnMock } as any;
 
 function recommend(request: any = REQUEST) {
-  return getRecommendations(fakePool, fakeLog, request);
+  return getRecommendations(fakePool, fakeLog, BRAND_ID, request);
 }
 
 function itemRow(itemId: string | null, daypart: string | null = "Lunch") {
-  return { run_id: RUN_ID, daypart, external_item_id: itemId };
+  return { in_brand: true, run_id: RUN_ID, daypart, external_item_id: itemId };
 }
 
 beforeEach(() => {
   queryMock.mockReset();
   logErrorMock.mockReset();
+  logWarnMock.mockReset();
 });
 
 describe("getRecommendations", () => {
@@ -52,7 +55,7 @@ describe("getRecommendations", () => {
 
     expect(queryMock).toHaveBeenCalledWith(
       expect.stringContaining("published_runs"),
-      [OUTLET_ID, AT, [], 10],
+      [OUTLET_ID, AT, [], 10, BRAND_ID],
     );
   });
 
@@ -73,6 +76,7 @@ describe("getRecommendations", () => {
       AT,
       ["A", "B"],
       10,
+      BRAND_ID,
     ]);
   });
 
@@ -86,11 +90,24 @@ describe("getRecommendations", () => {
       AT,
       [],
       3,
+      BRAND_ID,
     ]);
   });
 
-  it("returns an empty list when the outlet has no published run", async () => {
+  it("returns an empty list for an unknown or inactive outlet", async () => {
     queryMock.mockResolvedValueOnce(pgResult([]));
+
+    expect(await recommend()).toStrictEqual({
+      runId: null,
+      daypart: null,
+      items: [],
+    });
+  });
+
+  it("returns an empty list when the outlet has no published run", async () => {
+    queryMock.mockResolvedValueOnce(
+      pgResult([{ in_brand: true, run_id: null, daypart: null, external_item_id: null }]),
+    );
 
     expect(await recommend()).toStrictEqual({
       runId: null,
@@ -107,6 +124,22 @@ describe("getRecommendations", () => {
       daypart: null,
       items: [],
     });
+  });
+
+  it("returns an empty list and logs a warning for another brand's outlet", async () => {
+    queryMock.mockResolvedValueOnce(
+      pgResult([{ in_brand: false, run_id: null, daypart: null, external_item_id: null }]),
+    );
+
+    expect(await recommend()).toStrictEqual({
+      runId: null,
+      daypart: null,
+      items: [],
+    });
+    expect(logWarnMock).toHaveBeenCalledWith(
+      expect.objectContaining({ outletId: OUTLET_ID }),
+      expect.any(String),
+    );
   });
 
   it("returns an empty list and logs the error when the query fails", async () => {

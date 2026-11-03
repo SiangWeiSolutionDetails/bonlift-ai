@@ -1,47 +1,124 @@
-import { describe, expect, it } from "vitest";
-import { findServingCaller, parseServingApiKeys } from "./servingAuth.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { generateApiKey, hashApiKey } from "../services/brandApiKey.service.js";
+import { pgResult } from "../utils/pg.test-helpers.js";
+import { createServingKeyAuthenticator } from "./servingAuth.js";
 
-const TQR_KEY = "t".repeat(32);
-const POS_KEY = "p".repeat(40);
+const BRAND_ID = "11111111-1111-1111-1111-111111111111";
+const { key: KEY, keyPrefix: KEY_PREFIX } = generateApiKey();
+const TTL_MS = 60_000;
 
-describe("parseServingApiKeys", () => {
-  it.each([undefined, "", "  "])("returns no keys for %j", (raw) => {
-    expect(parseServingApiKeys(raw)).toStrictEqual([]);
+const queryMock = vi.fn();
+const fakePool = { query: queryMock } as any;
+let clock = 0;
+
+function keyRow(overrides: Record<string, unknown> = {}) {
+  return {
+    brand_id: BRAND_ID,
+    name: "pos-boat-quay",
+    key_hash: hashApiKey(KEY),
+    expires_at: null,
+    ...overrides,
+  };
+}
+
+function authenticator() {
+  return createServingKeyAuthenticator({
+    getPool: () => fakePool,
+    ttlMs: TTL_MS,
+    now: () => clock,
   });
+}
 
-  it("parses one key per caller and keeps only hashes", () => {
-    const keys = parseServingApiKeys(`tqr:${TQR_KEY}, pos:${POS_KEY}`);
-
-    expect(keys.map((key) => key.caller)).toStrictEqual(["tqr", "pos"]);
-    expect(keys.every((key) => !key.keyHash.toString().includes(TQR_KEY))).toBe(true);
-  });
-
-  it.each([
-    ["an entry has no caller", `:${TQR_KEY}`],
-    ["an entry has no separator", TQR_KEY],
-    ["a key is shorter than 32 characters", "tqr:short"],
-  ])("throws when %s", (_name, raw) => {
-    expect(() => parseServingApiKeys(raw)).toThrow();
-  });
+beforeEach(() => {
+  queryMock.mockReset();
+  clock = 1_000_000;
 });
 
-describe("findServingCaller", () => {
-  const keys = parseServingApiKeys(`tqr:${TQR_KEY},pos:${POS_KEY}`);
+describe("createServingKeyAuthenticator", () => {
+  it("returns the brand and name of a live key", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([keyRow()]));
 
-  it("returns the caller of a valid key", () => {
-    expect(findServingCaller(keys, POS_KEY)).toBe("pos");
+    expect(await authenticator()(KEY)).toStrictEqual({
+      brandId: BRAND_ID,
+      name: "pos-boat-quay",
+    });
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.stringContaining("revoked_at IS NULL"),
+      [KEY_PREFIX],
+    );
+  });
+
+  it("returns null when no live key has the prefix (unknown, revoked or expired in the database)", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([]));
+
+    expect(await authenticator()(KEY)).toBeNull();
+  });
+
+  it("returns null for the right prefix with a wrong secret", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([keyRow()]));
+    const wrongSecret = `${KEY_PREFIX}.${"A".repeat(43)}`;
+
+    expect(await authenticator()(wrongSecret)).toBeNull();
   });
 
   it.each([
-    ["a wrong key", "x".repeat(32)],
-    ["a key differing in one character", `${TQR_KEY.slice(0, -1)}x`],
     ["no key", undefined],
     ["an empty key", ""],
-  ])("returns null for %s", (_name, presented) => {
-    expect(findServingCaller(keys, presented)).toBeNull();
+    ["a key without a prefix", "A".repeat(43)],
+    ["an old caller:key value", `tqr:${"t".repeat(32)}`],
+  ])("returns null for %s without querying", async (_name, presented) => {
+    expect(await authenticator()(presented)).toBeNull();
+    expect(queryMock).not.toHaveBeenCalled();
   });
 
-  it("rejects every key when none are configured", () => {
-    expect(findServingCaller([], TQR_KEY)).toBeNull();
+  it("serves a repeated key from the cache within the TTL", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([keyRow()]));
+    const authenticate = authenticator();
+
+    await authenticate(KEY);
+    queryMock.mockClear();
+    clock += TTL_MS - 1;
+
+    expect(await authenticate(KEY)).not.toBeNull();
+    expect(queryMock).not.toHaveBeenCalled();
+  });
+
+  it("checks the database again once the TTL has passed, so a revoked key stops working", async () => {
+    queryMock
+      .mockResolvedValueOnce(pgResult([keyRow()]))
+      .mockResolvedValueOnce(pgResult([]));
+    const authenticate = authenticator();
+
+    await authenticate(KEY);
+    clock += TTL_MS;
+
+    expect(await authenticate(KEY)).toBeNull();
+  });
+
+  it("rejects a cached key as soon as it expires", async () => {
+    queryMock.mockResolvedValueOnce(
+      pgResult([keyRow({ expires_at: new Date(clock + 10) })]),
+    );
+    const authenticate = authenticator();
+
+    expect(await authenticate(KEY)).not.toBeNull();
+    clock += 10;
+
+    expect(await authenticate(KEY)).toBeNull();
+  });
+
+  it("does not cache a wrong secret as a match for the right one", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([keyRow()]));
+    const authenticate = authenticator();
+
+    await authenticate(KEY);
+
+    expect(await authenticate(`${KEY_PREFIX}.${"A".repeat(43)}`)).toBeNull();
+  });
+
+  it("lets a database error through, so the hook can answer 503", async () => {
+    queryMock.mockRejectedValueOnce(new Error("connection refused"));
+
+    await expect(authenticator()(KEY)).rejects.toThrow("connection refused");
   });
 });

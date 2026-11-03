@@ -1,75 +1,85 @@
-import { createHash, timingSafeEqual } from "node:crypto";
-import type { FastifyBaseLogger, FastifyRequest } from "fastify";
-import { UnauthorizedError } from "../errors.js";
+import type { FastifyRequest } from "fastify";
+import { Pool } from "pg";
+import { ServiceUnavailableError, UnauthorizedError } from "../errors.js";
+import {
+  BrandApiKeyMatch,
+  findLiveBrandApiKey,
+  isSameApiKey,
+  parseApiKeyPrefix,
+} from "../services/brandApiKey.service.js";
 
-const MIN_KEY_LENGTH = 32;
-
-export interface ServingApiKey {
-  caller: string;
-  keyHash: Buffer;
-}
-
-function hashKey(key: string): Buffer {
-  return createHash("sha256").update(key).digest();
-}
-
-// SERVING_API_KEYS="tqr:<key>,pos:<key>". A malformed value throws, so the API refuses to start rather than run
-// with a key it misread. Only hashes are kept in memory.
-export function parseServingApiKeys(raw: string | undefined): ServingApiKey[] {
-  if (!raw?.trim()) return [];
-
-  return raw.split(",").map((entry) => {
-    const separator = entry.indexOf(":");
-    const caller = entry.slice(0, separator).trim();
-    const key = entry.slice(separator + 1).trim();
-
-    if (separator === -1 || !caller) {
-      throw new Error("SERVING_API_KEYS entries must look like caller:key.");
-    }
-    if (key.length < MIN_KEY_LENGTH) {
-      throw new Error(
-        `SERVING_API_KEYS key for ${caller} must be at least ${MIN_KEY_LENGTH} characters.`,
-      );
-    }
-    return { caller, keyHash: hashKey(key) };
-  });
-}
-
-// Equal-length hashes make timingSafeEqual usable, and every key is compared, so the response time says nothing
-// about which key or how much of it matched.
-export function findServingCaller(
-  keys: ServingApiKey[],
-  presented: string | undefined,
-): string | null {
-  if (!presented) return null;
-
-  const presentedHash = hashKey(presented);
-  let caller: string | null = null;
-
-  for (const key of keys) {
-    if (timingSafeEqual(key.keyHash, presentedHash)) caller = key.caller;
+declare module "fastify" {
+  interface FastifyRequest {
+    servingBrandId: string | null;
   }
-  return caller;
+}
+
+export const API_KEY_CACHE_TTL_MS = 60_000;
+
+export interface ServingKeyAuthOptions {
+  getPool: () => Pool;
+  ttlMs?: number;
+  now?: () => number;
+}
+
+export interface ServingCaller {
+  brandId: string;
+  name: string;
+}
+
+// Only live keys are cached, so the cache is bounded by the number of keys. A revoked key keeps working
+// until its entry expires (at most ttlMs); an expired key stops at once because expiresAt is checked on every hit.
+export function createServingKeyAuthenticator({
+  getPool,
+  ttlMs = API_KEY_CACHE_TTL_MS,
+  now = Date.now,
+}: ServingKeyAuthOptions) {
+  const cache = new Map<string, { match: BrandApiKeyMatch; cachedAt: number }>();
+
+  async function findMatch(keyPrefix: string): Promise<BrandApiKeyMatch | null> {
+    const cached = cache.get(keyPrefix);
+    if (cached && now() - cached.cachedAt < ttlMs) return cached.match;
+
+    cache.delete(keyPrefix);
+    const match = await findLiveBrandApiKey(getPool(), keyPrefix);
+    if (match) cache.set(keyPrefix, { match, cachedAt: now() });
+    return match;
+  }
+
+  return async function authenticate(
+    presented: string | undefined,
+  ): Promise<ServingCaller | null> {
+    // A malformed key never reaches the database.
+    const keyPrefix = parseApiKeyPrefix(presented);
+    if (!keyPrefix || !presented) return null;
+
+    const match = await findMatch(keyPrefix);
+    if (!match || !isSameApiKey(match, presented)) return null;
+    if (match.expiresAt && match.expiresAt.getTime() <= now()) return null;
+
+    return { brandId: match.brandId, name: match.name };
+  };
 }
 
 export function createServingAuthHook(
-  keys: ServingApiKey[],
-  log: FastifyBaseLogger,
+  authenticate: ReturnType<typeof createServingKeyAuthenticator>,
 ) {
-  if (keys.length === 0) {
-    log.warn("SERVING_API_KEYS is not set: every /v1 request will be rejected.");
-  }
-
   return async (request: FastifyRequest) => {
     const header = request.headers["x-api-key"];
-    const caller = findServingCaller(
-      keys,
-      typeof header === "string" ? header : undefined,
-    );
+    let caller: ServingCaller | null;
+
+    try {
+      caller = await authenticate(typeof header === "string" ? header : undefined);
+    } catch (error) {
+      // The key cannot be checked, so nothing is served; callers continue the order without recommendations (NF-2).
+      request.log.error({ err: error }, "API key check failed");
+      throw new ServiceUnavailableError("API key cannot be checked. Please try again.");
+    }
 
     if (!caller) {
       throw new UnauthorizedError("Missing or invalid API key.");
     }
-    request.log = request.log.child({ caller });
+    request.servingBrandId = caller.brandId;
+    request.log = request.log.child({ caller: `${caller.brandId}/${caller.name}` });
   };
 }

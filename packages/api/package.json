@@ -8,7 +8,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "dev": "tsx watch --env-file=../../.env src/server.ts"
+    "dev": "tsx watch --env-file=../../.env src/server.ts",
+    "api-key": "tsx --env-file=../../.env src/cli/apiKey.ts"
   },
   "dependencies": {
     "@ai-services/contracts": "^0.0.1",

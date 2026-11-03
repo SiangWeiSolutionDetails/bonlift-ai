@@ -16,9 +16,11 @@ import { customerItemScoresResultRoutes } from "./routes/customerItemScoresResul
 import { itemAffinityCalculationConfigVersionRoutes } from "./routes/itemAffinityCalculationConfigVersion.route.js";
 import { itemAffinityResultRoutes } from "./routes/itemAffinityResult.route.js";
 import { recommendationRoutes } from "./routes/recommendation.route.js";
+import { brandApiKeyRoutes } from "./routes/brandApiKey.route.js";
+import { getPool } from "@ai-services/db";
 import {
   createServingAuthHook,
-  parseServingApiKeys,
+  createServingKeyAuthenticator,
 } from "./plugins/servingAuth.js";
 
 export function buildApp(): FastifyInstance {
@@ -64,13 +66,13 @@ export function buildApp(): FastifyInstance {
   app.register(itemAffinityCalculationConfigVersionRoutes);
   app.register(itemAffinityResultRoutes);
 
-  // Serving routes for TQR, POS and kiosk: versioned, and the API key hook is encapsulated to this prefix only.
-  const servingApiKeys = parseServingApiKeys(process.env.SERVING_API_KEYS);
+  // Serving routes for TQR, POS and kiosk: versioned, and the brand API key hook is encapsulated to this prefix only.
   app.register(
     async (serving) => {
+      serving.decorateRequest("servingBrandId", null);
       serving.addHook(
         "onRequest",
-        createServingAuthHook(servingApiKeys, serving.log),
+        createServingAuthHook(createServingKeyAuthenticator({ getPool })),
       );
       serving.register(recommendationRoutes);
     },
@@ -79,6 +81,8 @@ export function buildApp(): FastifyInstance {
 
   if (process.env.NODE_ENV !== "production") {
     app.register(mockDatasetRoutes);
+    // Until admin login exists (H1); see brandApiKey.route.ts.
+    app.register(brandApiKeyRoutes);
   }
 
   return app;

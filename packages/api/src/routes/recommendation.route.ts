@@ -18,7 +18,13 @@ export async function recommendationRoutes(app: FastifyInstance) {
     },
     (request) => {
       const pool = getPool();
-      return getRecommendations(pool, request.log, request.body);
+      // Set by the /v1 API key hook, which rejects the request before this handler without a brand.
+      return getRecommendations(
+        pool,
+        request.log,
+        request.servingBrandId as string,
+        request.body,
+      );
     },
   );
 }

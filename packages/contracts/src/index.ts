@@ -1,3 +1,4 @@
+export * from "./name.schema.js";
 export * from "./tenant.schema.js";
 export * from "./brand.schema.js";
 export * from "./outlet.schema.js";
@@ -17,3 +18,4 @@ export * from "./itemAffinityCalculation.schema.js";
 export * from "./itemAffinityCalculationConfigVersion.schema.js";
 export * from "./itemAffinityResult.schema.js";
 export * from "./recommendation.schema.js";
+export * from "./brandApiKey.schema.js";

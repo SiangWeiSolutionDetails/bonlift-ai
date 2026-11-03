@@ -63,6 +63,7 @@ function toRecord(row: BrandApiKeyRow): BrandApiKeyRecordSchemaType {
 }
 
 export interface BrandApiKeyMatch {
+  id: string;
   brandId: string;
   name: string;
   keyHash: Buffer;
@@ -251,7 +252,7 @@ export async function findLiveBrandApiKey(
 ): Promise<BrandApiKeyMatch | null> {
   const result = await pool.query(
     `
-    SELECT brand_id, name, key_hash, expires_at
+    SELECT id, brand_id, name, key_hash, expires_at
     FROM brand_api_keys
     WHERE key_prefix = $1
       AND revoked_at IS NULL
@@ -264,6 +265,7 @@ export async function findLiveBrandApiKey(
   if (!row) return null;
 
   return {
+    id: row.id,
     brandId: row.brand_id,
     name: row.name,
     keyHash: row.key_hash,

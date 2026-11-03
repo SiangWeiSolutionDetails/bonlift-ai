@@ -10,6 +10,7 @@ import {
   Building2Icon,
   ChartBarIcon,
   DatabaseIcon,
+  GaugeIcon,
   KeyRoundIcon,
   SquareStackIcon,
   StoreIcon,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 import App from "@/App";
 import { validateApiKeysSearch } from "@/features/brand-api-keys/search";
+import { validateUsageSearch } from "@/features/brand-usage/search";
 import { validateCustomerScoresSearch } from "@/features/customer-item-scores/search";
 import { validateItemAffinitySearch } from "@/features/item-affinity/search";
 import { validateSnapshotsSearch } from "@/features/order-snapshots/search";
@@ -30,6 +32,7 @@ import { OrderSnapshotsPage } from "@/pages/order-snapshots-page";
 import { OutletsPage } from "@/pages/outlets-page";
 import { ResultsPage } from "@/pages/results-page";
 import { TenantsPage } from "@/pages/tenants-page";
+import { UsagePage } from "@/pages/usage-page";
 
 const rootRoute = createRootRoute({ component: App });
 
@@ -103,6 +106,14 @@ const apiKeysRoute = createRoute({
   staticData: { titleKey: "nav.apiKeys", groupKey: "nav.integration", icon: <KeyRoundIcon /> },
 });
 
+const usageRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/usage",
+  component: UsagePage,
+  validateSearch: validateUsageSearch,
+  staticData: { titleKey: "nav.usage", groupKey: "nav.integration", icon: <GaugeIcon /> },
+});
+
 // Order here is the sidebar order; routes with a staticData icon and groupKey appear in the sidebar.
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -114,6 +125,7 @@ const routeTree = rootRoute.addChildren([
   customerScoresRoute,
   itemAffinityRoute,
   apiKeysRoute,
+  usageRoute,
 ]);
 
 export const router = createRouter({ routeTree });

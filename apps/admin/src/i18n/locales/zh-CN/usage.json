@@ -1,0 +1,34 @@
+{
+  "page": {
+    "title": "用量"
+  },
+  "picker": {
+    "brand": "品牌",
+    "brandPlaceholder": "选择品牌",
+    "noBrand": "请选择品牌以查看其用量。",
+    "from": "从",
+    "to": "至"
+  },
+  "counts": {
+    "succeeded": "成功",
+    "clientErrors": "客户端错误",
+    "serverErrors": "服务端错误",
+    "calculationRuns": "计算次数"
+  },
+  "summary": {
+    "calls": "API 调用",
+    "successRate": "成功率",
+    "successRateHint": "成功 {{count}} 次",
+    "errorRate": "错误率",
+    "errorRateHint": "客户端 {{client}} · 服务端 {{server}}"
+  },
+  "charts": {
+    "calls": "按结果统计的 API 调用"
+  },
+  "days": {
+    "description": "按结果统计的 API 调用次数，以及启动的计算次数。日期按 {{tz}} 时区划分；表格不显示没有用量的日期。",
+    "empty": "此期间没有用量。",
+    "date": "日期",
+    "total": "合计"
+  }
+}

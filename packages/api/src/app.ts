@@ -17,11 +17,13 @@ import { itemAffinityCalculationConfigVersionRoutes } from "./routes/itemAffinit
 import { itemAffinityResultRoutes } from "./routes/itemAffinityResult.route.js";
 import { recommendationRoutes } from "./routes/recommendation.route.js";
 import { brandApiKeyRoutes } from "./routes/brandApiKey.route.js";
+import { brandUsageRoutes } from "./routes/brandUsage.route.js";
 import { getPool } from "@ai-services/db";
 import {
   createServingAuthHook,
   createServingKeyAuthenticator,
 } from "./plugins/servingAuth.js";
+import { createServingUsageHook } from "./plugins/servingUsage.js";
 
 export function buildApp(): FastifyInstance {
   const app = Fastify({
@@ -65,15 +67,18 @@ export function buildApp(): FastifyInstance {
   app.register(customerItemScoresResultRoutes);
   app.register(itemAffinityCalculationConfigVersionRoutes);
   app.register(itemAffinityResultRoutes);
+  app.register(brandUsageRoutes);
 
   // Serving routes for TQR, POS and kiosk: versioned, and the brand API key hook is encapsulated to this prefix only.
   app.register(
     async (serving) => {
       serving.decorateRequest("servingBrandId", null);
+      serving.decorateRequest("servingApiKeyId", null);
       serving.addHook(
         "onRequest",
         createServingAuthHook(createServingKeyAuthenticator({ getPool })),
       );
+      serving.addHook("onResponse", createServingUsageHook(getPool));
       serving.register(recommendationRoutes);
     },
     { prefix: "/v1" },

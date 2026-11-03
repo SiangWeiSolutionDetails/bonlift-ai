@@ -1,0 +1,34 @@
+{
+  "page": {
+    "title": "Usage"
+  },
+  "picker": {
+    "brand": "Brand",
+    "brandPlaceholder": "Select a brand",
+    "noBrand": "Select a brand to see its usage.",
+    "from": "From",
+    "to": "To"
+  },
+  "counts": {
+    "succeeded": "Succeeded",
+    "clientErrors": "Client Errors",
+    "serverErrors": "Server Errors",
+    "calculationRuns": "Calculation Runs"
+  },
+  "summary": {
+    "calls": "API Calls",
+    "successRate": "Success Rate",
+    "successRateHint": "{{count}} succeeded",
+    "errorRate": "Error Rate",
+    "errorRateHint": "{{client}} client · {{server}} server"
+  },
+  "charts": {
+    "calls": "API Calls by Result"
+  },
+  "days": {
+    "description": "API calls by result, and calculation runs started. Days are in {{tz}}; the table hides days without usage.",
+    "empty": "No usage in this period.",
+    "date": "Date",
+    "total": "Total"
+  }
+}

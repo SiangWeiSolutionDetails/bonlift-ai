@@ -4,6 +4,7 @@ import { pgResult } from "../utils/pg.test-helpers.js";
 import { createServingKeyAuthenticator } from "./servingAuth.js";
 
 const BRAND_ID = "11111111-1111-1111-1111-111111111111";
+const API_KEY_ID = "22222222-2222-2222-2222-222222222222";
 const { key: KEY, keyPrefix: KEY_PREFIX } = generateApiKey();
 const TTL_MS = 60_000;
 
@@ -13,6 +14,7 @@ let clock = 0;
 
 function keyRow(overrides: Record<string, unknown> = {}) {
   return {
+    id: API_KEY_ID,
     brand_id: BRAND_ID,
     name: "pos-boat-quay",
     key_hash: hashApiKey(KEY),
@@ -35,10 +37,11 @@ beforeEach(() => {
 });
 
 describe("createServingKeyAuthenticator", () => {
-  it("returns the brand and name of a live key", async () => {
+  it("returns the key id, brand and name of a live key", async () => {
     queryMock.mockResolvedValueOnce(pgResult([keyRow()]));
 
     expect(await authenticator()(KEY)).toStrictEqual({
+      apiKeyId: API_KEY_ID,
       brandId: BRAND_ID,
       name: "pos-boat-quay",
     });

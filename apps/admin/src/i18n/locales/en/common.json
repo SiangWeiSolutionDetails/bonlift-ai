@@ -34,7 +34,8 @@
     "results": "Outlet Item Scoring",
     "customerScores": "Customer Item Scoring",
     "itemAffinity": "Item Affinity",
-    "apiKeys": "API Keys"
+    "apiKeys": "API Keys",
+    "usage": "Usage"
   },
   "language": {
     "label": "Language"

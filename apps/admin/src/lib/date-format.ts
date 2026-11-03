@@ -4,6 +4,7 @@ import type { Language } from "@/i18n/languages";
 
 // One display format for the whole app, whatever the UI language.
 const DISPLAY_DATE = "dd/MM/yyyy";
+const DISPLAY_SHORT_DATE = "dd/MM";
 const DISPLAY_TIME = "hh:mm:ss a";
 const DISPLAY_DATE_TIME = `${DISPLAY_DATE} ${DISPLAY_TIME}`;
 const ISO_DATE = "yyyy-MM-dd";
@@ -18,6 +19,11 @@ function toDate(value: string | Date) {
 
 export function formatDate(value: string | Date) {
   return format(toDate(value), DISPLAY_DATE);
+}
+
+// For tight spaces such as chart axes, where the year is shown elsewhere.
+export function formatShortDate(value: string | Date) {
+  return format(toDate(value), DISPLAY_SHORT_DATE);
 }
 
 export function formatTime(value: string | Date) {

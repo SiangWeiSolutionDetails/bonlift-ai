@@ -11,6 +11,7 @@ import {
 declare module "fastify" {
   interface FastifyRequest {
     servingBrandId: string | null;
+    servingApiKeyId: string | null;
   }
 }
 
@@ -23,6 +24,7 @@ export interface ServingKeyAuthOptions {
 }
 
 export interface ServingCaller {
+  apiKeyId: string;
   brandId: string;
   name: string;
 }
@@ -57,7 +59,7 @@ export function createServingKeyAuthenticator({
     if (!match || !isSameApiKey(match, presented)) return null;
     if (match.expiresAt && match.expiresAt.getTime() <= now()) return null;
 
-    return { brandId: match.brandId, name: match.name };
+    return { apiKeyId: match.id, brandId: match.brandId, name: match.name };
   };
 }
 
@@ -80,6 +82,7 @@ export function createServingAuthHook(
       throw new UnauthorizedError("Missing or invalid API key.");
     }
     request.servingBrandId = caller.brandId;
+    request.servingApiKeyId = caller.apiKeyId;
     request.log = request.log.child({ caller: `${caller.brandId}/${caller.name}` });
   };
 }

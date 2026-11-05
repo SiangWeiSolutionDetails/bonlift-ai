@@ -1,10 +1,12 @@
+name: bonlift-ai
+
 services:
   postgres:
     image: postgres:16
     environment:
-      POSTGRES_DB: ai_services_dev
-      POSTGRES_USER: ai_services
-      POSTGRES_PASSWORD: ai_services
+      POSTGRES_DB: bonlift_ai_dev
+      POSTGRES_USER: bonlift_ai
+      POSTGRES_PASSWORD: bonlift_ai
     ports:
       - "5432:5432"
     volumes:

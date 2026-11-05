@@ -3,7 +3,7 @@ import type {
   OutletQuerySchemaType,
   OutletRecordSchemaType,
   UpdateOutletBodySchemaType,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 
 export type Outlet = OutletRecordSchemaType;
 export type OutletListParams = OutletQuerySchemaType;

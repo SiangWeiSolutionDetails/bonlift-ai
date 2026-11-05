@@ -22,7 +22,7 @@ import { getChanges } from "@/lib/get-changes";
 import type { Brand, UpdateBrandInput } from "../type";
 import { Controller, useForm } from "react-hook-form";
 import { typeboxResolver } from "@/lib/typebox-resolver";
-import { UpdateBrandBodySchema } from "@ai-services/contracts";
+import { UpdateBrandBodySchema } from "@bonlift-ai/contracts";
 import { useUpdateBrand } from "../queries";
 import { BrandDataSourceSection } from "@/features/brand-data-source/components/brand-data-source-section";
 import { OutletItemScoresConfigSection } from "@/features/outlet-item-scores-config/components/outlet-item-scores-config-section";

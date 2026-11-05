@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import type { Tenant } from "@/features/tenants/type";
 import { getErrorMessage } from "@/lib/error-message";
-import { CreateBrandBodySchema } from "@ai-services/contracts";
+import { CreateBrandBodySchema } from "@bonlift-ai/contracts";
 import { useCreateBrand } from "../queries";
 import { Controller, useForm } from "react-hook-form";
 import { typeboxResolver } from "@/lib/typebox-resolver";

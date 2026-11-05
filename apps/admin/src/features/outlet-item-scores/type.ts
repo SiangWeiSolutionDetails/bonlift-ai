@@ -4,7 +4,7 @@ import type {
   OutletItemScoresCalculationResponseSchemaType,
   OutletItemScoresRunRecordSchemaType,
   OutletItemScoresRunResultSchemaType,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 
 export type OutletItemScoresRun = OutletItemScoresRunRecordSchemaType;
 export type OutletItemScore = OutletItemScoreRecordSchemaType;

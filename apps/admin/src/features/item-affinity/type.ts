@@ -6,7 +6,7 @@ import type {
   ItemAffinityItemResultSchemaType,
   ItemAffinityPartnerRecordSchemaType,
   ItemAffinityRunRecordSchemaType,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 
 export type ItemAffinityRun = ItemAffinityRunRecordSchemaType;
 export type AffinityItem = ItemAffinityItemRecordSchemaType;

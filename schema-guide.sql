@@ -1,4 +1,4 @@
--- Recommendation engine: full schema for review (PostgreSQL 13+, validated on 16)
+-- BonLift AI: full schema for review (PostgreSQL 13+, validated on 16)
 -- Up migrations 001-005 concatenated in order. Down migrations omitted.
 --
 -- Context for the reviewer:

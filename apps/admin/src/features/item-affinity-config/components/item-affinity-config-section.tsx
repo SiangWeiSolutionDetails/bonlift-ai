@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useForm, type UseFormRegisterReturn } from "react-hook-form";
 import { ChevronRightIcon } from "lucide-react";
-import { CreateItemAffinityCalculationConfigVersionBodySchema } from "@ai-services/contracts";
+import { CreateItemAffinityCalculationConfigVersionBodySchema } from "@bonlift-ai/contracts";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FieldError } from "@/components/field-error";
 import { FieldHint } from "@/components/field-hint";

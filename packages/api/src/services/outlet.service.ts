@@ -10,7 +10,7 @@ import {
   OutletRecordSchemaType,
   UpdateOutletBodySchema,
   UpdateOutletBodySchemaType,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 import { assertValid } from "../utils/validate.js";
 import { isForeignKeyViolation, isUniqueViolation } from "../utils/pgErrors.js";
 

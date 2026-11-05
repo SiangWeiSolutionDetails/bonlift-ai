@@ -1,4 +1,4 @@
-import { getPool } from "@ai-services/db";
+import { getPool } from "@bonlift-ai/db";
 import { FastifyInstance } from "fastify";
 import {
   createTenant,
@@ -17,7 +17,7 @@ import {
   TenantRecordSchema,
   UpdateTenantBodySchema,
   UpdateTenantBodySchemaType,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 
 export async function tenantRoutes(app: FastifyInstance) {
   app.get(

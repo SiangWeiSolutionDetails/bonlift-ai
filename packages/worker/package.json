@@ -1,5 +1,5 @@
 {
-  "name": "@ai-services/worker",
+  "name": "@bonlift-ai/worker",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -11,8 +11,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@ai-services/contracts": "^0.0.1",
-    "@ai-services/db": "^0.0.1",
+    "@bonlift-ai/contracts": "^0.0.1",
+    "@bonlift-ai/db": "^0.0.1",
     "bullmq": "^6.0.11",
     "ioredis": "^6.0.0",
     "pg": "^8.23.1"

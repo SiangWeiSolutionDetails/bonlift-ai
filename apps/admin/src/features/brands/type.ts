@@ -3,7 +3,7 @@ import type {
   BrandRecordSchemaType,
   CreateBrandBodySchemaType,
   UpdateBrandBodySchemaType,
-} from '@ai-services/contracts'
+} from '@bonlift-ai/contracts'
 
 export type Brand = BrandRecordSchemaType
 export type BrandListParams = BrandQuerySchemaType

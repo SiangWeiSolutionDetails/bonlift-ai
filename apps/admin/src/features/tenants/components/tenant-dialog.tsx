@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { UpdateTenantBodySchema } from "@ai-services/contracts";
+import { UpdateTenantBodySchema } from "@bonlift-ai/contracts";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FieldError } from "@/components/field-error";
 import { Button } from "@/components/ui/button";

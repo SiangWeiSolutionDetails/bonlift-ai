@@ -1,7 +1,7 @@
 import type {
   BrandDataSourceRecordSchemaType,
   UpdateBrandDataSourceBodySchemaType,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 
 export type BrandDataSource = BrandDataSourceRecordSchemaType;
 export type UpdateBrandDataSourceInput = UpdateBrandDataSourceBodySchemaType;

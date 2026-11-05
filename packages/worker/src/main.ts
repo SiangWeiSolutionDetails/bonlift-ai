@@ -1,4 +1,4 @@
-import { closePool } from "@ai-services/db";
+import { closePool } from "@bonlift-ai/db";
 import { getRedisConnection } from "./connection.js";
 import { startCustomerItemScoresWorker } from "./workers/customerItemScores.worker.js";
 import { startItemAffinityWorker } from "./workers/itemAffinity.worker.js";

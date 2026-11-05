@@ -2,7 +2,7 @@ import type {
   CreateTenantBodySchemaType,
   TenantRecordSchemaType,
   UpdateTenantBodySchemaType,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 
 export type Tenant = TenantRecordSchemaType;
 export type CreateTenantInput = CreateTenantBodySchemaType;

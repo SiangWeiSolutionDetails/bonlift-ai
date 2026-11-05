@@ -4,7 +4,7 @@ import {
   OutletItemScoresCalculationResponseSchemaType,
   CalculationTriggerTypeSchemaType,
   OutletParamsSchema,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 import { Pool } from "pg";
 import { assertValid, assertValidDate } from "../utils/validate.js";
 import {

@@ -2,7 +2,7 @@ import type {
   BrandApiKeyRecordSchemaType,
   CreateBrandApiKeyBodySchemaType,
   CreatedBrandApiKeySchemaType,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 
 export type BrandApiKey = BrandApiKeyRecordSchemaType;
 export type CreatedBrandApiKey = CreatedBrandApiKeySchemaType;

@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { ALL_DAY_DAYPART } from "@ai-services/contracts";
+import { ALL_DAY_DAYPART } from "@bonlift-ai/contracts";
 import { FieldHint } from "@/components/field-hint";
 import { SectionCard } from "@/components/section-card";
 import { Skeleton } from "@/components/ui/skeleton";

@@ -2,7 +2,7 @@ import type {
   DatasetSchemaType,
   OrderSnapshotCoverageSchemaType,
   OrderSnapshotDaySchemaType,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 
 export type OrderSnapshotCoverage = OrderSnapshotCoverageSchemaType;
 export type OrderSnapshotDay = OrderSnapshotDaySchemaType;

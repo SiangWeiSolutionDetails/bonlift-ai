@@ -11,7 +11,7 @@ import {
   TenantRecordSchemaType,
   UpdateTenantBodySchema,
   UpdateTenantBodySchemaType,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 
 const TENANT_COLUMNS = "id, name, is_active";
 

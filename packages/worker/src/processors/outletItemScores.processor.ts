@@ -1,4 +1,4 @@
-import { getPool } from "@ai-services/db";
+import { getPool } from "@bonlift-ai/db";
 import { Job } from "bullmq";
 import { calculateOutletItemScores } from "../calculations/outletItemScores.js";
 import { CalculationJobData } from "../queues/createQueue.js";

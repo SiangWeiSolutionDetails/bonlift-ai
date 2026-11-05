@@ -1,5 +1,5 @@
 {
-  "name": "ai-services",
+  "name": "bonlift-ai",
   "private": true,
   "workspaces": [
     "packages/contracts",
@@ -19,7 +19,7 @@
     "dev": "concurrently -k -n contracts,client,api,worker -c blue,magenta,green,yellow \"npm:dev:contracts\" \"npm:dev:client\" \"npm:dev:api\" \"npm:dev:worker\"",
     "test": "vitest run",
     "test:integration:up": "docker compose -f docker-compose.test.yml up -d",
-    "test:integration:migrate": "DATABASE_URL=postgres://ai_services:ai_services@localhost:5433/ai_services_test npm run migrate:up -w packages/db",
+    "test:integration:migrate": "DATABASE_URL=postgres://bonlift_ai:bonlift_ai@localhost:5433/bonlift_ai_test npm run migrate:up -w packages/db",
     "test:integration:down": "docker compose -f docker-compose.test.yml down -v"
   },
   "devDependencies": {

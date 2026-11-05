@@ -6,7 +6,7 @@ import {
   getOutlets,
   updateOutlet,
 } from "../services/outlet.service.js";
-import { getPool } from "@ai-services/db";
+import { getPool } from "@bonlift-ai/db";
 import {
   CreateOutletBodySchema,
   CreateOutletBodySchemaType,
@@ -18,7 +18,7 @@ import {
   OutletRecordSchema,
   UpdateOutletBodySchema,
   UpdateOutletBodySchemaType,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 
 export async function outletRoutes(app: FastifyInstance) {
   app.get<{ Querystring: OutletQuerySchemaType }>(

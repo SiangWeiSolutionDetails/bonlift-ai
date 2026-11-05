@@ -1,5 +1,5 @@
 {
-  "name": "@ai-services/db",
+  "name": "@bonlift-ai/db",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
     "migrate:create": "npm run migrate create",
     "migrate:up": "npm run migrate up",
     "migrate:down": "npm run migrate down",
-    "seed": "docker exec -i ai-services-postgres-1 psql -U ai_services -d ai_services_dev < seed/seed.sql"
+    "seed": "docker exec -i bonlift-ai-postgres-1 psql -U bonlift_ai -d bonlift_ai_dev < seed/seed.sql"
   },
   "dependencies": {
     "pg": "^8.22.0"

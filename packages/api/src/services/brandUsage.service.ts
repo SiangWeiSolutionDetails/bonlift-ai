@@ -3,7 +3,7 @@ import {
   BrandUsageQuerySchema,
   BrandUsageQuerySchemaType,
   BrandUsageSchemaType,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 import { Pool } from "pg";
 import { NotFoundError, ValidationError } from "../errors.js";
 import { assertValid } from "../utils/validate.js";

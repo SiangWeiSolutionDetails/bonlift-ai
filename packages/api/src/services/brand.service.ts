@@ -13,7 +13,7 @@ import {
   CreateBrandBodySchemaType,
   UpdateBrandBodySchema,
   UpdateBrandBodySchemaType,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 
 const BRAND_COLUMNS = "id, tenant_id, name, is_active";
 

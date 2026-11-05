@@ -2,7 +2,7 @@ import {
   RecommendationRequestSchema,
   RecommendationRequestSchemaType,
   RecommendationResponseSchemaType,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 import type { FastifyBaseLogger } from "fastify";
 import { Pool } from "pg";
 import { assertValid } from "../utils/validate.js";

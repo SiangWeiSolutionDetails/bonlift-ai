@@ -3,7 +3,7 @@ import {
   findDaypartIssue,
   type DaypartIssue,
   type DaypartSchemaType,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 import { ValidationError } from "../errors.js";
 
 function toMessage(issue: DaypartIssue): string {

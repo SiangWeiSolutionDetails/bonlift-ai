@@ -19,7 +19,7 @@ import { recommendationRoutes } from "./routes/recommendation.route.js";
 import { itemAffinityServingRoutes } from "./routes/itemAffinityServing.route.js";
 import { brandApiKeyRoutes } from "./routes/brandApiKey.route.js";
 import { brandUsageRoutes } from "./routes/brandUsage.route.js";
-import { getPool } from "@ai-services/db";
+import { getPool } from "@bonlift-ai/db";
 import {
   createServingAuthHook,
   createServingKeyAuthenticator,

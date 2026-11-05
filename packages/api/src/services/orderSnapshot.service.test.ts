@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { DatasetSchemaType } from "@ai-services/contracts";
+import type { DatasetSchemaType } from "@bonlift-ai/contracts";
 import { NotFoundError, ValidationError } from "../errors.js";
 import { pgResult } from "../utils/pg.test-helpers.js";
 import {

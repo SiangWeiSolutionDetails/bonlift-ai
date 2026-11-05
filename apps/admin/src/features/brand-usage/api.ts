@@ -1,4 +1,4 @@
-import type { BrandUsageQuerySchemaType } from "@ai-services/contracts";
+import type { BrandUsageQuerySchemaType } from "@bonlift-ai/contracts";
 import { apiRequest } from "@/lib/api-client";
 import type { BrandUsage } from "./type";
 

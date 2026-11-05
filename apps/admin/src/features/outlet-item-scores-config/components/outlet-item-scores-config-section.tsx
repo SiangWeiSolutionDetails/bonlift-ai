@@ -11,7 +11,7 @@ import {
   CreateOutletItemScoresCalculationConfigVersionBodySchema,
   findDaypartIssue,
   type DaypartIssue,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FieldError } from "@/components/field-error";
 import { FieldHint } from "@/components/field-hint";

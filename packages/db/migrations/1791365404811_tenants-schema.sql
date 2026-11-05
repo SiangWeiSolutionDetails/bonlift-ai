@@ -5,7 +5,7 @@ CREATE TABLE tenants (
     is_active           boolean NOT NULL DEFAULT true,
     created_at          timestamptz NOT NULL DEFAULT now(),
     updated_at          timestamptz NOT NULL DEFAULT now(),
-    -- No leading/trailing whitespace; mirrors NAME_PATTERN in @ai-services/contracts.
+    -- No leading/trailing whitespace; mirrors NAME_PATTERN in @bonlift-ai/contracts.
     CONSTRAINT tenants_name_check CHECK (name ~ '^\S(.*\S)?$')
 );
 

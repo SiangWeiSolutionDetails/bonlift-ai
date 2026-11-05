@@ -1,4 +1,4 @@
-import { getPool } from "@ai-services/db";
+import { getPool } from "@bonlift-ai/db";
 import { FastifyInstance } from "fastify";
 import {
   createBrand,
@@ -18,7 +18,7 @@ import {
   CreateBrandBodySchemaType,
   UpdateBrandBodySchema,
   UpdateBrandBodySchemaType,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 
 export async function brandRoutes(app: FastifyInstance) {
   app.get<{ Querystring: BrandQuerySchemaType }>(

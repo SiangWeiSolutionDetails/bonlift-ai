@@ -2,7 +2,7 @@ import { useState } from "react";
 import { TriangleAlertIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useForm, useWatch } from "react-hook-form";
-import { CreateBrandApiKeyBodySchema } from "@ai-services/contracts";
+import { CreateBrandApiKeyBodySchema } from "@bonlift-ai/contracts";
 import { FieldError } from "@/components/field-error";
 import { FieldHint } from "@/components/field-hint";
 import { Button } from "@/components/ui/button";

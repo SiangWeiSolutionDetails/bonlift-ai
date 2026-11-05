@@ -1,7 +1,7 @@
 import type {
   CreateCustomerItemScoresCalculationConfigVersionBodySchemaType,
   CustomerItemScoresCalculationConfigVersionRecordSchemaType,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 
 export type CustomerItemScoresConfigVersion =
   CustomerItemScoresCalculationConfigVersionRecordSchemaType;

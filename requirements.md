@@ -1,4 +1,4 @@
-# Upselling Platform: Requirements Draft
+# BonLift AI: Requirements Draft
 
 **Source:** Email from management on the proposed "AI" upselling platform
 **Status:** Draft for discussion

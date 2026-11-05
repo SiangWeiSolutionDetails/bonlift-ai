@@ -10,8 +10,8 @@ import {
   PublishOutletItemScoresRunBodySchemaType,
   RunParamsSchema,
   RunParamsSchemaType,
-} from "@ai-services/contracts";
-import { getPool } from "@ai-services/db";
+} from "@bonlift-ai/contracts";
+import { getPool } from "@bonlift-ai/db";
 import { FastifyInstance } from "fastify";
 import {
   getOutletItemScoresRunResult,

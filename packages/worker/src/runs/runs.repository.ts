@@ -1,4 +1,4 @@
-import { CalculationJobTypeSchemaType } from "@ai-services/contracts";
+import { CalculationJobTypeSchemaType } from "@bonlift-ai/contracts";
 import { Pool } from "pg";
 
 export interface Run {

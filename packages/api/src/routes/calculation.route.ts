@@ -3,8 +3,8 @@ import {
   queueCustomerItemScores,
   queueItemAffinity,
   queueOutletItemScores,
-} from "@ai-services/worker";
-import { getPool } from "@ai-services/db";
+} from "@bonlift-ai/worker";
+import { getPool } from "@bonlift-ai/db";
 import {
   BrandParamsSchema,
   BrandParamsSchemaType,
@@ -19,7 +19,7 @@ import {
   OutletItemScoresCalculationResponseSchema,
   OutletParamsSchema,
   OutletParamsSchemaType,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 import { startOutletItemScoresCalculation } from "../services/calculation.service.js";
 import { startCustomerItemScoresCalculation } from "../services/customerItemScoresCalculation.service.js";
 import { startItemAffinityCalculation } from "../services/itemAffinityCalculation.service.js";

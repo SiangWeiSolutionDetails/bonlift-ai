@@ -1,7 +1,7 @@
 import type {
   BrandUsageDaySchemaType,
   BrandUsageSchemaType,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 
 export type BrandUsage = BrandUsageSchemaType;
 export type BrandUsageDay = BrandUsageDaySchemaType;

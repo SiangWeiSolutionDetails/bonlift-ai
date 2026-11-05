@@ -2,7 +2,7 @@ import type {
   CreateOutletItemScoresCalculationConfigVersionBodySchemaType,
   DaypartSchemaType,
   OutletItemScoresCalculationConfigVersionRecordSchemaType,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 
 export type OutletItemScoresConfigVersion =
   OutletItemScoresCalculationConfigVersionRecordSchemaType;

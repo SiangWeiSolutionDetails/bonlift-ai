@@ -5,7 +5,7 @@ import type {
   CustomerItemScoresCustomerListSchemaType,
   CustomerItemScoresCustomerResultSchemaType,
   CustomerItemScoresRunRecordSchemaType,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 
 export type CustomerItemScoresRun = CustomerItemScoresRunRecordSchemaType;
 export type CustomerItemScore = CustomerItemScoreRecordSchemaType;

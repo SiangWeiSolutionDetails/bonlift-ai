@@ -9,7 +9,7 @@ import {
   PublishItemAffinityRunBodySchema,
   PublishItemAffinityRunBodySchemaType,
   RunParamsSchema,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 import { Pool } from "pg";
 import { ConflictError, NotFoundError } from "../errors.js";
 import { assertValid } from "../utils/validate.js";

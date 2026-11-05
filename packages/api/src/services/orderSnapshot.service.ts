@@ -7,7 +7,7 @@ import {
   OrderSnapshotDaySchemaType,
   OrderSnapshotParamsSchema,
   OutletParamsSchema,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 import { Pool } from "pg";
 import { NotFoundError, ValidationError } from "../errors.js";
 import { assertValid, assertValidDate } from "../utils/validate.js";

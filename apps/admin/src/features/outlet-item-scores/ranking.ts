@@ -1,4 +1,4 @@
-import { ALL_DAY_DAYPART } from "@ai-services/contracts";
+import { ALL_DAY_DAYPART } from "@bonlift-ai/contracts";
 import type { OutletItemScore, OutletItemScoresRun } from "./type";
 
 export function groupByDaypart(items: OutletItemScore[]) {

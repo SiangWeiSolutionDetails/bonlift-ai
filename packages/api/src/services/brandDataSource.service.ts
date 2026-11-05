@@ -3,7 +3,7 @@ import {
   BrandParamsSchema,
   UpdateBrandDataSourceBodySchema,
   UpdateBrandDataSourceBodySchemaType,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 import { Pool } from "pg";
 import { NotFoundError } from "../errors.js";
 import { assertValid, assertValidUrl } from "../utils/validate.js";

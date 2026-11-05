@@ -1,4 +1,4 @@
-import { closePool, getPool } from "@ai-services/db";
+import { closePool, getPool } from "@bonlift-ai/db";
 import { userInfo } from "node:os";
 import { parseArgs } from "node:util";
 import { AppError } from "../errors.js";

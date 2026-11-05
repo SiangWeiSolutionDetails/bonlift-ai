@@ -1,4 +1,4 @@
-import type { BrandApiKeyListSchemaType } from "@ai-services/contracts";
+import type { BrandApiKeyListSchemaType } from "@bonlift-ai/contracts";
 import { apiRequest } from "@/lib/api-client";
 import type {
   BrandApiKey,

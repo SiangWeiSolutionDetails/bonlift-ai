@@ -5,7 +5,7 @@ import {
   BrandParamsSchema,
   CreatedBrandApiKeySchemaType,
   NameSchema,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { Pool } from "pg";
 import Type, { Static } from "typebox";

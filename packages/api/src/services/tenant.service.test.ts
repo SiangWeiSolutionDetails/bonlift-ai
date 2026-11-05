@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ConflictError, NotFoundError, ValidationError } from "../errors.js";
-import type { TenantRecordSchemaType } from "@ai-services/contracts";
+import type { TenantRecordSchemaType } from "@bonlift-ai/contracts";
 import { pgResult } from "../utils/pg.test-helpers.js";
 import { UNIQUE_VIOLATION } from "../utils/pgErrors.js";
 import {

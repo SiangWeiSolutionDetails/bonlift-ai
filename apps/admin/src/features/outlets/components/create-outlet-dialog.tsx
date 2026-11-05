@@ -1,6 +1,6 @@
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { CreateOutletBodySchema } from "@ai-services/contracts";
+import { CreateOutletBodySchema } from "@bonlift-ai/contracts";
 import { FieldError } from "@/components/field-error";
 import { Button } from "@/components/ui/button";
 import {

@@ -4,7 +4,7 @@ import {
   ItemAffinityCalculationQuerySchema,
   ItemAffinityCalculationQuerySchemaType,
   ItemAffinityCalculationResponseSchemaType,
-} from "@ai-services/contracts";
+} from "@bonlift-ai/contracts";
 import { Pool } from "pg";
 import { ConflictError, NotFoundError, ValidationError } from "../errors.js";
 import { isUniqueViolationOf } from "../utils/pgErrors.js";

@@ -1,4 +1,5 @@
 export * from "./name.schema.js";
+export * from "./error.schema.js";
 export * from "./tenant.schema.js";
 export * from "./brand.schema.js";
 export * from "./outlet.schema.js";

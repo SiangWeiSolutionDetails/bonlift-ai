@@ -2,6 +2,7 @@ import {
   ItemAffinityRequestSchema,
   ItemAffinityRequestSchemaType,
   ItemAffinityResponseSchema,
+  ServingErrorResponseSchemas,
 } from "@ai-services/contracts";
 import { getPool } from "@ai-services/db";
 import { FastifyInstance } from "fastify";
@@ -12,8 +13,15 @@ export async function itemAffinityServingRoutes(app: FastifyInstance) {
     "/item-affinity",
     {
       schema: {
+        summary: "Items often ordered together",
+        description:
+          "Returns items often ordered together with the item the customer is looking at (`itemId`), or with the whole " +
+          "cart when `itemId` is missing, best first. Use it for a \"goes well with\" section. Items in the cart or in " +
+          "`exclude` are never returned. Apply your own availability and dietary filters before display. Any failure " +
+          "on our side returns an empty list, so the order can always continue.",
+        tags: ["Recommendations"],
         body: ItemAffinityRequestSchema,
-        response: { 200: ItemAffinityResponseSchema },
+        response: { 200: ItemAffinityResponseSchema, ...ServingErrorResponseSchemas },
       },
     },
     (request) => {

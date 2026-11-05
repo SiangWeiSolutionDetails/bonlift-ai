@@ -14,3 +14,19 @@ export const ErrorResponseSchema = Type.Object(
   { additionalProperties: false },
 );
 export type ErrorResponseSchemaType = Static<typeof ErrorResponseSchema>;
+
+// Errors a /v1 serving route can return; the description becomes the response's text in the OpenAPI document.
+export const ServingErrorResponseSchemas = {
+  400: {
+    ...ErrorResponseSchema,
+    description: "The request is malformed, e.g. a required field is missing or a value is out of range.",
+  },
+  401: {
+    ...ErrorResponseSchema,
+    description: "The `x-api-key` header is missing, or the key is invalid or revoked.",
+  },
+  503: {
+    ...ErrorResponseSchema,
+    description: "The API key cannot be checked right now. Retry later, and continue the order without recommendations.",
+  },
+};

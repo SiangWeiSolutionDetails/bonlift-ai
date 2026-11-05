@@ -42,6 +42,7 @@ export function BrandsPage() {
 
       <BrandsTable
         brands={brands}
+        tenants={tenants}
         isPending={isPending}
         error={error}
         onEdit={(brand) => openBrand(brand, false)}
@@ -55,6 +56,7 @@ export function BrandsPage() {
       />
       <BrandDialog
         brand={selectedBrand}
+        tenantName={tenants.find((tenant) => tenant.id === selectedBrand?.tenantId)?.name}
         readOnly={isReadOnly}
         onClose={() => setSelectedBrandId(null)}
       />

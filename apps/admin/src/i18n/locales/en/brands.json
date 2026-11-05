@@ -5,6 +5,7 @@
   },
   "table": {
     "name": "Name",
+    "tenant": "Tenant",
     "status": "Status",
     "actions": "Actions",
     "empty": "No brands yet.",
@@ -19,6 +20,7 @@
   },
   "edit": {
     "title": "Edit Brand",
+    "tenant": "Tenant",
     "name": "Name",
     "active": "Active"
   },

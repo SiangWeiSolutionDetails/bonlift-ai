@@ -14,13 +14,15 @@ import {
 } from "@/components/ui/table";
 import { getErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
+import type { Tenant } from "@/features/tenants/type";
 import type { Brand } from "../type";
 
-const COLUMN_COUNT = 3;
+const COLUMN_COUNT = 4;
 const SKELETON_ROW_COUNT = 5;
 
 type BrandsTableProps = {
   brands: Brand[] | undefined;
+  tenants: Tenant[];
   isPending: boolean;
   error: Error | null;
   onEdit: (brand: Brand) => void;
@@ -36,6 +38,7 @@ export function BrandsTable(props: BrandsTableProps) {
         <TableHeader>
           <TableRow>
             <TableHead>{t("table.name")}</TableHead>
+            <TableHead>{t("table.tenant")}</TableHead>
             <TableHead className="w-32">{t("table.status")}</TableHead>
             <TableHead className="w-24 text-right">
               <span className="sr-only">{t("table.actions")}</span>
@@ -50,7 +53,7 @@ export function BrandsTable(props: BrandsTableProps) {
   );
 }
 
-function BrandsTableRows({ brands, isPending, error, onEdit, onView }: BrandsTableProps) {
+function BrandsTableRows({ brands, tenants, isPending, error, onEdit, onView }: BrandsTableProps) {
   const { t } = useTranslation("brands");
   const { t: tCommon } = useTranslation();
 
@@ -72,9 +75,14 @@ function BrandsTableRows({ brands, isPending, error, onEdit, onView }: BrandsTab
     return <MessageRow>{t("table.empty")}</MessageRow>;
   }
 
+  const tenantNames = new Map(tenants.map((tenant) => [tenant.id, tenant.name]));
+
   return brands.map((brand) => (
     <TableRow key={brand.id}>
       <TableCell className="font-medium">{brand.name}</TableCell>
+      <TableCell className="text-muted-foreground">
+        {tenantNames.get(brand.tenantId) ?? "—"}
+      </TableCell>
       <TableCell>
         <Badge variant={brand.isActive ? "success" : "secondary"}>
           {brand.isActive && <CircleCheckIcon />}

@@ -5,6 +5,7 @@
   },
   "table": {
     "name": "名称",
+    "tenant": "租户",
     "status": "状态",
     "actions": "操作",
     "empty": "暂无品牌。",
@@ -19,6 +20,7 @@
   },
   "edit": {
     "title": "编辑品牌",
+    "tenant": "租户",
     "name": "名称",
     "active": "启用"
   },

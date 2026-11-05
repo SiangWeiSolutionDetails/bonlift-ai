@@ -49,11 +49,12 @@ const CALCULATIONS = [
 
 type BrandDialogProps = {
   brand: Brand | null;
+  tenantName: string | undefined;
   readOnly?: boolean;
   onClose: () => void;
 };
 
-export function BrandDialog({ brand, readOnly = false, onClose }: BrandDialogProps) {
+export function BrandDialog({ brand, tenantName, readOnly = false, onClose }: BrandDialogProps) {
   const { t } = useTranslation("brands");
   const mode = readOnly ? "view" : "edit";
 
@@ -80,7 +81,7 @@ export function BrandDialog({ brand, readOnly = false, onClose }: BrandDialogPro
               </TabsTrigger>
             </TabsList>
             <BrandTab value="general">
-              <BrandForm brand={brand} readOnly={readOnly} />
+              <BrandForm brand={brand} tenantName={tenantName} readOnly={readOnly} />
             </BrandTab>
             <BrandTab value="dataSource">
               <BrandDataSourceSection brandId={brand.id} readOnly={readOnly} />
@@ -153,10 +154,11 @@ type PendingSave = {
 
 type BrandFormProps = {
   brand: Brand;
+  tenantName: string | undefined;
   readOnly: boolean;
 };
 
-function BrandForm({ brand, readOnly }: BrandFormProps) {
+function BrandForm({ brand, tenantName, readOnly }: BrandFormProps) {
   const { t } = useTranslation("brands");
   const { t: tCommon } = useTranslation();
   const {
@@ -201,6 +203,12 @@ function BrandForm({ brand, readOnly }: BrandFormProps) {
       />
       {/* Scroll inside the body so the scrollbar doesn't clip the dialog's rounded corners */}
       <div className="-mx-6 grid min-h-0 flex-1 content-start gap-6 overflow-y-auto px-6 pb-1">
+        {/* Tenant is fixed once a brand is created, so it's never editable */}
+        <div className="grid gap-2">
+          <Label htmlFor="brand-tenant">{t("edit.tenant")}</Label>
+          <Input id="brand-tenant" readOnly value={tenantName ?? "—"} />
+        </div>
+
         <div className="grid gap-2">
           <Label htmlFor="brand-name">{t("edit.name")}</Label>
           <Input

@@ -6,11 +6,21 @@ import { RecommendationCartItemSchema } from "./recommendation.schema.js";
 
 export const ItemAffinityRequestSchema = Type.Object(
   {
+    // Without itemId, the partners of every cart item are returned.
+    itemId: Type.Optional(
+      Type.String({
+        minLength: 1,
+        description:
+          "The item the customer is looking at, e.g. the one they tapped. Only items often ordered together with it " +
+          "are returned, and it is never returned itself. Missing means items that go with the whole cart.",
+        examples: ["ITEM-1001"],
+      }),
+    ),
     cart: Type.Array(RecommendationCartItemSchema, {
       maxItems: 200,
       description:
-        "Items already in the cart. Items often ordered together with them are returned, and cart items themselves are " +
-        "never returned. An empty array returns no items.",
+        "Items already in the cart. They are never returned. Without `itemId`, items often ordered together with them " +
+        "are returned, and an empty array returns no items.",
     }),
     exclude: Type.Optional(
       Type.Array(Type.String({ minLength: 1 }), {

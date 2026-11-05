@@ -98,6 +98,39 @@ describe("getItemAffinityRecommendations", () => {
     );
   });
 
+  it("matches only the target item and removes it with the cart", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([]));
+
+    await recommend({ ...REQUEST, itemId: "T", exclude: ["X"] });
+
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.any(String),
+      queryParams({ 2: ["T"], 3: ["T", "A", "X"] }),
+    );
+  });
+
+  it("matches the target item even when the cart is empty", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([]));
+
+    await recommend({ cart: [], itemId: "T" });
+
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.any(String),
+      queryParams({ 2: ["T"], 3: ["T"] }),
+    );
+  });
+
+  it("passes the target item once when it is also in the cart", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([]));
+
+    await recommend({ ...REQUEST, itemId: "A" });
+
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.any(String),
+      queryParams({ 2: ["A"], 3: ["A"] }),
+    );
+  });
+
   it("passes each included item id once", async () => {
     queryMock.mockResolvedValueOnce(pgResult([]));
 
@@ -142,6 +175,7 @@ describe("getItemAffinityRecommendations", () => {
   it.each([
     ["cart is missing", {}],
     ["cart has a blank item id", { cart: [{ itemId: "", qty: 1 }] }],
+    ["itemId is blank", { ...REQUEST, itemId: "" }],
     ["cart has more than 200 items", { cart: Array(201).fill({ itemId: "A", qty: 1 }) }],
     ["limit is above 50", { ...REQUEST, limit: 51 }],
     ["exclude has a blank item id", { ...REQUEST, exclude: [""] }],

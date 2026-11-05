@@ -7,8 +7,8 @@ import type { FastifyBaseLogger } from "fastify";
 import { Pool } from "pg";
 import { assertValid } from "../utils/validate.js";
 
-// $1 = the API key's brand id, $2 = cart item ids, $3 = item ids to remove (cart and exclude), $4 = item ids allowed to
-// be returned, empty for any, $5 = limit or NULL for all.
+// $1 = the API key's brand id, $2 = item ids to find partners for (the target item, else the cart), $3 = item ids to
+// remove (target, cart and exclude), $4 = item ids allowed to be returned, empty for any, $5 = limit or NULL for all.
 // A partner of several cart items is returned once, ranked by its best confidence, then lift; item id keeps ties stable.
 // Returns no rows for an inactive or deleted brand or no published run; otherwise at least one row, with a NULL item
 // when none matches.
@@ -81,12 +81,13 @@ export async function getItemAffinityRecommendations(
   assertValid(ItemAffinityRequestSchema, request);
 
   const cartItemIds = uniqueItemIds(request.cart.map((item) => item.itemId));
+  const targetItemIds = request.itemId ? [request.itemId] : cartItemIds;
 
   try {
     const result = await pool.query<ServedRow>(SERVE_ITEM_AFFINITY_SQL, [
       brandId,
-      cartItemIds,
-      uniqueItemIds([...cartItemIds, ...(request.exclude ?? [])]),
+      targetItemIds,
+      uniqueItemIds([...targetItemIds, ...cartItemIds, ...(request.exclude ?? [])]),
       uniqueItemIds(request.include ?? []),
       request.limit ?? null,
     ]);

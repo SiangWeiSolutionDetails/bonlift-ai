@@ -25,6 +25,7 @@ import {
   createServingKeyAuthenticator,
 } from "./plugins/servingAuth.js";
 import { createServingUsageHook } from "./plugins/servingUsage.js";
+import { registerApiDocs } from "./plugins/apiDocs.js";
 
 export function buildApp(): FastifyInstance {
   const app = Fastify({
@@ -53,6 +54,8 @@ export function buildApp(): FastifyInstance {
       .status(500)
       .send({ error: "INTERNAL_ERROR", message: "Unexpected error" });
   });
+
+  registerApiDocs(app);
 
   app.register(healthRoutes);
   app.register(tenantRoutes);

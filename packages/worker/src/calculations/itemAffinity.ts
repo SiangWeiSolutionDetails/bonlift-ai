@@ -32,7 +32,7 @@ orders AS (
   JOIN order_snapshots os
     ON os.outlet_id = ot.id
    AND os.order_date >= run.input_window_from
-   AND os.order_date <  run.input_window_to
+   AND os.order_date <= run.input_window_to
   CROSS JOIN LATERAL jsonb_array_elements(os.orders) AS o
   ORDER BY os.outlet_id, os.order_date, o->>'orderId', lines
 ),

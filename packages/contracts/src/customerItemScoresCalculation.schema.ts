@@ -1,5 +1,6 @@
 import Type, { Static } from "typebox";
 
+// from and to are inclusive dates: from = to calculates a single day.
 export const CustomerItemScoresCalculationQuerySchema = Type.Object(
   {
     from: Type.String({ pattern: "^[0-9]{8}$" }),

@@ -172,7 +172,7 @@ export async function getOrderSnapshotCoverage(
         os.updated_at,
         COALESCE(
             d.order_date >= pr.input_window_from
-            AND d.order_date < pr.input_window_to
+            AND d.order_date <= pr.input_window_to
             AND os.updated_at > pr.started_at,
             FALSE
         ) AS is_stale,

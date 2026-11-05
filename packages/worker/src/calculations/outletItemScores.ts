@@ -37,7 +37,7 @@ orders AS (
   JOIN order_snapshots os
     ON os.outlet_id = run.outlet_id
    AND os.order_date >= run.input_window_from
-   AND os.order_date <  run.input_window_to
+   AND os.order_date <= run.input_window_to
   CROSS JOIN LATERAL jsonb_array_elements(os.orders) AS o
   ORDER BY os.order_date, o->>'orderId'
 ),
@@ -71,9 +71,9 @@ order_items AS (
 -- from inlining it into the join and calling power() once per item row (P3-D2)
 date_weights AS MATERIALIZED (
   SELECT g.day::date AS order_date,
-         power(0.5, ((run.input_window_to - 1) - g.day::date)::numeric / run.half_life_days) AS weight
+         power(0.5, (run.input_window_to - g.day::date)::numeric / run.half_life_days) AS weight
   FROM run
-  CROSS JOIN LATERAL generate_series(run.input_window_from, run.input_window_to - 1, interval '1 day') AS g(day)
+  CROSS JOIN LATERAL generate_series(run.input_window_from, run.input_window_to, interval '1 day') AS g(day)
 ),
 -- A daypart with start > end crosses midnight; orders outside every daypart are not counted (P3-D6)
 scored_items AS (

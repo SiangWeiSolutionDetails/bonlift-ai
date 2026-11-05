@@ -9,9 +9,8 @@ export function toCompactDate(date: string) {
   return date.replaceAll("-", "");
 }
 
-// Runs store a half-open window [from, to); people read the last day included.
 export function formatWindow(from: string, to: string) {
-  return `${formatDate(from)} – ${formatDate(addDays(to, -1))}`;
+  return `${formatDate(from)} – ${formatDate(to)}`;
 }
 
 export function formatDuration(startedAt: string, finishedAt: string | null) {

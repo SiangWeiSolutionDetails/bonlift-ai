@@ -34,8 +34,8 @@ beforeEach(() => {
 });
 
 describe("startCustomerItemScoresCalculation", () => {
-  it("throws ValidationError without querying when from is not before to", async () => {
-    await expect(start({ from: "20260201", to: "20260201" })).rejects.toThrow(
+  it("throws ValidationError without querying when from is later than to", async () => {
+    await expect(start({ from: "20260202", to: "20260201" })).rejects.toThrow(
       ValidationError,
     );
     expect(queryMock).not.toHaveBeenCalled();

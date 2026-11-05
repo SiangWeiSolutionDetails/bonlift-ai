@@ -64,7 +64,6 @@ function RunCalculationForm({
   const [range, setRange] = useState(defaultRange);
   const startRun = useStartOutletItemScoresRun();
 
-  // The API window is half-open, so the inclusive end date becomes the next day.
   const isRangeValid = range.from !== "" && range.to !== "" && range.from <= range.to;
 
   function submit(event: FormEvent) {
@@ -75,7 +74,7 @@ function RunCalculationForm({
         outletId,
         input: {
           from: toCompactDate(range.from),
-          to: toCompactDate(addDays(range.to, 1)),
+          to: toCompactDate(range.to),
         },
       },
       { onSuccess: (data) => onStarted(data.runId) },

@@ -17,8 +17,7 @@ import { toIsoDate } from "@/lib/date-format";
 import { getErrorMessage } from "@/lib/error-message";
 import { useStartItemAffinityRun } from "../queries";
 
-// Longer than the other calculations' default: pairs need more orders than single items do
-const DEFAULT_WINDOW_DAYS = 90;
+const DEFAULT_WINDOW_DAYS = 30;
 
 type RunCalculationDialogProps = {
   brandId: string;
@@ -65,7 +64,6 @@ function RunCalculationForm({
   const [range, setRange] = useState(defaultRange);
   const startRun = useStartItemAffinityRun();
 
-  // The API window is half-open, so the inclusive end date becomes the next day.
   const isRangeValid = range.from !== "" && range.to !== "" && range.from <= range.to;
 
   function submit(event: FormEvent) {
@@ -76,7 +74,7 @@ function RunCalculationForm({
         brandId,
         input: {
           from: toCompactDate(range.from),
-          to: toCompactDate(addDays(range.to, 1)),
+          to: toCompactDate(range.to),
         },
       },
       { onSuccess: (data) => onStarted(data.runId) },

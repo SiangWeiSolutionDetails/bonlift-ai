@@ -249,7 +249,7 @@ export async function getCustomerItemScoresCustomerResult(
       JOIN order_snapshots os
         ON os.outlet_id = ot.id
        AND os.order_date >= run.input_window_from
-       AND os.order_date <  run.input_window_to
+       AND os.order_date <= run.input_window_to
       CROSS JOIN LATERAL jsonb_array_elements(os.orders) AS o
       CROSS JOIN LATERAL jsonb_array_elements(o->'lines') AS l
       CROSS JOIN LATERAL (

@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/table";
 import { CopyableId } from "@/features/outlet-item-scores/components/copyable-id";
 import {
-  addDays,
   formatDuration,
   formatWindow,
 } from "@/features/outlet-item-scores/format";
@@ -160,7 +159,7 @@ function RunRows({
           {/* Dates stacked to leave width for the action buttons */}
           <div className="grid font-medium">
             <span>{formatDate(run.from)}</span>
-            <span>{formatDate(addDays(run.to, -1))}</span>
+            <span>{formatDate(run.to)}</span>
           </div>
         </TableCell>
         <TableCell>

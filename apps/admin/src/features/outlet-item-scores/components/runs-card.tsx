@@ -16,7 +16,7 @@ import {
 import { formatDate, formatTime } from "@/lib/date-format";
 import { getErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
-import { addDays, formatDuration, formatWindow } from "../format";
+import { formatDuration, formatWindow } from "../format";
 import { usePublishOutletItemScoresRun } from "../queries";
 import type { OutletItemScoresRun } from "../type";
 import { CopyableId } from "./copyable-id";
@@ -156,7 +156,7 @@ function RunRows({
           {/* Dates stacked to leave width for the action buttons */}
           <div className="grid font-medium">
             <span>{formatDate(run.from)}</span>
-            <span>{formatDate(addDays(run.to, -1))}</span>
+            <span>{formatDate(run.to)}</span>
           </div>
         </TableCell>
         <TableCell>

@@ -148,8 +148,8 @@ export async function startOutletItemScoresCalculation(
   assertValidDate(query.from, "YYYYMMDD");
   assertValidDate(query.to, "YYYYMMDD");
 
-  if (query.from >= query.to) {
-    throw new ValidationError("from must be earlier than to.");
+  if (query.from > query.to) {
+    throw new ValidationError("from must not be later than to.");
   }
 
   const runId = await insertRun(pool, outletId, query, trigger);

@@ -7,12 +7,12 @@ import type { FastifyBaseLogger } from "fastify";
 import { Pool } from "pg";
 import { assertValid } from "../utils/validate.js";
 
-const DEFAULT_LIMIT = 10;
 // A favourite from a single order is weak evidence: every item of a customer's only order scores 1.
 const MIN_FAVOURITE_ORDERS = 2;
 
-// $1 = outlet id, $2 = local time with offset, $3 = item ids to remove (cart and exclude), $4 = limit,
-// $5 = the API key's brand id, $6 = cart item ids, $7 = customer id or NULL, $8 = minimum orders behind a favourite.
+// $1 = outlet id, $2 = local time with offset, $3 = item ids to remove (cart and exclude), $4 = limit or NULL for all,
+// $5 = the API key's brand id, $6 = cart item ids, $7 = customer id or NULL, $8 = minimum orders behind a favourite,
+// $9 = item ids allowed to be returned, empty for any.
 // The daypart comes from the published run's own config version, not the latest one, so its names match the stored
 // rows. "::timestamp" ignores the offset, so the local hour is read as written (D-T10), as the worker reads orderedAt.
 // Favourites come first and must go with the cart (RE-4.3): some cart item has them as an affinity partner. With an
@@ -118,6 +118,8 @@ ranked AS (
   FROM (
     SELECT DISTINCT ON (external_item_id) priority, source, rank, external_item_id
     FROM candidates
+    WHERE cardinality($9::text[]) = 0
+       OR external_item_id = ANY($9)
     ORDER BY external_item_id, priority
   ) unique_items
   ORDER BY priority, rank
@@ -205,11 +207,12 @@ export async function getRecommendations(
       request.outletId,
       request.at,
       uniqueItemIds([...cartItemIds, ...(request.exclude ?? [])]),
-      request.limit ?? DEFAULT_LIMIT,
+      request.limit ?? null,
       brandId,
       cartItemIds,
       toCustomerId(request.customerId),
       MIN_FAVOURITE_ORDERS,
+      uniqueItemIds(request.include ?? []),
     ]);
 
     if (result.rows[0]?.in_brand === false) {

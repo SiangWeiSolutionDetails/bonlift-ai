@@ -49,7 +49,7 @@ function favouriteRow(itemId: string, runId: string | null = RUN_ID) {
 }
 
 function queryParams(overrides: Record<number, unknown> = {}) {
-  const params: unknown[] = [OUTLET_ID, AT, [], 10, BRAND_ID, [], null, 2];
+  const params: unknown[] = [OUTLET_ID, AT, [], null, BRAND_ID, [], null, 2, []];
   for (const [index, value] of Object.entries(overrides)) {
     params[Number(index) - 1] = value;
   }
@@ -127,7 +127,7 @@ describe("getRecommendations", () => {
     });
   });
 
-  it("reads the published runs with the default limit", async () => {
+  it("reads the published runs with no limit by default", async () => {
     queryMock.mockResolvedValueOnce(pgResult([]));
 
     await recommend();
@@ -168,6 +168,17 @@ describe("getRecommendations", () => {
     expect(queryMock).toHaveBeenCalledWith(
       expect.any(String),
       queryParams({ 3: ["A", "B"], 6: ["A"] }),
+    );
+  });
+
+  it("passes each included item id once", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([]));
+
+    await recommend({ ...REQUEST, include: ["C", "D", "C"] });
+
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.any(String),
+      queryParams({ 9: ["C", "D"] }),
     );
   });
 
@@ -265,6 +276,8 @@ describe("getRecommendations", () => {
     ["limit is above 50", { ...REQUEST, limit: 51 }],
     ["exclude has more than 200 items", { ...REQUEST, exclude: Array(201).fill("A") }],
     ["exclude has a blank item id", { ...REQUEST, exclude: [""] }],
+    ["include has more than 500 items", { ...REQUEST, include: Array(501).fill("A") }],
+    ["include has a blank item id", { ...REQUEST, include: [""] }],
   ])("throws ValidationError without querying when %s", async (_name, request) => {
     await expect(recommend(request)).rejects.toThrow(ValidationError);
     expect(queryMock).not.toHaveBeenCalled();

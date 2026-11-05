@@ -53,11 +53,21 @@ export const RecommendationRequestSchema = Type.Object(
         examples: [["ITEM-2002"]],
       }),
     ),
+    // Missing or empty is no restriction. Cart and exclude still remove a listed item.
+    include: Type.Optional(
+      Type.Array(Type.String({ minLength: 1 }), {
+        maxItems: 500,
+        description:
+          "Item ids that may be recommended, such as the items available right now. Only these items are returned. " +
+          "Cart and excluded items are still never recommended. Missing or an empty array means any item may be returned.",
+        examples: [["ITEM-3003", "ITEM-4004"]],
+      }),
+    ),
     limit: Type.Optional(
       Type.Integer({
         minimum: 1,
         maximum: 50,
-        description: "Maximum number of items to return. Defaults to 10.",
+        description: "Maximum number of items to return. Defaults to every item in the published runs.",
       }),
     ),
     // Missing, null or blank is anonymous: no favourites.

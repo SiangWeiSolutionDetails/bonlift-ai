@@ -79,7 +79,7 @@ export async function getItemAffinityRuns(
   const result = await pool.query(
     `
     WITH brand AS (
-      SELECT id FROM brands WHERE id = $1
+      SELECT id FROM brands WHERE id = $1 AND deleted_at IS NULL
     )
     SELECT run.*
     FROM brand b
@@ -121,6 +121,7 @@ export async function publishItemAffinityRun(
       WHERE id = $2
         AND brand_id = $1
         AND job_type = 'item_affinity'
+        AND EXISTS (SELECT 1 FROM brands b WHERE b.id = $1 AND b.deleted_at IS NULL)
     ),
     published AS (
       INSERT INTO brand_published_runs (brand_id, job_type, run_id)
@@ -170,10 +171,11 @@ export async function getItemAffinityItems(
   const result = await pool.query(
     `
     WITH run AS (
-      SELECT id
-      FROM computation_runs
-      WHERE id = $1
-        AND job_type = 'item_affinity'
+      SELECT r.id
+      FROM computation_runs r
+      WHERE r.id = $1
+        AND r.job_type = 'item_affinity'
+        AND EXISTS (SELECT 1 FROM brands b WHERE b.id = r.brand_id AND b.deleted_at IS NULL)
     )
     SELECT i.item_id, i.item_name, i.n_orders, i.pair_count
     FROM run
@@ -217,10 +219,11 @@ export async function getItemAffinityItemResult(
   const result = await pool.query(
     `
     WITH run AS (
-      SELECT id
-      FROM computation_runs
-      WHERE id = $1
-        AND job_type = 'item_affinity'
+      SELECT r.id
+      FROM computation_runs r
+      WHERE r.id = $1
+        AND r.job_type = 'item_affinity'
+        AND EXISTS (SELECT 1 FROM brands b WHERE b.id = r.brand_id AND b.deleted_at IS NULL)
     ),
     scores AS (
       SELECT s.*

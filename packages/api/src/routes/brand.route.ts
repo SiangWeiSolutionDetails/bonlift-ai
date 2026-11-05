@@ -2,6 +2,7 @@ import { getPool } from "@ai-services/db";
 import { FastifyInstance } from "fastify";
 import {
   createBrand,
+  deleteBrand,
   getBrand,
   getBrands,
   updateBrand,
@@ -86,6 +87,21 @@ export async function brandRoutes(app: FastifyInstance) {
     (request) => {
       const pool = getPool();
       return updateBrand(pool, request.params.brandId, request.body);
+    },
+  );
+
+  // Soft delete: the brand and its outlets read as not found from then on.
+  app.delete<{ Params: BrandParamsSchemaType }>(
+    "/brands/:brandId",
+    {
+      schema: {
+        params: BrandParamsSchema,
+      },
+    },
+    async (request, reply) => {
+      const pool = getPool();
+      await deleteBrand(pool, request.params.brandId);
+      return reply.status(204).send();
     },
   );
 }

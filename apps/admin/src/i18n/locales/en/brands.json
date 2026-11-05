@@ -10,7 +10,8 @@
     "actions": "Actions",
     "empty": "No brands yet.",
     "editBrand": "Edit {{name}}",
-    "viewBrand": "View {{name}}"
+    "viewBrand": "View {{name}}",
+    "deleteBrand": "Delete {{name}}"
   },
   "create": {
     "title": "New Brand",
@@ -122,5 +123,9 @@
       "restoreConfirmTitle": "Restore version {{version}}?",
       "restoreConfirmDescription": "This creates a new version with these settings and makes it the current one."
     }
+  },
+  "delete": {
+    "title": "Delete {{name}}?",
+    "description": "The brand and all its outlets are removed from every list, and its API keys stop working. Their stored data is kept."
   }
 }

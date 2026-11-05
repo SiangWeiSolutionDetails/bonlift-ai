@@ -78,7 +78,7 @@ export async function getOutletItemScoresRuns(
   const result = await pool.query(
     `
     WITH outlet AS (
-      SELECT id FROM outlets WHERE id = $1
+      SELECT id FROM outlets WHERE id = $1 AND deleted_at IS NULL
     )
     SELECT run.*
     FROM outlet o
@@ -118,6 +118,7 @@ export async function publishOutletItemScoresRun(
       WHERE id = $2
         AND outlet_id = $1
         AND job_type = 'outlet_item_scores'
+        AND EXISTS (SELECT 1 FROM outlets o WHERE o.id = $1 AND o.deleted_at IS NULL)
     ),
     published AS (
       INSERT INTO published_runs (outlet_id, job_type, run_id)
@@ -181,6 +182,7 @@ export async function getOutletItemScoresRunResult(
       ${RUN_FROM}
       WHERE r.id = $1
         AND r.job_type = 'outlet_item_scores'
+        AND EXISTS (SELECT 1 FROM outlets o WHERE o.id = r.outlet_id AND o.deleted_at IS NULL)
     ),
     scores AS (
       SELECT s.daypart, s.rank, s.external_item_id, s.score, s.n_orders

@@ -17,7 +17,7 @@ const MIN_FAVOURITE_ORDERS = 2;
 // rows. "::timestamp" ignores the offset, so the local hour is read as written (D-T10), as the worker reads orderedAt.
 // Favourites come first and must go with the cart (RE-4.3): some cart item has them as an affinity partner. With an
 // empty cart every favourite passes; with no published affinity run none does. An item in both lists is a favourite.
-// Returns no rows for an unknown or inactive outlet; otherwise at least one row, with a NULL run, daypart or item
+// Returns no rows for an unknown, inactive or deleted outlet; otherwise at least one row, with a NULL run, daypart or item
 // when none matches. Another brand's outlet is served nothing.
 const SERVE_RECOMMENDATIONS_SQL = `
 WITH outlet AS (
@@ -28,6 +28,7 @@ WITH outlet AS (
   WHERE o.id = $1
     AND o.is_active
     AND b.is_active
+    AND o.deleted_at IS NULL
 ),
 published AS (
   SELECT p.run_id, c.dayparts

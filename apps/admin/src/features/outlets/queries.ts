@@ -8,7 +8,13 @@ import type {
   OutletListParams,
   UpdateOutletInput,
 } from "./type";
-import { createOutlet, getOutlet, listOutlets, updateOutlet } from "./api";
+import {
+  createOutlet,
+  deleteOutlet,
+  getOutlet,
+  listOutlets,
+  updateOutlet,
+} from "./api";
 
 const outletKeys = {
   all: ["outlets"] as const,
@@ -38,6 +44,15 @@ export function useCreateOutlet() {
     mutationFn: createOutlet,
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: outletKeys.lists() }),
+  });
+}
+
+export function useDeleteOutlet() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteOutlet,
+    // Outlet pickers on the snapshot and results pages list outlets too
+    onSuccess: () => queryClient.invalidateQueries(),
   });
 }
 

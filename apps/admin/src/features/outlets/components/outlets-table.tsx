@@ -27,6 +27,7 @@ type OutletsTableProps = {
   error: Error | null;
   onEdit: (outlet: Outlet) => void;
   onView: (outlet: Outlet) => void;
+  onDelete: (outlet: Outlet) => void;
 };
 
 export function OutletsTable(props: OutletsTableProps) {
@@ -40,7 +41,7 @@ export function OutletsTable(props: OutletsTableProps) {
             <TableHead>{t("table.name")}</TableHead>
             <TableHead>{t("table.brand")}</TableHead>
             <TableHead className="w-32">{t("table.status")}</TableHead>
-            <TableHead className="w-24 text-right">
+            <TableHead className="w-40 text-right">
               <span className="sr-only">{t("table.actions")}</span>
             </TableHead>
           </TableRow>
@@ -60,6 +61,7 @@ function OutletsTableRows({
   error,
   onEdit,
   onView,
+  onDelete,
 }: OutletsTableProps) {
   const { t } = useTranslation("outlets");
   const { t: tCommon } = useTranslation();
@@ -115,6 +117,15 @@ function OutletsTableRows({
           onClick={() => onView(outlet)}
         >
           {tCommon("actions.view")}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-destructive hover:text-destructive"
+          aria-label={t("table.deleteOutlet", { name: outlet.name })}
+          onClick={() => onDelete(outlet)}
+        >
+          {tCommon("actions.delete")}
         </Button>
       </TableCell>
     </TableRow>

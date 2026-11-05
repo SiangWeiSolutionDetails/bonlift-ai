@@ -60,7 +60,8 @@ export async function getLatestOutletItemScoresCalculationConfigVersion(
       ORDER BY ccv.version DESC
       LIMIT 1
     ) v ON TRUE
-    WHERE b.id = $1;
+    WHERE b.id = $1
+    AND b.deleted_at IS NULL;
     `,
     [brandId],
   );
@@ -102,6 +103,7 @@ export async function getOutletItemScoresCalculationConfigVersions(
       WHERE ccv.job_type = 'outlet_item_scores'
     ) v ON v.brand_id = b.id
     WHERE b.id = $1
+    AND b.deleted_at IS NULL
     ORDER BY v.version DESC;
     `,
     [brandId],
@@ -136,6 +138,7 @@ export async function createOutletItemScoresCalculationConfigVersion(
         SELECT b.id
         FROM brands b
         WHERE b.id = $1
+        AND b.deleted_at IS NULL
       ),
       latest AS (
         SELECT ccv.version, c.half_life_days, c.top_n, c.dayparts

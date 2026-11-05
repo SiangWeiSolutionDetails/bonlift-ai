@@ -8,7 +8,8 @@
     "save": "保存",
     "saving": "保存中…",
     "showHint": "显示提示",
-    "view": "查看"
+    "view": "查看",
+    "delete": "删除"
   },
   "confirmSave": {
     "title": "保存更改？",

@@ -46,6 +46,7 @@ export async function getOutlet(
     SELECT ${OUTLET_COLUMNS}
     FROM outlets o
     WHERE o.id = $1
+      AND o.deleted_at IS NULL
     LIMIT 1;
     `,
     [outletId],
@@ -67,7 +68,7 @@ export async function getOutlets(
 
   assertValid(OutletQuerySchema, { tenantId, brandId });
 
-  const conditions = [];
+  const conditions = ["o.deleted_at IS NULL"];
   const values = [];
 
   if (tenantId) {
@@ -84,7 +85,7 @@ export async function getOutlets(
     `
     SELECT ${OUTLET_COLUMNS}
     FROM outlets o
-    ${conditions.length ? `WHERE ${conditions.join(" AND ")}` : ""}
+    WHERE ${conditions.join(" AND ")}
     ORDER BY o.name, o.id;
     `,
     values,
@@ -101,12 +102,15 @@ export async function createOutlet(
     assertValid(CreateOutletBodySchema, data);
 
     // tenant_id is copied from the brand in the same statement; no rows means no such brand.
+    // FOR SHARE makes this wait for a brand delete in progress, then see the brand as deleted.
     const result = await pool.query(
       `
       INSERT INTO outlets (tenant_id, brand_id, name)
       SELECT b.tenant_id, b.id, $2
       FROM brands b
       WHERE b.id = $1
+        AND b.deleted_at IS NULL
+      FOR SHARE
       RETURNING ${OUTLET_COLUMNS};`,
       [data.brandId, data.name],
     );
@@ -143,6 +147,7 @@ export async function updateOutlet(
       UPDATE outlets o
       SET ${setClause}, updated_at = now()
       WHERE o.id = ${nextPlaceholder}
+        AND o.deleted_at IS NULL
       RETURNING ${OUTLET_COLUMNS}
       `,
       [...values, outletId],
@@ -155,5 +160,26 @@ export async function updateOutlet(
     return mapOutletRow(result.rows[0]);
   } catch (error) {
     throw toConflictError(error, data) ?? error;
+  }
+}
+
+export async function deleteOutlet(
+  pool: Pool,
+  outletId: string,
+): Promise<void> {
+  assertValid(OutletParamsSchema, { outletId });
+
+  const result = await pool.query(
+    `
+    UPDATE outlets
+    SET deleted_at = now(), updated_at = now()
+    WHERE id = $1
+      AND deleted_at IS NULL
+    `,
+    [outletId],
+  );
+
+  if (result.rowCount === 0) {
+    throw new NotFoundError("Outlet does not exist.");
   }
 }

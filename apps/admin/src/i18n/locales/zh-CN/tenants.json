@@ -9,7 +9,8 @@
     "actions": "操作",
     "empty": "暂无租户。",
     "editTenant": "编辑 {{name}}",
-    "viewTenant": "查看 {{name}}"
+    "viewTenant": "查看 {{name}}",
+    "deleteTenant": "删除 {{name}}"
   },
   "create": {
     "title": "新建租户",
@@ -22,5 +23,9 @@
   },
   "view": {
     "title": "租户详情"
+  },
+  "delete": {
+    "title": "删除 {{name}}？",
+    "description": "该租户及其所有品牌和门店将从所有列表中移除并停止提供服务。已存储的数据会被保留。"
   }
 }

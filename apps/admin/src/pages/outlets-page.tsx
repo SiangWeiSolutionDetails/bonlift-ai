@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PlusIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -15,16 +16,20 @@ import { useBrands } from "@/features/brands/queries";
 import { CreateOutletDialog } from "@/features/outlets/components/create-outlet-dialog";
 import { OutletDialog } from "@/features/outlets/components/outlet-dialog";
 import { OutletsTable } from "@/features/outlets/components/outlets-table";
-import { useOutlets } from "@/features/outlets/queries";
+import { useDeleteOutlet, useOutlets } from "@/features/outlets/queries";
 import type { Outlet, OutletListParams } from "@/features/outlets/type";
+import { getErrorMessage } from "@/lib/error-message";
 
 // Radix Select reserves "" for "no selection", so the "all brands" option needs its own value
 const ALL_BRANDS = "all";
 
 export function OutletsPage() {
   const { t } = useTranslation("outlets");
+  const { t: tCommon } = useTranslation();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedOutlet, setSelectedOutlet] = useState<Outlet | null>(null);
+  const [outletToDelete, setOutletToDelete] = useState<Outlet | null>(null);
+  const deleteOutletMutation = useDeleteOutlet();
   // Not reset on close, so the title doesn't flip while the dialog animates out
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [brandFilter, setBrandFilter] = useState(ALL_BRANDS);
@@ -72,6 +77,12 @@ export function OutletsPage() {
         </Select>
       </div>
 
+      {deleteOutletMutation.error && (
+        <p className="text-sm text-destructive">
+          {getErrorMessage(deleteOutletMutation.error, tCommon)}
+        </p>
+      )}
+
       <OutletsTable
         outlets={outlets}
         brands={brands}
@@ -79,6 +90,19 @@ export function OutletsPage() {
         error={error}
         onEdit={(outlet) => openOutlet(outlet, false)}
         onView={(outlet) => openOutlet(outlet, true)}
+        onDelete={setOutletToDelete}
+      />
+
+      <ConfirmDialog
+        open={outletToDelete !== null}
+        title={t("delete.title", { name: outletToDelete?.name })}
+        description={t("delete.description")}
+        confirmLabel={tCommon("actions.delete")}
+        confirmMatch={outletToDelete?.name}
+        onCancel={() => setOutletToDelete(null)}
+        onConfirm={() =>
+          outletToDelete && deleteOutletMutation.mutate(outletToDelete.id)
+        }
       />
 
       <CreateOutletDialog

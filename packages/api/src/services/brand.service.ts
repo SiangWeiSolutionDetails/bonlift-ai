@@ -2,6 +2,7 @@ import type { Pool } from "pg";
 import { ConflictError, NotFoundError } from "../errors.js";
 import { buildAssignments } from "../utils/sql.js";
 import { isForeignKeyViolation, isUniqueViolation } from "../utils/pgErrors.js";
+import { withTransaction } from "../utils/transaction.js";
 import { assertValid } from "../utils/validate.js";
 import {
   BrandParamsSchema,
@@ -45,6 +46,7 @@ export async function getBrand(
     SELECT ${BRAND_COLUMNS}
     FROM brands b
     WHERE b.id = $1
+      AND b.deleted_at IS NULL
     LIMIT 1;`,
     [brandId],
   );
@@ -64,7 +66,7 @@ export async function getBrands(
 
   assertValid(BrandQuerySchema, { tenantId });
 
-  const conditions = [];
+  const conditions = ["b.deleted_at IS NULL"];
   const values = [];
 
   if (tenantId) {
@@ -76,7 +78,7 @@ export async function getBrands(
     `
     SELECT ${BRAND_COLUMNS}
     FROM brands b
-    ${conditions.length ? `WHERE ${conditions.join(" AND ")}` : ""}
+    WHERE ${conditions.join(" AND ")}
     ORDER BY b.name, b.id;`,
     values,
   );
@@ -91,16 +93,17 @@ export async function createBrand(
   try {
     assertValid(CreateBrandBodySchema, data);
 
-    const { columns, placeholders, values } = buildAssignments({
-      tenant_id: data.tenantId,
-      name: data.name,
-    });
-
+    // FOR SHARE makes this wait for a tenant delete in progress, then see the tenant as deleted (no rows).
     const result = await pool.query(
       `
       WITH
       b AS (
-        INSERT INTO brands (${columns}) VALUES (${placeholders})
+        INSERT INTO brands (tenant_id, name)
+        SELECT t.id, $2
+        FROM tenants t
+        WHERE t.id = $1
+          AND t.deleted_at IS NULL
+        FOR SHARE
         RETURNING ${BRAND_COLUMNS}
       ),
       bds AS (
@@ -136,8 +139,12 @@ export async function createBrand(
       )
       SELECT ${BRAND_COLUMNS} FROM b;
       `,
-      values,
+      [data.tenantId, data.name],
     );
+
+    if (result.rows.length === 0) {
+      throw new NotFoundError("Tenant does not exist.");
+    }
 
     return mapBrandRow(result.rows[0]);
   } catch (error) {
@@ -167,6 +174,7 @@ export async function updateBrand(
     UPDATE brands b
     SET ${setClause}, updated_at = now()
     WHERE b.id = ${nextPlaceholder}
+      AND b.deleted_at IS NULL
     RETURNING ${BRAND_COLUMNS}`,
       [...values, brandId],
     );
@@ -179,4 +187,34 @@ export async function updateBrand(
   } catch (error) {
     throw toConflictError(error, data) ?? error;
   }
+}
+
+// Soft delete cascading to the brand's outlets. Two statements for the same reason as deleteTenant: the outlet
+// update's fresh snapshot catches an outlet whose insert held the brand's FOR SHARE lock first.
+export async function deleteBrand(pool: Pool, brandId: string): Promise<void> {
+  assertValid(BrandParamsSchema, { brandId });
+
+  await withTransaction(pool, async (client) => {
+    const result = await client.query(
+      `
+      UPDATE brands
+      SET deleted_at = now(), updated_at = now()
+      WHERE id = $1
+        AND deleted_at IS NULL`,
+      [brandId],
+    );
+
+    if (result.rowCount === 0) {
+      throw new NotFoundError("Brand does not exist.");
+    }
+
+    await client.query(
+      `
+      UPDATE outlets
+      SET deleted_at = now(), updated_at = now()
+      WHERE brand_id = $1
+        AND deleted_at IS NULL`,
+      [brandId],
+    );
+  });
 }

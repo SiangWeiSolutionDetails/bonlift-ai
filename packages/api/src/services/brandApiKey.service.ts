@@ -98,6 +98,7 @@ export async function listBrandApiKeys(
     LEFT JOIN brand_api_keys k
       ON k.brand_id = b.id
     WHERE b.id = $1
+      AND b.deleted_at IS NULL
     ORDER BY k.revoked_at IS NOT NULL, k.created_at DESC
     `,
     [brandId],
@@ -126,6 +127,7 @@ export async function createBrandApiKey(
         SELECT b.id, $2, $3, $4, $5, now() + make_interval(days => $6)
         FROM brands b
         WHERE b.id = $1
+          AND b.deleted_at IS NULL
         RETURNING *
       )
       SELECT ${RECORD_COLUMNS}
@@ -192,6 +194,7 @@ export async function revokeBrandApiKeyById(
       WHERE id = $2
         AND brand_id = $1
         AND revoked_at IS NULL
+        AND EXISTS (SELECT 1 FROM brands b WHERE b.id = $1 AND b.deleted_at IS NULL)
       RETURNING *
     )
     SELECT ${RECORD_COLUMNS}
@@ -223,6 +226,7 @@ export async function deleteBrandApiKey(
       FROM brand_api_keys k
       WHERE k.id = $2
         AND k.brand_id = $1
+        AND EXISTS (SELECT 1 FROM brands b WHERE b.id = $1 AND b.deleted_at IS NULL)
     ),
     deleted AS (
       DELETE FROM brand_api_keys k
@@ -246,17 +250,21 @@ export async function deleteBrandApiKey(
 }
 
 // Returns the live key with this prefix, or null. The caller compares the hash, so the cache can reuse the row.
+// A deleted brand's keys stop authenticating without being revoked (a cached match lasts until its cache entry expires).
 export async function findLiveBrandApiKey(
   pool: Pool,
   keyPrefix: string,
 ): Promise<BrandApiKeyMatch | null> {
   const result = await pool.query(
     `
-    SELECT id, brand_id, name, key_hash, expires_at
-    FROM brand_api_keys
-    WHERE key_prefix = $1
-      AND revoked_at IS NULL
-      AND (expires_at IS NULL OR expires_at > now())
+    SELECT k.id, k.brand_id, k.name, k.key_hash, k.expires_at
+    FROM brand_api_keys k
+    JOIN brands b
+      ON b.id = k.brand_id
+    WHERE k.key_prefix = $1
+      AND k.revoked_at IS NULL
+      AND (k.expires_at IS NULL OR k.expires_at > now())
+      AND b.deleted_at IS NULL
     `,
     [keyPrefix],
   );

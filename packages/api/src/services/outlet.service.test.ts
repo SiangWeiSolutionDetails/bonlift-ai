@@ -5,6 +5,7 @@ import { pgResult } from "../utils/pg.test-helpers.js";
 import { FOREIGN_KEY_VIOLATION, UNIQUE_VIOLATION } from "../utils/pgErrors.js";
 import {
   createOutlet,
+  deleteOutlet,
   getOutlet,
   getOutlets,
   updateOutlet,
@@ -69,7 +70,7 @@ describe("getOutlets", () => {
     expect(queryMock).not.toHaveBeenCalled();
   });
 
-  it("returns all outlets regardless of status when no filter is given", async () => {
+  it("returns all live outlets regardless of status when no filter is given", async () => {
     const inactiveOutlet = {
       ...DEFAULT_OUTLET,
       id: OTHER_OUTLET_ID,
@@ -83,7 +84,7 @@ describe("getOutlets", () => {
     const result = await getOutlets(fakePool, {});
 
     expect(queryMock).toHaveBeenCalledWith(
-      expect.not.stringContaining("WHERE"),
+      expect.stringContaining("WHERE o.deleted_at IS NULL\n"),
       [],
     );
     expect(result).toStrictEqual([DEFAULT_OUTLET, inactiveOutlet]);
@@ -95,7 +96,7 @@ describe("getOutlets", () => {
     const result = await getOutlets(fakePool, { brandId: BRAND_ID });
 
     expect(queryMock).toHaveBeenCalledWith(
-      expect.stringContaining("WHERE o.brand_id = $1"),
+      expect.stringContaining("WHERE o.deleted_at IS NULL AND o.brand_id = $1"),
       [BRAND_ID],
     );
     expect(result).toStrictEqual([DEFAULT_OUTLET]);
@@ -107,7 +108,7 @@ describe("getOutlets", () => {
     const result = await getOutlets(fakePool, { tenantId: TENANT_ID });
 
     expect(queryMock).toHaveBeenCalledWith(
-      expect.stringContaining("WHERE o.tenant_id = $1"),
+      expect.stringContaining("WHERE o.deleted_at IS NULL AND o.tenant_id = $1"),
       [TENANT_ID],
     );
     expect(result).toStrictEqual([DEFAULT_OUTLET]);
@@ -119,7 +120,9 @@ describe("getOutlets", () => {
     await getOutlets(fakePool, { tenantId: TENANT_ID, brandId: BRAND_ID });
 
     expect(queryMock).toHaveBeenCalledWith(
-      expect.stringContaining("WHERE o.tenant_id = $1 AND o.brand_id = $2"),
+      expect.stringContaining(
+        "WHERE o.deleted_at IS NULL AND o.tenant_id = $1 AND o.brand_id = $2",
+      ),
       [TENANT_ID, BRAND_ID],
     );
   });
@@ -156,6 +159,17 @@ describe("getOutlet", () => {
     queryMock.mockResolvedValueOnce(pgResult([]));
 
     await expect(getOutlet(fakePool, OUTLET_ID)).rejects.toThrow(NotFoundError);
+  });
+
+  it("looks up live outlets only", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([fakeOutletRow()]));
+
+    await getOutlet(fakePool, OUTLET_ID);
+
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.stringContaining("AND o.deleted_at IS NULL"),
+      [OUTLET_ID],
+    );
   });
 
   it("returns the outlet", async () => {
@@ -239,7 +253,9 @@ describe("createOutlet", () => {
     const [sql, values] = queryMock.mock.calls[0];
     expect(sql).toContain("INSERT INTO outlets (tenant_id, brand_id, name)");
     expect(sql).toContain("SELECT b.tenant_id, b.id, $2");
-    expect(sql).toContain("WHERE b.id = $1");
+    expect(sql.replace(/\s+/g, " ")).toContain(
+      "WHERE b.id = $1 AND b.deleted_at IS NULL FOR SHARE",
+    );
     expect(values).toStrictEqual([CREATE_DATA.brandId, CREATE_DATA.name]);
     expect(result).toStrictEqual(DEFAULT_OUTLET);
   });
@@ -332,5 +348,45 @@ describe("updateOutlet", () => {
       [UPDATE_DATA.name, UPDATE_DATA.isActive, OUTLET_ID],
     );
     expect(result).toStrictEqual(expectedResult);
+  });
+
+  it("does not update a deleted outlet", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([fakeOutletRow()]));
+
+    await updateOutlet(fakePool, OUTLET_ID, UPDATE_DATA);
+
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.stringContaining("AND o.deleted_at IS NULL"),
+      expect.any(Array),
+    );
+  });
+});
+
+describe("deleteOutlet", () => {
+  it("throws ValidationError when the outlet id is invalid", async () => {
+    await expect(deleteOutlet(fakePool, INVALID_ID)).rejects.toThrow(
+      ValidationError,
+    );
+    expect(queryMock).not.toHaveBeenCalled();
+  });
+
+  it("throws NotFoundError when the outlet does not exist or is already deleted", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([], 0));
+
+    await expect(deleteOutlet(fakePool, OUTLET_ID)).rejects.toThrow(
+      new NotFoundError("Outlet does not exist."),
+    );
+  });
+
+  it("soft deletes a live outlet", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([], 1));
+
+    await deleteOutlet(fakePool, OUTLET_ID);
+
+    const [sql, values] = queryMock.mock.calls[0];
+    expect(sql.replace(/\s+/g, " ").trim()).toBe(
+      "UPDATE outlets SET deleted_at = now(), updated_at = now() WHERE id = $1 AND deleted_at IS NULL",
+    );
+    expect(values).toStrictEqual([OUTLET_ID]);
   });
 });

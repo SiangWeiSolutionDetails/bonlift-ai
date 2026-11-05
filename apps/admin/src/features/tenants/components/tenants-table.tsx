@@ -25,6 +25,7 @@ type TenantsTableProps = {
   error: Error | null;
   onEdit: (tenant: Tenant) => void;
   onView: (tenant: Tenant) => void;
+  onDelete: (tenant: Tenant) => void;
 };
 
 export function TenantsTable(props: TenantsTableProps) {
@@ -37,7 +38,7 @@ export function TenantsTable(props: TenantsTableProps) {
           <TableRow>
             <TableHead>{t("table.name")}</TableHead>
             <TableHead className="w-32">{t("table.status")}</TableHead>
-            <TableHead className="w-24 text-right">
+            <TableHead className="w-40 text-right">
               <span className="sr-only">{t("table.actions")}</span>
             </TableHead>
           </TableRow>
@@ -50,7 +51,14 @@ export function TenantsTable(props: TenantsTableProps) {
   );
 }
 
-function TenantsTableRows({ tenants, isPending, error, onEdit, onView }: TenantsTableProps) {
+function TenantsTableRows({
+  tenants,
+  isPending,
+  error,
+  onEdit,
+  onView,
+  onDelete,
+}: TenantsTableProps) {
   const { t } = useTranslation("tenants");
   const { t: tCommon } = useTranslation();
 
@@ -97,6 +105,15 @@ function TenantsTableRows({ tenants, isPending, error, onEdit, onView }: Tenants
           onClick={() => onView(tenant)}
         >
           {tCommon("actions.view")}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-destructive hover:text-destructive"
+          aria-label={t("table.deleteTenant", { name: tenant.name })}
+          onClick={() => onDelete(tenant)}
+        >
+          {tCommon("actions.delete")}
         </Button>
       </TableCell>
     </TableRow>

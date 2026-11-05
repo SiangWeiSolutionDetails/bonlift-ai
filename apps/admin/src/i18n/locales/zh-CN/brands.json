@@ -10,7 +10,8 @@
     "actions": "操作",
     "empty": "暂无品牌。",
     "editBrand": "编辑 {{name}}",
-    "viewBrand": "查看 {{name}}"
+    "viewBrand": "查看 {{name}}",
+    "deleteBrand": "删除 {{name}}"
   },
   "create": {
     "title": "新建品牌",
@@ -122,5 +123,9 @@
       "restoreConfirmTitle": "恢复版本 {{version}}？",
       "restoreConfirmDescription": "将使用这些设置创建一个新版本，并设为当前版本。"
     }
+  },
+  "delete": {
+    "title": "删除 {{name}}？",
+    "description": "该品牌及其所有门店将从所有列表中移除，其 API 密钥将失效。已存储的数据会被保留。"
   }
 }

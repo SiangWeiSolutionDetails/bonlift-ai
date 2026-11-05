@@ -5,6 +5,7 @@ import { pgResult } from "../utils/pg.test-helpers.js";
 import { FOREIGN_KEY_VIOLATION, UNIQUE_VIOLATION } from "../utils/pgErrors.js";
 import {
   createBrand,
+  deleteBrand,
   getBrand,
   getBrands,
   updateBrand,
@@ -63,7 +64,7 @@ describe("getBrands", () => {
     expect(queryMock).not.toHaveBeenCalled();
   });
 
-  it("returns all brands regardless of status when no filter is given", async () => {
+  it("returns all live brands regardless of status when no filter is given", async () => {
     const inactiveBrand = {
       ...DEFAULT_BRAND,
       id: OTHER_BRAND_ID,
@@ -77,7 +78,7 @@ describe("getBrands", () => {
     const result = await getBrands(fakePool);
 
     expect(queryMock).toHaveBeenCalledWith(
-      expect.not.stringContaining("WHERE"),
+      expect.stringContaining("WHERE b.deleted_at IS NULL\n"),
       [],
     );
     expect(result).toStrictEqual([DEFAULT_BRAND, inactiveBrand]);
@@ -89,7 +90,9 @@ describe("getBrands", () => {
     const result = await getBrands(fakePool, { tenantId: TENANT_ID });
 
     expect(queryMock).toHaveBeenCalledWith(
-      expect.stringContaining("WHERE b.tenant_id = $1"),
+      expect.stringContaining(
+        "WHERE b.deleted_at IS NULL AND b.tenant_id = $1",
+      ),
       [TENANT_ID],
     );
     expect(result).toStrictEqual([DEFAULT_BRAND]);
@@ -127,6 +130,17 @@ describe("getBrand", () => {
     queryMock.mockResolvedValueOnce(pgResult([]));
 
     await expect(getBrand(fakePool, BRAND_ID)).rejects.toThrow(NotFoundError);
+  });
+
+  it("looks up live brands only", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([fakeBrandRow()]));
+
+    await getBrand(fakePool, BRAND_ID);
+
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.stringContaining("AND b.deleted_at IS NULL"),
+      [BRAND_ID],
+    );
   });
 
   it("returns the brand", async () => {
@@ -192,7 +206,15 @@ describe("createBrand", () => {
     );
   });
 
-  it("throws NotFoundError when the tenant does not exist", async () => {
+  it("throws NotFoundError when the tenant does not exist or is deleted", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([]));
+
+    await expect(createBrand(fakePool, CREATE_DATA)).rejects.toThrow(
+      new NotFoundError("Tenant does not exist."),
+    );
+  });
+
+  it("throws NotFoundError when the tenant foreign key is violated", async () => {
     queryMock.mockRejectedValueOnce({ code: FOREIGN_KEY_VIOLATION });
 
     await expect(createBrand(fakePool, CREATE_DATA)).rejects.toThrow(
@@ -219,7 +241,7 @@ describe("createBrand", () => {
     // Compare on collapsed whitespace so line breaks in the SQL don't matter.
     const flatSql = sql.replace(/\s+/g, " ");
     expect(flatSql).toContain(
-      "INSERT INTO brands (tenant_id, name) VALUES ($1, $2)",
+      "INSERT INTO brands (tenant_id, name) SELECT t.id, $2 FROM tenants t WHERE t.id = $1 AND t.deleted_at IS NULL FOR SHARE",
     );
     expect(flatSql).toContain(
       "INSERT INTO brand_data_sources (brand_id) SELECT id FROM b",
@@ -318,5 +340,76 @@ describe("updateBrand", () => {
       [UPDATE_DATA.name, UPDATE_DATA.isActive, BRAND_ID],
     );
     expect(result).toStrictEqual(expectedResult);
+  });
+
+  it("does not update a deleted brand", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([fakeBrandRow()]));
+
+    await updateBrand(fakePool, BRAND_ID, UPDATE_DATA);
+
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.stringContaining("AND b.deleted_at IS NULL"),
+      expect.any(Array),
+    );
+  });
+});
+
+describe("deleteBrand", () => {
+  const clientQueryMock = vi.fn();
+  const releaseMock = vi.fn();
+  const connectMock = vi.fn();
+  const transactionPool = { connect: connectMock } as any;
+
+  function flatSqlCalls() {
+    return clientQueryMock.mock.calls.map(([sql]) =>
+      sql.replace(/\s+/g, " ").trim(),
+    );
+  }
+
+  beforeEach(() => {
+    clientQueryMock.mockReset();
+    releaseMock.mockReset();
+    connectMock.mockReset();
+    connectMock.mockResolvedValue({
+      query: clientQueryMock,
+      release: releaseMock,
+    });
+  });
+
+  it("throws ValidationError when the brand id is invalid", async () => {
+    await expect(deleteBrand(transactionPool, INVALID_ID)).rejects.toThrow(
+      ValidationError,
+    );
+    expect(connectMock).not.toHaveBeenCalled();
+  });
+
+  it("throws NotFoundError and rolls back when the brand does not exist or is already deleted", async () => {
+    clientQueryMock.mockResolvedValue(pgResult([], 0));
+
+    await expect(deleteBrand(transactionPool, BRAND_ID)).rejects.toThrow(
+      new NotFoundError("Brand does not exist."),
+    );
+    expect(flatSqlCalls()).toStrictEqual([
+      "BEGIN",
+      "UPDATE brands SET deleted_at = now(), updated_at = now() WHERE id = $1 AND deleted_at IS NULL",
+      "ROLLBACK",
+    ]);
+    expect(releaseMock).toHaveBeenCalled();
+  });
+
+  it("soft deletes the brand, then its live outlets, in one transaction", async () => {
+    clientQueryMock.mockResolvedValue(pgResult([], 1));
+
+    await deleteBrand(transactionPool, BRAND_ID);
+
+    expect(flatSqlCalls()).toStrictEqual([
+      "BEGIN",
+      "UPDATE brands SET deleted_at = now(), updated_at = now() WHERE id = $1 AND deleted_at IS NULL",
+      "UPDATE outlets SET deleted_at = now(), updated_at = now() WHERE brand_id = $1 AND deleted_at IS NULL",
+      "COMMIT",
+    ]);
+    expect(clientQueryMock.mock.calls[1][1]).toStrictEqual([BRAND_ID]);
+    expect(clientQueryMock.mock.calls[2][1]).toStrictEqual([BRAND_ID]);
+    expect(releaseMock).toHaveBeenCalled();
   });
 });

@@ -15,7 +15,8 @@
     "empty": "暂无门店。",
     "unknownBrand": "未知品牌",
     "editOutlet": "编辑 {{name}}",
-    "viewOutlet": "查看 {{name}}"
+    "viewOutlet": "查看 {{name}}",
+    "deleteOutlet": "删除 {{name}}"
   },
   "create": {
     "title": "新建门店",
@@ -30,5 +31,9 @@
   },
   "view": {
     "title": "门店详情"
+  },
+  "delete": {
+    "title": "删除 {{name}}？",
+    "description": "该门店将从所有列表中移除、停止提供服务，并不再计入品牌级计算。已存储的数据会被保留。"
   }
 }

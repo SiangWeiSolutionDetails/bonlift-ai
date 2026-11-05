@@ -32,7 +32,8 @@ export async function getBrandDataSource(
     `
     SELECT ${BRAND_DATA_SOURCES_COLUMNS}
     FROM brand_data_sources bds
-    WHERE brand_id = $1
+    WHERE bds.brand_id = $1
+      AND EXISTS (SELECT 1 FROM brands b WHERE b.id = bds.brand_id AND b.deleted_at IS NULL)
     LIMIT 1;
     `,
     [brandId],
@@ -66,6 +67,7 @@ export async function updateBrandDataSource(
     UPDATE brand_data_sources bds
     SET ${setClause}, updated_at = now()
     WHERE bds.brand_id = ${nextPlaceholder}
+      AND EXISTS (SELECT 1 FROM brands b WHERE b.id = bds.brand_id AND b.deleted_at IS NULL)
     RETURNING ${BRAND_DATA_SOURCES_COLUMNS}
     `,
     [...values, brandId],

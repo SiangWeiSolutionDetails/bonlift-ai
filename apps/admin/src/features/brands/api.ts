@@ -27,6 +27,12 @@ export async function createBrand(input: CreateBrandInput) {
   return apiRequest<Brand>("/brands", { method: "POST", body: input });
 }
 
+export async function deleteBrand(brandId: string) {
+  return apiRequest<void>(`/brands/${encodeURIComponent(brandId)}`, {
+    method: "DELETE",
+  });
+}
+
 export async function updateBrand(brandId: string, input: UpdateBrandInput) {
   return apiRequest<Brand>(`/brands/${encodeURIComponent(brandId)}`, {
     method: "PATCH",

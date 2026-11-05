@@ -45,6 +45,7 @@ async function insertRun(
               LIMIT 1
             ) v on TRUE
             WHERE o.id = $1
+            AND o.deleted_at IS NULL
         ),
         created AS (
             INSERT INTO computation_runs (

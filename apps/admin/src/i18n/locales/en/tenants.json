@@ -9,7 +9,8 @@
     "actions": "Actions",
     "empty": "No tenants yet.",
     "editTenant": "Edit {{name}}",
-    "viewTenant": "View {{name}}"
+    "viewTenant": "View {{name}}",
+    "deleteTenant": "Delete {{name}}"
   },
   "create": {
     "title": "New Tenant",
@@ -22,5 +23,9 @@
   },
   "view": {
     "title": "Tenant Details"
+  },
+  "delete": {
+    "title": "Delete {{name}}?",
+    "description": "The tenant and all its brands and outlets are removed from every list and stop being served. Their stored data is kept."
   }
 }

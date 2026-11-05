@@ -1,6 +1,7 @@
 import { FastifyInstance } from "fastify";
 import {
   createOutlet,
+  deleteOutlet,
   getOutlet,
   getOutlets,
   updateOutlet,
@@ -87,6 +88,21 @@ export async function outletRoutes(app: FastifyInstance) {
     (request) => {
       const pool = getPool();
       return updateOutlet(pool, request.params.outletId, request.body);
+    },
+  );
+
+  // Soft delete: the outlet reads as not found from then on.
+  app.delete<{ Params: OutletParamsSchemaType }>(
+    "/outlets/:outletId",
+    {
+      schema: {
+        params: OutletParamsSchema,
+      },
+    },
+    async (request, reply) => {
+      const pool = getPool();
+      await deleteOutlet(pool, request.params.outletId);
+      return reply.status(204).send();
     },
   );
 }

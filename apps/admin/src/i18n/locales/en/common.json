@@ -8,7 +8,8 @@
     "save": "Save",
     "saving": "Saving…",
     "showHint": "Show Hint",
-    "view": "View"
+    "view": "View",
+    "delete": "Delete"
   },
   "confirmSave": {
     "title": "Save changes?",

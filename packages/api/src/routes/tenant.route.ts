@@ -2,6 +2,7 @@ import { getPool } from "@ai-services/db";
 import { FastifyInstance } from "fastify";
 import {
   createTenant,
+  deleteTenant,
   getTenant,
   getTenants,
   updateTenant,
@@ -79,6 +80,21 @@ export async function tenantRoutes(app: FastifyInstance) {
     (request) => {
       const pool = getPool();
       return updateTenant(pool, request.params.tenantId, request.body);
+    },
+  );
+
+  // Soft delete: the tenant, its brands and its outlets read as not found from then on.
+  app.delete<{ Params: TenantParamsSchemaType }>(
+    "/tenants/:tenantId",
+    {
+      schema: {
+        params: TenantParamsSchema,
+      },
+    },
+    async (request, reply) => {
+      const pool = getPool();
+      await deleteTenant(pool, request.params.tenantId);
+      return reply.status(204).send();
     },
   );
 }

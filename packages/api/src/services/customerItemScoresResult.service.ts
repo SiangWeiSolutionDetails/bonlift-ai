@@ -80,7 +80,7 @@ export async function getCustomerItemScoresRuns(
   const result = await pool.query(
     `
     WITH brand AS (
-      SELECT id FROM brands WHERE id = $1
+      SELECT id FROM brands WHERE id = $1 AND deleted_at IS NULL
     )
     SELECT run.*
     FROM brand b
@@ -122,6 +122,7 @@ export async function publishCustomerItemScoresRun(
       WHERE id = $2
         AND brand_id = $1
         AND job_type = 'customer_item_scores'
+        AND EXISTS (SELECT 1 FROM brands b WHERE b.id = $1 AND b.deleted_at IS NULL)
     ),
     published AS (
       INSERT INTO brand_published_runs (brand_id, job_type, run_id)
@@ -176,10 +177,11 @@ export async function getCustomerItemScoresCustomers(
   const result = await pool.query(
     `
     WITH run AS (
-      SELECT id
-      FROM computation_runs
-      WHERE id = $1
-        AND job_type = 'customer_item_scores'
+      SELECT r.id
+      FROM computation_runs r
+      WHERE r.id = $1
+        AND r.job_type = 'customer_item_scores'
+        AND EXISTS (SELECT 1 FROM brands b WHERE b.id = r.brand_id AND b.deleted_at IS NULL)
     )
     SELECT c.customer_id, c.item_count
     FROM run
@@ -225,10 +227,11 @@ export async function getCustomerItemScoresCustomerResult(
   const result = await pool.query(
     `
     WITH run AS (
-      SELECT id, brand_id, input_window_from, input_window_to
-      FROM computation_runs
-      WHERE id = $1
-        AND job_type = 'customer_item_scores'
+      SELECT r.id, r.brand_id, r.input_window_from, r.input_window_to
+      FROM computation_runs r
+      WHERE r.id = $1
+        AND r.job_type = 'customer_item_scores'
+        AND EXISTS (SELECT 1 FROM brands b WHERE b.id = r.brand_id AND b.deleted_at IS NULL)
     ),
     scores AS (
       SELECT s.rank, s.external_item_id, s.score, s.n_orders

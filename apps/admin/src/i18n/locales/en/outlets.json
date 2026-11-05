@@ -15,7 +15,8 @@
     "empty": "No outlets yet.",
     "unknownBrand": "Unknown brand",
     "editOutlet": "Edit {{name}}",
-    "viewOutlet": "View {{name}}"
+    "viewOutlet": "View {{name}}",
+    "deleteOutlet": "Delete {{name}}"
   },
   "create": {
     "title": "New Outlet",
@@ -30,5 +31,9 @@
   },
   "view": {
     "title": "Outlet Details"
+  },
+  "delete": {
+    "title": "Delete {{name}}?",
+    "description": "The outlet is removed from every list, stops being served and is left out of brand-wide calculations. Its stored data is kept."
   }
 }

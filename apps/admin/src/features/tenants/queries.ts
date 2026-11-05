@@ -4,7 +4,13 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { createTenant, getTenant, listTenants, updateTenant } from "./api";
+import {
+  createTenant,
+  deleteTenant,
+  getTenant,
+  listTenants,
+  updateTenant,
+} from "./api";
 import type { UpdateTenantInput } from "./type";
 
 export const tenantKeys = {
@@ -34,6 +40,15 @@ export function useCreateTenant() {
     mutationFn: createTenant,
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: tenantKeys.lists() }),
+  });
+}
+
+export function useDeleteTenant() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteTenant,
+    // The delete cascades to the tenant's brands and outlets, so every cached page may now be stale
+    onSuccess: () => queryClient.invalidateQueries(),
   });
 }
 

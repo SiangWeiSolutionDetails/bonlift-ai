@@ -30,6 +30,7 @@ const BRAND_USAGE_SQL = `
            ($3::date + 1)::timestamp AT TIME ZONE $4 AS to_at
     FROM brands b
     WHERE b.id = $1
+      AND b.deleted_at IS NULL
   ),
   calls AS (
     SELECT (e.created_at AT TIME ZONE $4)::date AS day, e.api_key_id, e.status_code

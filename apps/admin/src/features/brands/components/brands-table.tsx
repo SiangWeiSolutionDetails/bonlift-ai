@@ -27,6 +27,7 @@ type BrandsTableProps = {
   error: Error | null;
   onEdit: (brand: Brand) => void;
   onView: (brand: Brand) => void;
+  onDelete: (brand: Brand) => void;
 };
 
 export function BrandsTable(props: BrandsTableProps) {
@@ -40,7 +41,7 @@ export function BrandsTable(props: BrandsTableProps) {
             <TableHead>{t("table.name")}</TableHead>
             <TableHead>{t("table.tenant")}</TableHead>
             <TableHead className="w-32">{t("table.status")}</TableHead>
-            <TableHead className="w-24 text-right">
+            <TableHead className="w-40 text-right">
               <span className="sr-only">{t("table.actions")}</span>
             </TableHead>
           </TableRow>
@@ -53,7 +54,15 @@ export function BrandsTable(props: BrandsTableProps) {
   );
 }
 
-function BrandsTableRows({ brands, tenants, isPending, error, onEdit, onView }: BrandsTableProps) {
+function BrandsTableRows({
+  brands,
+  tenants,
+  isPending,
+  error,
+  onEdit,
+  onView,
+  onDelete,
+}: BrandsTableProps) {
   const { t } = useTranslation("brands");
   const { t: tCommon } = useTranslation();
 
@@ -105,6 +114,15 @@ function BrandsTableRows({ brands, tenants, isPending, error, onEdit, onView }: 
           onClick={() => onView(brand)}
         >
           {tCommon("actions.view")}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-destructive hover:text-destructive"
+          aria-label={t("table.deleteBrand", { name: brand.name })}
+          onClick={() => onDelete(brand)}
+        >
+          {tCommon("actions.delete")}
         </Button>
       </TableCell>
     </TableRow>

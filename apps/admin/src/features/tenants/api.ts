@@ -21,6 +21,12 @@ export async function createTenant(input: CreateTenantInput) {
   });
 }
 
+export async function deleteTenant(tenantId: string) {
+  return await apiRequest<void>(`/tenants/${encodeURIComponent(tenantId)}`, {
+    method: "DELETE",
+  });
+}
+
 export async function updateTenant(tenantId: string, input: UpdateTenantInput) {
   return await apiRequest<Tenant>(`/tenants/${encodeURIComponent(tenantId)}`, {
     method: "PATCH",

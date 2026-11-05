@@ -17,7 +17,7 @@ WITH run AS (
   WHERE r.id = $1
 ),
 -- One row per order. outlet_id is in the key because an orderId is only unique per outlet and date.
--- Inactive outlets are included: that history is still the brand's. If a repeated orderId disagrees,
+-- Inactive outlets are included: that history is still the brand's; deleted outlets are not. If a repeated orderId disagrees,
 -- the ORDER BY tiebreak picks the same copy every run.
 orders AS (
   SELECT DISTINCT ON (os.outlet_id, os.order_date, o->>'orderId')
@@ -28,6 +28,7 @@ orders AS (
   FROM run
   JOIN outlets ot
     ON ot.brand_id = run.brand_id
+   AND ot.deleted_at IS NULL
   JOIN order_snapshots os
     ON os.outlet_id = ot.id
    AND os.order_date >= run.input_window_from

@@ -5,7 +5,13 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import type { BrandListParams, UpdateBrandInput } from "./type";
-import { createBrand, getBrand, listBrands, updateBrand } from "./api";
+import {
+  createBrand,
+  deleteBrand,
+  getBrand,
+  listBrands,
+  updateBrand,
+} from "./api";
 
 export const brandKeys = {
   all: ["brands"] as const,
@@ -35,6 +41,15 @@ export function useCreateBrand() {
     mutationFn: createBrand,
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: brandKeys.lists() }),
+  });
+}
+
+export function useDeleteBrand() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteBrand,
+    // The delete cascades to the brand's outlets, and most pages are keyed by brand
+    onSuccess: () => queryClient.invalidateQueries(),
   });
 }
 

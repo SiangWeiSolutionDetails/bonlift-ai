@@ -5,6 +5,7 @@ import { pgResult } from "../utils/pg.test-helpers.js";
 import { UNIQUE_VIOLATION } from "../utils/pgErrors.js";
 import {
   createTenant,
+  deleteTenant,
   getTenant,
   getTenants,
   updateTenant,
@@ -65,6 +66,16 @@ describe("getTenants", () => {
     const result = await getTenants(fakePool);
 
     expect(result).toStrictEqual([DEFAULT_TENANT, inactiveTenant]);
+  });
+
+  it("returns live tenants only", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([]));
+
+    await getTenants(fakePool);
+
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.stringContaining("WHERE t.deleted_at IS NULL"),
+    );
   });
 
   it("orders tenants by name, then id", async () => {
@@ -232,5 +243,78 @@ describe("updateTenant", () => {
       [UPDATE_DATA.name, UPDATE_DATA.isActive, TENANT_ID],
     );
     expect(result).toStrictEqual(expectedResult);
+  });
+
+  it("does not update a deleted tenant", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([fakeTenantRow()]));
+
+    await updateTenant(fakePool, TENANT_ID, UPDATE_DATA);
+
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.stringContaining("AND t.deleted_at IS NULL"),
+      expect.any(Array),
+    );
+  });
+});
+
+describe("deleteTenant", () => {
+  const clientQueryMock = vi.fn();
+  const releaseMock = vi.fn();
+  const connectMock = vi.fn();
+  const transactionPool = { connect: connectMock } as any;
+
+  function flatSqlCalls() {
+    return clientQueryMock.mock.calls.map(([sql]) =>
+      sql.replace(/\s+/g, " ").trim(),
+    );
+  }
+
+  beforeEach(() => {
+    clientQueryMock.mockReset();
+    releaseMock.mockReset();
+    connectMock.mockReset();
+    connectMock.mockResolvedValue({
+      query: clientQueryMock,
+      release: releaseMock,
+    });
+  });
+
+  it("throws ValidationError when the tenant id is invalid", async () => {
+    await expect(deleteTenant(transactionPool, INVALID_ID)).rejects.toThrow(
+      ValidationError,
+    );
+    expect(connectMock).not.toHaveBeenCalled();
+  });
+
+  it("throws NotFoundError and rolls back when the tenant does not exist or is already deleted", async () => {
+    clientQueryMock.mockResolvedValue(pgResult([], 0));
+
+    await expect(deleteTenant(transactionPool, TENANT_ID)).rejects.toThrow(
+      new NotFoundError("Tenant does not exist."),
+    );
+    expect(flatSqlCalls()).toStrictEqual([
+      "BEGIN",
+      "UPDATE tenants SET deleted_at = now(), updated_at = now() WHERE id = $1 AND deleted_at IS NULL",
+      "ROLLBACK",
+    ]);
+    expect(releaseMock).toHaveBeenCalled();
+  });
+
+  it("soft deletes the tenant, then its live brands, then its live outlets, in one transaction", async () => {
+    clientQueryMock.mockResolvedValue(pgResult([], 1));
+
+    await deleteTenant(transactionPool, TENANT_ID);
+
+    expect(flatSqlCalls()).toStrictEqual([
+      "BEGIN",
+      "UPDATE tenants SET deleted_at = now(), updated_at = now() WHERE id = $1 AND deleted_at IS NULL",
+      "UPDATE brands SET deleted_at = now(), updated_at = now() WHERE tenant_id = $1 AND deleted_at IS NULL",
+      "UPDATE outlets SET deleted_at = now(), updated_at = now() WHERE tenant_id = $1 AND deleted_at IS NULL",
+      "COMMIT",
+    ]);
+    for (const call of clientQueryMock.mock.calls.slice(1, 4)) {
+      expect(call[1]).toStrictEqual([TENANT_ID]);
+    }
+    expect(releaseMock).toHaveBeenCalled();
   });
 });

@@ -1,19 +1,24 @@
 import { useState } from "react";
 import { PlusIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { BrandsTable } from "@/features/brands/components/brands-table";
 import { CreateBrandDialog } from "@/features/brands/components/create-brand-dialog";
 import { BrandDialog } from "@/features/brands/components/brand-dialog";
 import type { Brand } from "@/features/brands/type";
-import { useBrands } from "@/features/brands/queries";
+import { useBrands, useDeleteBrand } from "@/features/brands/queries";
 import { useTenants } from "@/features/tenants/queries";
+import { getErrorMessage } from "@/lib/error-message";
 
 export function BrandsPage() {
   const { t } = useTranslation("brands");
+  const { t: tCommon } = useTranslation();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
+  const [brandToDelete, setBrandToDelete] = useState<Brand | null>(null);
+  const deleteBrandMutation = useDeleteBrand();
   // Not reset on close, so the title doesn't flip while the dialog animates out
   const [isReadOnly, setIsReadOnly] = useState(false);
 
@@ -40,6 +45,12 @@ export function BrandsPage() {
         }
       />
 
+      {deleteBrandMutation.error && (
+        <p className="text-sm text-destructive">
+          {getErrorMessage(deleteBrandMutation.error, tCommon)}
+        </p>
+      )}
+
       <BrandsTable
         brands={brands}
         tenants={tenants}
@@ -47,6 +58,19 @@ export function BrandsPage() {
         error={error}
         onEdit={(brand) => openBrand(brand, false)}
         onView={(brand) => openBrand(brand, true)}
+        onDelete={setBrandToDelete}
+      />
+
+      <ConfirmDialog
+        open={brandToDelete !== null}
+        title={t("delete.title", { name: brandToDelete?.name })}
+        description={t("delete.description")}
+        confirmLabel={tCommon("actions.delete")}
+        confirmMatch={brandToDelete?.name}
+        onCancel={() => setBrandToDelete(null)}
+        onConfirm={() =>
+          brandToDelete && deleteBrandMutation.mutate(brandToDelete.id)
+        }
       />
 
       <CreateBrandDialog

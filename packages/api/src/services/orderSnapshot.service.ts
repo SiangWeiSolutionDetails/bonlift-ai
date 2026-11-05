@@ -58,6 +58,7 @@ export async function storeOrderSnapshots(
         JOIN brands b
         ON b.id = o.brand_id
         WHERE o.id = $1
+        AND o.deleted_at IS NULL
     ),
     saved AS (
         INSERT INTO order_snapshots (outlet_id, order_date, orders, order_count)
@@ -144,7 +145,7 @@ export async function getOrderSnapshotCoverage(
     `
     WITH
     outlet AS (
-        SELECT id FROM outlets WHERE id = $1
+        SELECT id FROM outlets WHERE id = $1 AND deleted_at IS NULL
     ),
     bounds AS (
         SELECT min(order_date) AS first_date, max(order_date) AS last_date
@@ -221,7 +222,8 @@ export async function getOrderSnapshot(
     LEFT JOIN order_snapshots os
     ON os.outlet_id = o.id
     AND os.order_date = $2::date
-    WHERE o.id = $1;
+    WHERE o.id = $1
+    AND o.deleted_at IS NULL;
     `,
     [outletId, date],
   );

@@ -12,6 +12,7 @@
     "migrate:create": "npm run migrate create",
     "migrate:up": "npm run migrate up",
     "migrate:down": "npm run migrate down",
+    "migrate:test": "node --env-file=../../.env.test ../../scripts/assertTestDb.mjs && node --env-file=../../.env.test ../../node_modules/node-pg-migrate/bin/node-pg-migrate.js --migration-file-language sql -m migrations -d TEST_DATABASE_URL up",
     "seed": "docker exec -i bonlift-ai-postgres-1 psql -U bonlift_ai -d bonlift_ai_dev < seed/seed.sql"
   },
   "dependencies": {

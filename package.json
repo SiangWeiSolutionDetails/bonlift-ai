@@ -18,9 +18,12 @@
     "dev:db": "docker compose up -d",
     "dev": "concurrently -k -n contracts,client,api,worker -c blue,magenta,green,yellow \"npm:dev:contracts\" \"npm:dev:client\" \"npm:dev:api\" \"npm:dev:worker\"",
     "test": "vitest run",
-    "test:integration:up": "docker compose -f docker-compose.test.yml up -d",
-    "test:integration:migrate": "DATABASE_URL=postgres://bonlift_ai:bonlift_ai@localhost:5433/bonlift_ai_test npm run migrate:up -w packages/db",
-    "test:integration:down": "docker compose -f docker-compose.test.yml down -v"
+    "build:packages": "npm run build -w packages/contracts -w packages/db -w packages/worker",
+    "test:db:up": "docker compose -f docker-compose.test.yml up -d --wait",
+    "test:db:down": "docker compose -f docker-compose.test.yml down -v",
+    "test:db:migrate": "npm run migrate:test -w packages/db",
+    "test:integration:run": "vitest run --config vitest.integration.config.ts",
+    "test:integration": "npm run test:db:up && npm run test:db:migrate && npm run test:integration:run"
   },
   "devDependencies": {
     "concurrently": "^10.0.6",

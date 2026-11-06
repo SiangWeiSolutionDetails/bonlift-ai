@@ -1,0 +1,21 @@
+# Disposable database for integration tests only. Never point this at the dev database.
+# Credentials are fixed throwaway test values (also in .env.test); acceptable because this container
+# is bound to 127.0.0.1, keeps its data in tmpfs, and holds nothing but test fixtures.
+name: bonlift-ai-test
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: bonlift_ai_test
+      POSTGRES_USER: bonlift_ai_test
+      POSTGRES_PASSWORD: bonlift_ai_test
+    ports:
+      - "127.0.0.1:55432:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bonlift_ai_test -d bonlift_ai_test"]
+      interval: 2s
+      timeout: 5s
+      retries: 15

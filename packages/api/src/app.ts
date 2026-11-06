@@ -26,8 +26,11 @@ import {
 } from "./plugins/servingAuth.js";
 import { createServingUsageHook } from "./plugins/servingUsage.js";
 import { registerApiDocs } from "./plugins/apiDocs.js";
+import { createAdminAuthHook } from "./plugins/adminAuth.js";
+import { areDevRoutesEnabled, readAdminToken } from "./config/env.js";
 
 export function buildApp(): FastifyInstance {
+  const adminToken = readAdminToken();
   const app = Fastify({
     logger: true,
     ajv: { customOptions: { removeAdditional: false } },
@@ -58,20 +61,30 @@ export function buildApp(): FastifyInstance {
   registerApiDocs(app);
 
   app.register(healthRoutes);
-  app.register(tenantRoutes);
-  app.register(brandRoutes);
-  app.register(outletRoutes);
-  app.register(brandDataSourceRoutes);
-  app.register(datasetRoutes);
-  app.register(orderSnapshotRoutes);
-  app.register(calculationRoutes);
-  app.register(outletItemScoresCalculationConfigVersionRoutes);
-  app.register(outletItemScoresResultRoutes);
-  app.register(customerItemScoresCalculationConfigVersionRoutes);
-  app.register(customerItemScoresResultRoutes);
-  app.register(itemAffinityCalculationConfigVersionRoutes);
-  app.register(itemAffinityResultRoutes);
-  app.register(brandUsageRoutes);
+
+  // Admin surface: the admin token hook is encapsulated to this scope only.
+  app.register(async (admin) => {
+    admin.addHook("onRequest", createAdminAuthHook(adminToken));
+    admin.register(tenantRoutes);
+    admin.register(brandRoutes);
+    admin.register(outletRoutes);
+    admin.register(brandDataSourceRoutes);
+    admin.register(datasetRoutes);
+    admin.register(orderSnapshotRoutes);
+    admin.register(calculationRoutes);
+    admin.register(outletItemScoresCalculationConfigVersionRoutes);
+    admin.register(outletItemScoresResultRoutes);
+    admin.register(customerItemScoresCalculationConfigVersionRoutes);
+    admin.register(customerItemScoresResultRoutes);
+    admin.register(itemAffinityCalculationConfigVersionRoutes);
+    admin.register(itemAffinityResultRoutes);
+    admin.register(brandUsageRoutes);
+    admin.register(brandApiKeyRoutes);
+
+    if (areDevRoutesEnabled()) {
+      admin.register(mockDatasetRoutes);
+    }
+  });
 
   // Serving routes for TQR, POS and kiosk: versioned, and the brand API key hook is encapsulated to this prefix only.
   app.register(
@@ -88,12 +101,6 @@ export function buildApp(): FastifyInstance {
     },
     { prefix: "/v1" },
   );
-
-  if (process.env.NODE_ENV !== "production") {
-    app.register(mockDatasetRoutes);
-    // Until admin login exists (H1); see brandApiKey.route.ts.
-    app.register(brandApiKeyRoutes);
-  }
 
   return app;
 }

@@ -18,8 +18,8 @@ import {
   revokeBrandApiKeyById,
 } from "../services/brandApiKey.service.js";
 
-// Registered outside production only until admin login exists (H1): with no login, these routes would let
-// anyone who can reach the API create a key for any brand. Production uses the api-key command line script.
+// Guarded by the shared admin token until admin login exists (H1): anyone holding that token can create a key
+// for any brand. The api-key command line script remains available for creating keys without the API.
 export async function brandApiKeyRoutes(app: FastifyInstance) {
   app.get<{ Params: BrandParamsSchemaType }>(
     "/brands/:brandId/api-keys",

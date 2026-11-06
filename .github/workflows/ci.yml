@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      # Mirrors docker-compose.test.yml; credentials are throwaway test values matching .env.test.
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: bonlift_ai_test
+          POSTGRES_USER: bonlift_ai_test
+          POSTGRES_PASSWORD: bonlift_ai_test
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U bonlift_ai_test -d bonlift_ai_test"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      # Non-blocking: reports high/critical advisories without failing the build.
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      # Workspace packages resolve each other through dist/, so build them before typecheck/tests.
+      - run: npm run build:packages
+
+      - run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Migrate test database
+        run: npm run test:db:migrate
+
+      - name: Integration tests
+        run: npm run test:integration:run

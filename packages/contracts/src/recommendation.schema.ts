@@ -33,8 +33,8 @@ export const RecommendationRequestSchema = Type.Object(
         minLength: 1,
         description:
           "The time-of-day period of the order, such as breakfast or lunch, using the names configured for the brand. " +
-          "Both popular items and the customer's favourites are taken from this period. Missing means the whole day. " +
-          "A name the brand has not configured returns no items.",
+          "Both popular items and the customer's favourites are taken from this period; items that go with the cart " +
+          "do not depend on it. Missing means the whole day. A name the brand has not configured returns no items.",
         examples: ["lunch"],
       }),
     ),
@@ -113,10 +113,10 @@ export const RecommendationReasonSchema = Type.Union(
   ],
   {
     description:
-      "Why the item is recommended: `frequently_ordered` is one of this customer's favourites for this time of day, " +
-      "`goes_with_cart` is often ordered together with the items in the cart, " +
-      "`popular_at_outlet` is popular at this outlet at this time of day. New reasons may be added: treat an unknown reason as a generic " +
-      "recommendation.",
+      "Why the item is recommended: `frequently_ordered` is one of this customer's favourites in the requested " +
+      "`daypart`, `goes_with_cart` is often ordered together with the items in the cart, `popular_at_outlet` is " +
+      "popular at this outlet in the requested `daypart`. New reasons may be added: treat an unknown reason as a " +
+      "generic recommendation.",
   },
 );
 export type RecommendationReasonSchemaType = Static<

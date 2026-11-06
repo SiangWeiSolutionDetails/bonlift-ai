@@ -93,7 +93,10 @@
     "halfLifeDays": "半衰期（天）",
     "halfLifeDaysHint": "距今这么多天的订单，权重为新订单的一半。",
     "topN": "每位顾客的商品数",
-    "topNHint": "每位顾客保留的热门商品数量。",
+    "topNHint": "每位顾客在每个时段保留的热门商品数量。",
+    "maxRecentOrders": "每个时段的近期订单数",
+    "maxRecentOrdersHint": "只计算顾客在每个时段的最近几笔订单，日期范围内更早的订单不计入。",
+    "noLimit": "不限",
     "save": "保存为新版本",
     "history": {
       "title": "版本历史",

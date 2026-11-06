@@ -1,4 +1,5 @@
 import {
+  CALCULATION_ALGORITHM_VERSIONS,
   OutletItemScoresCalculationQuerySchema,
   OutletItemScoresCalculationQuerySchemaType,
   OutletItemScoresCalculationResponseSchemaType,
@@ -15,7 +16,8 @@ import {
 } from "../errors.js";
 import { isUniqueViolationOf } from "../utils/pgErrors.js";
 
-export const OUTLET_ITEM_SCORES_CALCULATION_ALGORITHM_VERSION = "p3-popularity";
+export const OUTLET_ITEM_SCORES_CALCULATION_ALGORITHM_VERSION =
+  CALCULATION_ALGORITHM_VERSIONS.outlet_item_scores;
 
 async function insertRun(
   pool: Pool,

@@ -1,8 +1,8 @@
 import { ALL_DAY_DAYPART } from "@bonlift-ai/contracts";
 import type { OutletItemScore, OutletItemScoresRun } from "./type";
 
-export function groupByDaypart(items: OutletItemScore[]) {
-  const groups = new Map<string, OutletItemScore[]>();
+export function groupByDaypart<T extends Pick<OutletItemScore, "daypart">>(items: T[]) {
+  const groups = new Map<string, T[]>();
   for (const item of items) {
     const group = groups.get(item.daypart);
     if (group) group.push(item);

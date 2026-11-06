@@ -7,11 +7,12 @@ const OUTLET_ID = "11111111-1111-1111-1111-111111111111";
 const BRAND_ID = "33333333-3333-3333-3333-333333333333";
 const RUN_ID = "22222222-2222-2222-2222-222222222222";
 const CUSTOMER_RUN_ID = "44444444-4444-4444-4444-444444444444";
-const AT = "2026-11-02T12:30:00+08:00";
-const REQUEST = { outletId: OUTLET_ID, at: AT, cart: [] };
+const AFFINITY_RUN_ID = "55555555-5555-5555-5555-555555555555";
+const REQUEST = { outletId: OUTLET_ID, cart: [] };
 const NO_RECOMMENDATIONS = {
   runId: null,
   customerRunId: null,
+  affinityRunId: null,
   daypart: null,
   items: [],
 };
@@ -31,6 +32,7 @@ function itemRow(itemId: string | null, daypart: string | null = "Lunch") {
     in_brand: true,
     run_id: RUN_ID,
     customer_run_id: null,
+    affinity_run_id: null,
     daypart,
     external_item_id: itemId,
     source: itemId === null ? null : "outlet",
@@ -42,6 +44,7 @@ function favouriteRow(itemId: string, runId: string | null = RUN_ID) {
     in_brand: true,
     run_id: runId,
     customer_run_id: CUSTOMER_RUN_ID,
+    affinity_run_id: null,
     daypart: runId === null ? null : "Lunch",
     external_item_id: itemId,
     source: "customer",
@@ -49,7 +52,7 @@ function favouriteRow(itemId: string, runId: string | null = RUN_ID) {
 }
 
 function queryParams(overrides: Record<number, unknown> = {}) {
-  const params: unknown[] = [OUTLET_ID, AT, [], null, BRAND_ID, [], null, 2, []];
+  const params: unknown[] = [OUTLET_ID, "all_day", [], null, BRAND_ID, [], null, 2, []];
   for (const [index, value] of Object.entries(overrides)) {
     params[Number(index) - 1] = value;
   }
@@ -61,6 +64,7 @@ function emptyOutletRow(inBrand = true) {
     in_brand: inBrand,
     run_id: null,
     customer_run_id: null,
+    affinity_run_id: null,
     daypart: null,
     external_item_id: null,
     source: null,
@@ -84,6 +88,7 @@ describe("getRecommendations", () => {
     expect(result).toStrictEqual({
       runId: RUN_ID,
       customerRunId: null,
+      affinityRunId: null,
       daypart: "Lunch",
       items: [
         { itemId: "A", rank: 1, reason: "popular_at_outlet" },
@@ -107,6 +112,7 @@ describe("getRecommendations", () => {
     expect(result).toStrictEqual({
       runId: RUN_ID,
       customerRunId: CUSTOMER_RUN_ID,
+      affinityRunId: null,
       daypart: "Lunch",
       items: [
         { itemId: "F1", rank: 1, reason: "frequently_ordered" },
@@ -116,12 +122,59 @@ describe("getRecommendations", () => {
     });
   });
 
+  it("gives items that go with the cart their own reason, between favourites and popular items", async () => {
+    queryMock.mockResolvedValueOnce(
+      pgResult([
+        favouriteRow("F1"),
+        { ...favouriteRow("P1"), source: "cart" },
+        { ...itemRow("A"), customer_run_id: CUSTOMER_RUN_ID },
+      ]),
+    );
+
+    const result = await recommend({
+      ...REQUEST,
+      customerId: "C1",
+      cart: [{ itemId: "X", qty: 1 }],
+    });
+
+    expect(result.items).toStrictEqual([
+      { itemId: "F1", rank: 1, reason: "frequently_ordered" },
+      { itemId: "P1", rank: 2, reason: "goes_with_cart" },
+      { itemId: "A", rank: 3, reason: "popular_at_outlet" },
+    ]);
+  });
+
+  it("returns items that go with the cart when neither the outlet nor the customer has a run", async () => {
+    queryMock.mockResolvedValueOnce(
+      pgResult([
+        {
+          in_brand: true,
+          run_id: null,
+          customer_run_id: null,
+          affinity_run_id: AFFINITY_RUN_ID,
+          daypart: "all_day",
+          external_item_id: "P1",
+          source: "cart",
+        },
+      ]),
+    );
+
+    expect(await recommend({ ...REQUEST, cart: [{ itemId: "X", qty: 1 }] })).toStrictEqual({
+      runId: null,
+      customerRunId: null,
+      affinityRunId: AFFINITY_RUN_ID,
+      daypart: "all_day",
+      items: [{ itemId: "P1", rank: 1, reason: "goes_with_cart" }],
+    });
+  });
+
   it("returns favourites when the outlet has no published run", async () => {
     queryMock.mockResolvedValueOnce(pgResult([favouriteRow("F1", null)]));
 
     expect(await recommend({ ...REQUEST, customerId: "C1" })).toStrictEqual({
       runId: null,
       customerRunId: CUSTOMER_RUN_ID,
+      affinityRunId: null,
       daypart: null,
       items: [{ itemId: "F1", rank: 1, reason: "frequently_ordered" }],
     });
@@ -182,14 +235,33 @@ describe("getRecommendations", () => {
     );
   });
 
-  it("passes the requested limit", async () => {
+  it("passes the requested daypart", async () => {
     queryMock.mockResolvedValueOnce(pgResult([]));
 
-    await recommend({ ...REQUEST, limit: 3 });
+    await recommend({ ...REQUEST, daypart: "Lunch" });
 
     expect(queryMock).toHaveBeenCalledWith(
       expect.any(String),
-      queryParams({ 4: 3 }),
+      queryParams({ 2: "Lunch" }),
+    );
+  });
+
+  it("ignores a time sent by an older caller and serves the whole day", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([]));
+
+    await recommend({ ...REQUEST, at: "2026-11-02T12:30:00+08:00" });
+
+    expect(queryMock).toHaveBeenCalledWith(expect.any(String), queryParams());
+  });
+
+  it("passes the requested limit", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([]));
+
+    await recommend({ ...REQUEST, limit: 10 });
+
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.any(String),
+      queryParams({ 4: 10 }),
     );
   });
 
@@ -228,13 +300,14 @@ describe("getRecommendations", () => {
     expect(await recommend()).toStrictEqual(NO_RECOMMENDATIONS);
   });
 
-  it("returns the run with no items when the time is outside every daypart", async () => {
-    queryMock.mockResolvedValueOnce(pgResult([itemRow(null, null)]));
+  it("returns the run with no items when the daypart has no stored items", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([itemRow(null, "Supper")]));
 
-    expect(await recommend()).toStrictEqual({
+    expect(await recommend({ ...REQUEST, daypart: "Supper" })).toStrictEqual({
       runId: RUN_ID,
       customerRunId: null,
-      daypart: null,
+      affinityRunId: null,
+      daypart: "Supper",
       items: [],
     });
   });
@@ -270,9 +343,8 @@ describe("getRecommendations", () => {
 
   it.each([
     ["outletId is not a uuid", { ...REQUEST, outletId: "outlet-1" }],
-    ["at has no offset", { ...REQUEST, at: "2026-11-02T12:30:00" }],
-    ["at is UTC (Z)", { ...REQUEST, at: "2026-11-02T04:30:00Z" }],
-    ["cart is missing", { outletId: OUTLET_ID, at: AT }],
+    ["cart is missing", { outletId: OUTLET_ID }],
+    ["daypart is blank", { ...REQUEST, daypart: "" }],
     ["limit is above 50", { ...REQUEST, limit: 51 }],
     ["exclude has more than 200 items", { ...REQUEST, exclude: Array(201).fill("A") }],
     ["exclude has a blank item id", { ...REQUEST, exclude: [""] }],

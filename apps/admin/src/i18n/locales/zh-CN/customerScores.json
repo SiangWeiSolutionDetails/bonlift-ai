@@ -45,6 +45,8 @@
     "halfLifeLabel": "半衰期",
     "halfLifeValue": "{{halfLifeDays}} 天",
     "topNLabel": "每位顾客的商品数",
+    "maxRecentOrdersLabel": "每个时段的近期订单数",
+    "noLimit": "不限",
     "publish": "发布",
     "publishConfirmTitle": "发布此运行？",
     "publishConfirmDescription": "{{window}} 的评分将立即替换该品牌当前生效的顾客评分。"
@@ -60,7 +62,8 @@
     "rank": "#",
     "item": "商品",
     "score": "得分",
-    "scoreHint": "按时间加权，该顾客的订单中包含此商品的比例。",
+    "scoreHint": "按时间加权，该顾客在此时段的订单中包含此商品的比例。",
+    "allDay": "全天",
     "orders": "订单数",
     "running": "计算中…",
     "failed": "本次运行失败：{{error}}",

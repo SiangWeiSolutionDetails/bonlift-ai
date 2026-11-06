@@ -93,7 +93,10 @@
     "halfLifeDays": "Half-Life (Days)",
     "halfLifeDaysHint": "An order this many days old counts half as much as a new one.",
     "topN": "Items Per Customer",
-    "topNHint": "How many top items are kept for each customer.",
+    "topNHint": "How many top items are kept for each customer in each daypart.",
+    "maxRecentOrders": "Recent Orders Per Daypart",
+    "maxRecentOrdersHint": "Only the customer's latest orders in each daypart are scored. Older orders in the window are ignored.",
+    "noLimit": "No limit",
     "save": "Save As New Version",
     "history": {
       "title": "Version History",

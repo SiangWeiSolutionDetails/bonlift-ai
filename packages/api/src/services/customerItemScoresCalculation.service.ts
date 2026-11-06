@@ -1,4 +1,5 @@
 import {
+  CALCULATION_ALGORITHM_VERSIONS,
   BrandParamsSchema,
   CalculationTriggerTypeSchemaType,
   CustomerItemScoresCalculationQuerySchema,
@@ -12,7 +13,7 @@ import { assertValid, assertValidDate } from "../utils/validate.js";
 import { queueRun } from "./calculation.service.js";
 
 export const CUSTOMER_ITEM_SCORES_CALCULATION_ALGORITHM_VERSION =
-  "h5-customer-recency";
+  CALCULATION_ALGORITHM_VERSIONS.customer_item_scores;
 
 async function insertRun(
   pool: Pool,

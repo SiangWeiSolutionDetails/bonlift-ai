@@ -21,6 +21,7 @@ function mapVersionRow(
     createdAt: row.created_at.toISOString(),
     halfLifeDays: row.half_life_days,
     topN: row.top_n,
+    maxRecentOrders: row.max_recent_orders,
   };
 }
 
@@ -44,11 +45,12 @@ export async function getLatestCustomerItemScoresCalculationConfigVersion(
       v.created_by,
       v.created_at,
       v.half_life_days,
-      v.top_n
+      v.top_n,
+      v.max_recent_orders
     FROM brands b
     LEFT JOIN LATERAL (
       SELECT ccv.id, ccv.version, ccv.created_by, ccv.created_at,
-        c.half_life_days, c.top_n
+        c.half_life_days, c.top_n, c.max_recent_orders
       FROM calculation_config_versions ccv
       JOIN customer_item_scores_calculation_config_versions c
       ON c.id = ccv.id
@@ -88,11 +90,12 @@ export async function getCustomerItemScoresCalculationConfigVersions(
       v.created_by,
       v.created_at,
       v.half_life_days,
-      v.top_n
+      v.top_n,
+      v.max_recent_orders
     FROM brands b
     LEFT JOIN (
       SELECT ccv.id, ccv.brand_id, ccv.version, ccv.created_by, ccv.created_at,
-        c.half_life_days, c.top_n
+        c.half_life_days, c.top_n, c.max_recent_orders
       FROM calculation_config_versions ccv
       JOIN customer_item_scores_calculation_config_versions c
       ON c.id = ccv.id
@@ -136,7 +139,7 @@ export async function createCustomerItemScoresCalculationConfigVersion(
         AND b.deleted_at IS NULL
       ),
       latest AS (
-        SELECT ccv.version, c.half_life_days, c.top_n
+        SELECT ccv.version, c.half_life_days, c.top_n, c.max_recent_orders
         FROM calculation_config_versions ccv
         JOIN customer_item_scores_calculation_config_versions c
         ON c.id = ccv.id
@@ -156,15 +159,17 @@ export async function createCustomerItemScoresCalculationConfigVersion(
         INSERT INTO customer_item_scores_calculation_config_versions (
           id,
           half_life_days,
-          top_n
+          top_n,
+          max_recent_orders
         )
         SELECT
           p.id,
           COALESCE($3::int, l.half_life_days),
-          COALESCE($4::int, l.top_n)
+          COALESCE($4::int, l.top_n),
+          COALESCE($5::int, l.max_recent_orders)
         FROM parent p
         CROSS JOIN latest l
-        RETURNING id, half_life_days, top_n
+        RETURNING id, half_life_days, top_n, max_recent_orders
       )
       SELECT
         p.id,
@@ -173,12 +178,13 @@ export async function createCustomerItemScoresCalculationConfigVersion(
         p.created_by,
         p.created_at,
         c.half_life_days,
-        c.top_n
+        c.top_n,
+        c.max_recent_orders
       FROM brand b
       LEFT JOIN parent p ON TRUE
       LEFT JOIN child c ON c.id = p.id;
       `,
-      [brandId, createdBy, data.halfLifeDays ?? null, data.topN ?? null],
+      [brandId, createdBy, data.halfLifeDays ?? null, data.topN ?? null, data.maxRecentOrders ?? null],
     );
 
     if (result.rows.length === 0) {

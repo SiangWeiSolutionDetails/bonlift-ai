@@ -38,12 +38,14 @@ export function CustomerItemScoresConfigVersions({
     useState<CustomerItemScoresConfigVersion | null>(null);
 
   // Versions are immutable, so restoring creates a new latest version with the old values.
+  // A version from before the order limit existed has none to restore, so the current limit is kept.
   function restore(version: CustomerItemScoresConfigVersion) {
     restoreMutation.mutate({
       brandId,
       input: {
         halfLifeDays: version.halfLifeDays,
         topN: version.topN,
+        maxRecentOrders: version.maxRecentOrders ?? undefined,
       },
     });
   }
@@ -155,6 +157,10 @@ function VersionItem({
             <dd>{version.halfLifeDays}</dd>
             <dt className="opacity-70">{t("customerItemScoresConfig.topN")}</dt>
             <dd>{version.topN}</dd>
+            <dt className="opacity-70">
+              {t("customerItemScoresConfig.maxRecentOrders")}
+            </dt>
+            <dd>{version.maxRecentOrders ?? t("customerItemScoresConfig.noLimit")}</dd>
           </dl>
         </TooltipContent>
       </Tooltip>

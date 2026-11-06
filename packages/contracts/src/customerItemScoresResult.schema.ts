@@ -15,6 +15,7 @@ export const CustomerItemScoresRunRecordSchema = Type.Object(
     configVersion: Type.Integer({ minimum: 1 }),
     halfLifeDays: Type.Integer({ minimum: 1 }),
     topN: Type.Integer({ minimum: 1 }),
+    maxRecentOrders: Type.Union([Type.Integer({ minimum: 1 }), Type.Null()]),
     algorithmVersion: Type.String(),
     triggerType: CalculationTriggerTypeSchema,
     rowCount: Type.Union([Type.Integer(), Type.Null()]),
@@ -94,6 +95,7 @@ export type CustomerItemScoresCustomerParamsSchemaType = Static<
 
 export const CustomerItemScoreRecordSchema = Type.Object(
   {
+    daypart: Type.String(),
     rank: Type.Integer({ minimum: 1 }),
     itemId: Type.String(),
     itemName: NullableString,

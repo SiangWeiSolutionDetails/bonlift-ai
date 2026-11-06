@@ -45,6 +45,8 @@
     "halfLifeLabel": "Half-Life",
     "halfLifeValue": "{{halfLifeDays}} days",
     "topNLabel": "Items Per Customer",
+    "maxRecentOrdersLabel": "Recent Orders Per Daypart",
+    "noLimit": "No limit",
     "publish": "Publish",
     "publishConfirmTitle": "Publish this run?",
     "publishConfirmDescription": "The scores for {{window}} replace the brand's live customer scores straight away."
@@ -60,7 +62,8 @@
     "rank": "#",
     "item": "Item",
     "score": "Score",
-    "scoreHint": "Recency-weighted share of this customer's orders that contain the item.",
+    "scoreHint": "Recency-weighted share of this customer's orders in the daypart that contain the item.",
+    "allDay": "All Day",
     "orders": "Orders",
     "running": "Calculating…",
     "failed": "This run failed: {{error}}",

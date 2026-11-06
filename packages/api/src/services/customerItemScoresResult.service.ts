@@ -29,6 +29,7 @@ const RUN_COLUMNS = `
   v.version                 AS config_version,
   c.half_life_days,
   c.top_n,
+  c.max_recent_orders,
   r.algorithm_version,
   r.trigger_type,
   r.row_count,
@@ -58,6 +59,7 @@ function mapRunRow(row: any): CustomerItemScoresRunRecordSchemaType {
     configVersion: row.config_version,
     halfLifeDays: row.half_life_days,
     topN: row.top_n,
+    maxRecentOrders: row.max_recent_orders,
     algorithmVersion: row.algorithm_version,
     triggerType: row.trigger_type,
     rowCount: row.row_count,
@@ -186,7 +188,7 @@ export async function getCustomerItemScoresCustomers(
     SELECT c.customer_id, c.item_count
     FROM run
     LEFT JOIN LATERAL (
-      SELECT s.customer_external_id AS customer_id, count(*)::int AS item_count
+      SELECT s.customer_external_id AS customer_id, count(DISTINCT s.external_item_id)::int AS item_count
       FROM customer_item_scores s
       WHERE s.run_id = run.id
         AND ($2::text IS NULL OR s.customer_external_id > $2)
@@ -224,17 +226,36 @@ export async function getCustomerItemScoresCustomerResult(
 
   // Scores store only the item id; names come from the customer's own orders in the run's window, latest date
   // first. Every ranked item is in those orders, so other customers' lines are never expanded.
+  // Dayparts are listed in the order of the outlet item scores config the worker used (latest at run creation);
+  // all_day, and any name that config no longer lists, come last.
   const result = await pool.query(
     `
     WITH run AS (
-      SELECT r.id, r.brand_id, r.input_window_from, r.input_window_to
+      SELECT r.id, r.brand_id, r.created_at, r.input_window_from, r.input_window_to
       FROM computation_runs r
       WHERE r.id = $1
         AND r.job_type = 'customer_item_scores'
         AND EXISTS (SELECT 1 FROM brands b WHERE b.id = r.brand_id AND b.deleted_at IS NULL)
     ),
+    daypart_config AS (
+      SELECT c.dayparts
+      FROM run
+      JOIN calculation_config_versions v
+        ON v.brand_id = run.brand_id
+       AND v.job_type = 'outlet_item_scores'
+       AND v.created_at <= run.created_at
+      JOIN outlet_item_scores_calculation_config_versions c
+        ON c.id = v.id
+      ORDER BY v.version DESC
+      LIMIT 1
+    ),
+    daypart_order AS (
+      SELECT d.value->>'name' AS name, d.position
+      FROM daypart_config
+      CROSS JOIN LATERAL jsonb_array_elements(daypart_config.dayparts) WITH ORDINALITY AS d(value, position)
+    ),
     scores AS (
-      SELECT s.rank, s.external_item_id, s.score, s.n_orders
+      SELECT s.daypart, s.rank, s.external_item_id, s.score, s.n_orders
       FROM customer_item_scores s
       JOIN run ON s.run_id = run.id
       WHERE s.customer_external_id = $2
@@ -266,16 +287,18 @@ export async function getCustomerItemScoresCustomerResult(
     SELECT COALESCE((
              SELECT jsonb_agg(
                       jsonb_build_object(
+                        'daypart',  s.daypart,
                         'rank',     s.rank,
                         'itemId',   s.external_item_id,
                         'itemName', n.item_name,
                         'score',    s.score::float8,
                         'nOrders',  s.n_orders
                       )
-                      ORDER BY s.rank
+                      ORDER BY dpo.position NULLS LAST, s.daypart, s.rank
                     )
              FROM scores s
              LEFT JOIN names n ON n.item_id = s.external_item_id
+             LEFT JOIN daypart_order dpo ON dpo.name = s.daypart
            ), '[]'::jsonb) AS items
     FROM run;
     `,

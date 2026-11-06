@@ -1,4 +1,5 @@
 import {
+  CALCULATION_ALGORITHM_VERSIONS,
   BrandParamsSchema,
   CalculationTriggerTypeSchemaType,
   ItemAffinityCalculationQuerySchema,
@@ -11,7 +12,8 @@ import { isUniqueViolationOf } from "../utils/pgErrors.js";
 import { assertValid, assertValidDate } from "../utils/validate.js";
 import { queueRun } from "./calculation.service.js";
 
-export const ITEM_AFFINITY_CALCULATION_ALGORITHM_VERSION = "p4-order-lift";
+export const ITEM_AFFINITY_CALCULATION_ALGORITHM_VERSION =
+  CALCULATION_ALGORITHM_VERSIONS.item_affinity;
 
 async function insertRun(
   pool: Pool,

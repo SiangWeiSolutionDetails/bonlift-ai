@@ -7,6 +7,8 @@ export const CustomerItemScoresCalculationConfigVersionRecordSchema = Type.Objec
     jobType: Type.Literal("customer_item_scores"),
     halfLifeDays: Type.Integer({ minimum: 1 }),
     topN: Type.Integer({ minimum: 1 }),
+    // Null on versions created before the limit existed: those runs used every order in the window.
+    maxRecentOrders: Type.Union([Type.Integer({ minimum: 1 }), Type.Null()]),
   },
   { additionalProperties: false },
 );
@@ -27,6 +29,7 @@ export const CreateCustomerItemScoresCalculationConfigVersionBodySchema =
     {
       halfLifeDays: Type.Optional(Type.Integer({ minimum: 1 })),
       topN: Type.Optional(Type.Integer({ minimum: 1 })),
+      maxRecentOrders: Type.Optional(Type.Integer({ minimum: 1 })),
     },
     { additionalProperties: false, minProperties: 1 },
   );

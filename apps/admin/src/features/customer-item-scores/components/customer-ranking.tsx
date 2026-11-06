@@ -1,4 +1,6 @@
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ALL_DAY_DAYPART } from "@bonlift-ai/contracts";
 import { FieldHint } from "@/components/field-hint";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -9,7 +11,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { formatShare, getMaxValue, toBarWidth } from "@/features/outlet-item-scores/format";
+import { groupByDaypart } from "@/features/outlet-item-scores/ranking";
 import { getErrorMessage } from "@/lib/error-message";
 import { useRunCustomer } from "../queries";
 import type { CustomerItemScore } from "../type";
@@ -20,9 +24,11 @@ type CustomerRankingProps = {
 };
 
 export function CustomerRanking({ runId, customerId }: CustomerRankingProps) {
-  const { t, i18n } = useTranslation("customerScores");
+  const { t } = useTranslation("customerScores");
   const { t: tCommon } = useTranslation();
   const result = useRunCustomer(runId, customerId);
+  const groups = useMemo(() => groupByDaypart(result.data?.items ?? []), [result.data]);
+  const [selectedDaypart, setSelectedDaypart] = useState<string | undefined>();
 
   if (result.isPending) {
     return <Skeleton className="h-64 w-full" />;
@@ -35,12 +41,38 @@ export function CustomerRanking({ runId, customerId }: CustomerRankingProps) {
     );
   }
 
-  const items = result.data.items;
+  // The API already lists dayparts in config order. Fall back to the first when the selection isn't in this customer's lists
+  const dayparts = [...groups.keys()];
+  const daypart =
+    selectedDaypart && groups.has(selectedDaypart) ? selectedDaypart : dayparts[0];
+
+  return (
+    <div className="flex min-h-0 flex-col gap-4">
+      <ToggleGroup
+        type="single"
+        variant="outline"
+        value={daypart}
+        onValueChange={(value) => value && setSelectedDaypart(value)}
+        className="flex-wrap"
+      >
+        {dayparts.map((option) => (
+          <ToggleGroupItem key={option} value={option}>
+            {option === ALL_DAY_DAYPART ? t("ranking.allDay") : option}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
+      <DaypartRanking items={groups.get(daypart) ?? []} />
+    </div>
+  );
+}
+
+function DaypartRanking({ items }: { items: CustomerItemScore[] }) {
+  const { t, i18n } = useTranslation("customerScores");
   const topScore = getMaxValue(items.map((item) => item.score));
 
   return (
     // The Table's own container does the scrolling, so the sticky header stays inside the box
-    <div className="flex max-h-96 min-h-0 flex-col overflow-hidden rounded-xl border xl:max-h-none [&>[data-slot=table-container]]:min-h-0 [&>[data-slot=table-container]]:overflow-auto">
+    <div className="flex max-h-96 min-h-0 flex-1 flex-col overflow-hidden rounded-xl border xl:max-h-none [&>[data-slot=table-container]]:min-h-0 [&>[data-slot=table-container]]:overflow-auto">
       <Table>
         {/* Cells carry the background and rule: a stuck header loses the row border and lets rows show through */}
         <TableHeader className="sticky top-0 z-10 [&_th]:bg-card [&_th]:shadow-[inset_0_-1px_0_var(--border)]">

@@ -20,6 +20,7 @@ const VERSION_ROW = {
   created_at: CREATED_AT,
   half_life_days: 14,
   top_n: 20,
+  max_recent_orders: 8,
 };
 
 const queryMock = vi.fn();
@@ -65,6 +66,7 @@ describe("getLatestCustomerItemScoresCalculationConfigVersion", () => {
       createdAt: CREATED_AT.toISOString(),
       halfLifeDays: 14,
       topN: 20,
+      maxRecentOrders: 8,
     });
   });
 });
@@ -108,7 +110,7 @@ describe("createCustomerItemScoresCalculationConfigVersion", () => {
 
     expect(queryMock).toHaveBeenCalledWith(
       expect.stringContaining("customer_item_scores_calculation_config_versions"),
-      [BRAND_ID, "api", null, 10],
+      [BRAND_ID, "api", null, 10, null],
     );
   });
 });

@@ -111,6 +111,7 @@ function CustomerItemScoresConfigForm({
   const defaultValues: CreateCustomerItemScoresConfigVersionInput = {
     halfLifeDays: config.halfLifeDays,
     topN: config.topN,
+    maxRecentOrders: config.maxRecentOrders ?? undefined,
   };
   const {
     register,
@@ -180,6 +181,14 @@ function CustomerItemScoresConfigForm({
             readOnly={readOnly}
             error={errors.topN?.message}
             registration={register("topN", { valueAsNumber: true })}
+          />
+          <NumberField
+            id="customer-item-scores-max-recent-orders"
+            label={t("customerItemScoresConfig.maxRecentOrders")}
+            hint={t("customerItemScoresConfig.maxRecentOrdersHint")}
+            readOnly={readOnly}
+            error={errors.maxRecentOrders?.message}
+            registration={register("maxRecentOrders", { valueAsNumber: true })}
           />
         </div>
 

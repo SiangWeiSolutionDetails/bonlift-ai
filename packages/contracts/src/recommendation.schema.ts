@@ -27,15 +27,17 @@ export const RecommendationRequestSchema = Type.Object(
       description: "The outlet the order is placed at. Must belong to the brand of the API key.",
       examples: ["3f6c2a9e-8d1b-4c57-9a0e-2b7d4f1e6c35"],
     }),
-    // Local time with an explicit offset (D-T10). "Z" is rejected: the engine reads the local hour as written.
-    at: Type.String({
-      format: "date-time",
-      pattern: "[+-][0-9]{2}:[0-9]{2}$",
-      description:
-        "The outlet's local date and time of the order, with its UTC offset (RFC 3339). " +
-        'The offset is required and "Z" is rejected: the local hour selects the time-of-day recommendations.',
-      examples: ["2026-11-03T12:30:00+08:00"],
-    }),
+    // Matched exactly against the stored daypart names; missing is all_day. An unknown name returns no items.
+    daypart: Type.Optional(
+      Type.String({
+        minLength: 1,
+        description:
+          "The time-of-day period of the order, such as breakfast or lunch, using the names configured for the brand. " +
+          "Both popular items and the customer's favourites are taken from this period. Missing means the whole day. " +
+          "A name the brand has not configured returns no items.",
+        examples: ["lunch"],
+      }),
+    ),
     // Removed from the results and used to find items that go with it.
     cart: Type.Array(RecommendationCartItemSchema, {
       maxItems: 200,
@@ -67,7 +69,7 @@ export const RecommendationRequestSchema = Type.Object(
       Type.Integer({
         minimum: 1,
         maximum: 50,
-        description: "Maximum number of items to return. Defaults to every item in the published runs.",
+        description: "Maximum number of items to return. Defaults to every recommended item.",
       }),
     ),
     // Missing, null or blank is anonymous: no favourites.
@@ -104,11 +106,16 @@ export type RecommendationRequestSchemaType = Static<
 >;
 
 export const RecommendationReasonSchema = Type.Union(
-  [Type.Literal("popular_at_outlet"), Type.Literal("frequently_ordered")],
+  [
+    Type.Literal("popular_at_outlet"),
+    Type.Literal("frequently_ordered"),
+    Type.Literal("goes_with_cart"),
+  ],
   {
     description:
-      "Why the item is recommended: `frequently_ordered` is one of this customer's favourites, `popular_at_outlet` " +
-      "is popular at this outlet at this time of day. New reasons may be added: treat an unknown reason as a generic " +
+      "Why the item is recommended: `frequently_ordered` is one of this customer's favourites for this time of day, " +
+      "`goes_with_cart` is often ordered together with the items in the cart, " +
+      "`popular_at_outlet` is popular at this outlet at this time of day. New reasons may be added: treat an unknown reason as a generic " +
       "recommendation.",
   },
 );
@@ -145,8 +152,16 @@ export const RecommendationResponseSchema = Type.Object(
         "Opaque id of the customer results served. Quote it when reporting an issue. Null for an anonymous customer " +
         "or when none exist.",
     }),
+    // The item affinity run behind goes_with_cart items.
+    affinityRunId: Type.Union([Type.String({ format: "uuid" }), Type.Null()], {
+      description:
+        "Opaque id of the results used for items that go with the cart. Quote it when reporting an issue. " +
+        "Null when none exist.",
+    }),
     daypart: Type.Union([Type.String(), Type.Null()], {
-      description: "Name of the time-of-day period the `at` time fell in, as configured for the brand.",
+      description:
+        "The time-of-day period served: the requested `daypart`, or `all_day` when none was sent. " +
+        "Null when nothing is served, e.g. for an unknown outlet.",
       examples: ["lunch"],
     }),
     items: Type.Array(RecommendationItemSchema, {

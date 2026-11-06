@@ -16,7 +16,7 @@ WITH run AS (
     ON c.id = r.calculation_config_version_id
   WHERE r.id = $1
 ),
--- No dayparts configured: one whole-day list (P3-D6)
+-- Every configured daypart, plus a whole-day list (P3-D6) for requests that send no daypart
 dayparts AS (
   SELECT d.name, d.start, d."end"
   FROM run
@@ -24,7 +24,6 @@ dayparts AS (
   UNION ALL
   SELECT 'all_day', NULL, NULL
   FROM run
-  WHERE jsonb_array_length(run.dayparts) = 0
 ),
 -- One row per order; a duplicate orderId on the same date is kept once (P3-D4)
 orders AS (
@@ -75,7 +74,7 @@ date_weights AS MATERIALIZED (
   FROM run
   CROSS JOIN LATERAL generate_series(run.input_window_from, run.input_window_to, interval '1 day') AS g(day)
 ),
--- A daypart with start > end crosses midnight; orders outside every daypart are not counted (P3-D6)
+-- A daypart with start > end crosses midnight; orders outside every daypart only count towards all_day (P3-D6)
 scored_items AS (
   SELECT oi.order_date, oi.order_id, oi.item_id, d.name AS daypart, w.weight
   FROM order_items oi

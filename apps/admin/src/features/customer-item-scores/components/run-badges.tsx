@@ -31,6 +31,8 @@ export function RunConfigBadge({ run }: { run: CustomerItemScoresRun }) {
           <dd>{t("runs.halfLifeValue", { halfLifeDays: run.halfLifeDays })}</dd>
           <dt className="opacity-70">{t("runs.topNLabel")}</dt>
           <dd>{run.topN}</dd>
+          <dt className="opacity-70">{t("runs.maxRecentOrdersLabel")}</dt>
+          <dd>{run.maxRecentOrders ?? t("runs.noLimit")}</dd>
         </dl>
       </TooltipContent>
     </Tooltip>

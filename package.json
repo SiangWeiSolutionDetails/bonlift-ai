@@ -32,7 +32,6 @@
     "vitest": "^2.0.5"
   },
   "optionalDependencies": {
-    "@rolldown/binding-wasm32-wasi": "^1.2.3",
-    "@rolldown/binding-win32-x64": "*"
+    "@rolldown/binding-wasm32-wasi": "^1.2.3"
   }
 }

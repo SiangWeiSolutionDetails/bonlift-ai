@@ -16,6 +16,15 @@ type ApiErrorBody = {
 
 const API_BASE = "/api";
 
+// Dev/pilot stopgap until admin login (H1): this token is baked into the bundle and visible to anyone who loads the SPA.
+const ADMIN_TOKEN: string | undefined = import.meta.env.VITE_ADMIN_TOKEN;
+
+if (import.meta.env.DEV && !ADMIN_TOKEN) {
+  console.warn(
+    "VITE_ADMIN_TOKEN is not set, so admin API requests will fail with 401. Set it in apps/admin/.env.local to the same value as ADMIN_TOKEN.",
+  );
+}
+
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
@@ -26,6 +35,13 @@ export class ApiError extends Error {
     this.status = status;
     this.code = code;
   }
+}
+
+function buildHeaders(hasBody: boolean) {
+  const headers: Record<string, string> = {};
+  if (ADMIN_TOKEN) headers.Authorization = `Bearer ${ADMIN_TOKEN}`;
+  if (hasBody) headers["Content-Type"] = "application/json";
+  return headers;
 }
 
 function buildUrl(path: string, query?: Record<string, QueryValue>) {
@@ -68,7 +84,7 @@ export async function apiRequest<T>(
     res = await fetch(buildUrl(path, query), {
       method,
       signal,
-      headers: hasBody ? { "Content-Type": "application/json" } : undefined,
+      headers: buildHeaders(hasBody),
       body: hasBody ? JSON.stringify(body) : undefined,
     });
   } catch (error) {

@@ -40,23 +40,17 @@ orders AS (
   CROSS JOIN LATERAL jsonb_array_elements(os.orders) AS o
   ORDER BY os.order_date, o->>'orderId'
 ),
--- One row per item: each line plus its addons; modifiers ignored (P3-D1)
+-- Parent lines only: addons and modifiers are choices inside a line (required options, paid extras and set
+-- components alike), not menu items the diner picked on their own
 items AS (
   SELECT o.order_date,
          o.order_id,
          o.ordered_time,
-         i->>'itemId'               AS item_id,
-         (i->>'qty')::numeric       AS qty,
-         (i->>'unitPrice')::numeric AS unit_price
+         l->>'itemId'               AS item_id,
+         (l->>'qty')::numeric       AS qty,
+         (l->>'unitPrice')::numeric AS unit_price
   FROM orders o
   CROSS JOIN LATERAL jsonb_array_elements(o.lines) AS l
-  CROSS JOIN LATERAL (
-    SELECT l
-    UNION ALL
-    SELECT a FROM jsonb_array_elements(
-      CASE WHEN jsonb_typeof(l->'addons') = 'array' THEN l->'addons' END
-    ) AS a
-  ) AS x(i)
 ),
 -- One row per (order, item) with net qty > 0; negative prices dropped (P3-D7)
 order_items AS (

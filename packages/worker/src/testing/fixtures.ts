@@ -14,6 +14,8 @@ export interface OrderLineFixture {
   itemId: string;
   qty?: number;
   unitPrice?: number;
+  addons?: string[];
+  modifiers?: string[];
 }
 
 export interface OrderFixture {
@@ -163,6 +165,10 @@ export function order(
   };
 }
 
+function childItem(itemId: string) {
+  return { itemId, itemName: itemId, qty: 1, unitPrice: 1 };
+}
+
 export async function storeOrders(
   pool: Pool,
   outletId: string,
@@ -178,6 +184,8 @@ export async function storeOrders(
       itemName: line.itemId,
       qty: line.qty ?? 1,
       unitPrice: line.unitPrice ?? 5,
+      ...(line.addons && { addons: line.addons.map(childItem) }),
+      ...(line.modifiers && { modifiers: line.modifiers.map(childItem) }),
     })),
   }));
 

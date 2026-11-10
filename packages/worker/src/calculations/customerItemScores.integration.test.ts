@@ -57,6 +57,24 @@ async function scoresByDaypart(runId: string, customerId: string) {
 }
 
 describe("calculateCustomerItemScores (integration)", () => {
+  it("scores parent lines only, never their addons or modifiers", async () => {
+    const pool = getPool();
+    const brandId = await createBrandFixture(pool);
+    const outletId = await createOutletFixture(pool, brandId);
+    await storeOrders(pool, outletId, "2026-11-01", [
+      {
+        orderId: "O1",
+        orderedAt: "2026-11-01T12:00:00+08:00",
+        customerId: C1,
+        lines: [{ itemId: "NASI", addons: ["EGG"], modifiers: ["LESS_SPICY"] }],
+      },
+    ]);
+
+    const runId = await calculate(brandId, "2026-11-01", "2026-11-01");
+
+    expect(await scoresByDaypart(runId, C1)).toEqual({ all_day: { NASI: 1 } });
+  });
+
   it("stores a list per daypart plus an all_day list", async () => {
     const pool = getPool();
     const brandId = await createBrandFixture(pool, { dayparts: DAYPARTS });

@@ -63,25 +63,18 @@ orders AS (
   WHERE starts_with(btrim(o->>'customerId', E' \\t\\r\\n'), 'h1:')
   ORDER BY os.outlet_id, os.order_date, o->>'orderId', customer_id, lines, ordered_time
 ),
--- One row per item: each line plus its addons; modifiers ignored (P3-D1)
+-- Parent lines only, as in outlet item scores: addons and modifiers are choices inside a line
 items AS (
   SELECT o.outlet_id,
          o.order_date,
          o.order_id,
          o.customer_id,
          o.ordered_time,
-         i->>'itemId'               AS item_id,
-         (i->>'qty')::numeric       AS qty,
-         (i->>'unitPrice')::numeric AS unit_price
+         l->>'itemId'               AS item_id,
+         (l->>'qty')::numeric       AS qty,
+         (l->>'unitPrice')::numeric AS unit_price
   FROM orders o
   CROSS JOIN LATERAL jsonb_array_elements(o.lines) AS l
-  CROSS JOIN LATERAL (
-    SELECT l
-    UNION ALL
-    SELECT a FROM jsonb_array_elements(
-      CASE WHEN jsonb_typeof(l->'addons') = 'array' THEN l->'addons' END
-    ) AS a
-  ) AS x(i)
 ),
 -- One row per (order, item) with net qty > 0; negative prices dropped (P3-D7)
 order_items AS (

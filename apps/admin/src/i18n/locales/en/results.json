@@ -16,7 +16,7 @@
     "exampleTitle": "Example with a 14-day half-life",
     "exampleDays_one": "{{count}} day",
     "exampleDays_other": "{{count}} days",
-    "note": "The half-life is set per brand, and each run's value is shown in its config. The Orders column is an unweighted count."
+    "note": "Only parent items count: addons and modifiers inside a line are ignored. The half-life is set per brand, and each run's value is shown in its config. The Orders column is an unweighted count."
   },
   "picker": {
     "brand": "Brand",

@@ -319,14 +319,7 @@ export async function getCustomerItemScoresCustomerResult(
        AND os.order_date >= run.input_window_from
        AND os.order_date <= run.input_window_to
       CROSS JOIN LATERAL jsonb_array_elements(os.orders) AS o
-      CROSS JOIN LATERAL jsonb_array_elements(o->'lines') AS l
-      CROSS JOIN LATERAL (
-        SELECT l
-        UNION ALL
-        SELECT a FROM jsonb_array_elements(
-          CASE WHEN jsonb_typeof(l->'addons') = 'array' THEN l->'addons' END
-        ) AS a
-      ) AS x(i)
+      CROSS JOIN LATERAL jsonb_array_elements(o->'lines') AS i
       WHERE btrim(o->>'customerId', E' \\t\\r\\n') = $2
         AND i->>'itemId' IN (SELECT external_item_id FROM scores)
       ORDER BY i->>'itemId', os.order_date DESC

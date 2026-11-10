@@ -50,4 +50,29 @@ describe("calculateOutletItemScores (integration)", () => {
       { daypart: "breakfast", external_item_id: "TOAST" },
     ]);
   });
+
+  it("scores parent lines only, never their addons or modifiers", async () => {
+    const pool = getPool();
+    const brandId = await createBrandFixture(pool);
+    const outletId = await createOutletFixture(pool, brandId);
+    await storeOrders(pool, outletId, "2026-11-01", [
+      { orderId: "O1", orderedAt: "2026-11-01T12:00:00+08:00", lines: [{ itemId: "NASI", addons: ["EGG"], modifiers: ["LESS_SPICY"] }] },
+      { orderId: "O2", orderedAt: "2026-11-01T12:10:00+08:00", lines: [{ itemId: "MEE", addons: ["EGG"] }] },
+    ]);
+    const runId = await createRunFixture(pool, {
+      brandId,
+      outletId,
+      jobType: "outlet_item_scores",
+      from: "2026-11-01",
+      to: "2026-11-01",
+    });
+
+    await calculateOutletItemScores(pool, (await loadRun(pool, runId))!);
+
+    const result = await pool.query(
+      `SELECT external_item_id FROM outlet_item_scores WHERE run_id = $1 ORDER BY external_item_id;`,
+      [runId],
+    );
+    expect(result.rows.map((row) => row.external_item_id)).toEqual(["MEE", "NASI"]);
+  });
 });

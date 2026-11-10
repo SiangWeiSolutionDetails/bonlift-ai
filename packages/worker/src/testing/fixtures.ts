@@ -14,6 +14,7 @@ export interface OrderLineFixture {
   itemId: string;
   qty?: number;
   unitPrice?: number;
+  addons?: string[];
 }
 
 export interface OrderFixture {
@@ -178,6 +179,9 @@ export async function storeOrders(
       itemName: line.itemId,
       qty: line.qty ?? 1,
       unitPrice: line.unitPrice ?? 5,
+      ...(line.addons && {
+        addons: line.addons.map((itemId) => ({ itemId, itemName: itemId, qty: 1, unitPrice: 1 })),
+      }),
     })),
   }));
 

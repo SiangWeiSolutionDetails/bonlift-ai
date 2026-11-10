@@ -59,14 +59,20 @@ async function publishRun(
   return result.rows[0].id;
 }
 
-async function storeOutletScores(runId: string, rows: [daypart: string, itemId: string, rank: number][]) {
+async function storeOutletScores(
+  runId: string,
+  rows: [daypart: string, itemId: string, rank: number][],
+  itemRole: "main" | "addon" = "main",
+) {
   for (const [daypart, itemId, rank] of rows) {
     await getTestPool().query(
       `
-      INSERT INTO outlet_item_scores (run_id, run_date, brand_id, outlet_id, external_item_id, daypart, score, n_orders, rank)
-      VALUES ($1, current_date, $2, $3, $4, $5, 0.5, 5, $6);
+      INSERT INTO outlet_item_scores (
+        run_id, run_date, brand_id, outlet_id, external_item_id, daypart, item_role, score, n_orders, rank
+      )
+      VALUES ($1, current_date, $2, $3, $4, $5, $7, 0.5, 5, $6);
       `,
-      [runId, brandId, outletId, itemId, daypart, rank],
+      [runId, brandId, outletId, itemId, daypart, rank, itemRole],
     );
   }
 }
@@ -219,6 +225,51 @@ describe("getRecommendations (integration)", () => {
         { itemId: "D3", rank: 1, reason: "popular_at_outlet", detail: { bestSeller: true } },
         { itemId: "D4", rank: 2, reason: "popular_at_outlet" },
       ]);
+    });
+  });
+
+  describe("add-ons", () => {
+    beforeEach(async () => {
+      await storeOutletScores(
+        outletRunId,
+        [
+          ["dinner", "EGG", 1],
+          ["dinner", "SAMBAL", 2],
+          ["dinner", "CHEESE", 3],
+          ["breakfast", "BUTTER", 1],
+        ],
+        "addon",
+      );
+    });
+
+    async function served(request: Partial<Parameters<typeof getRecommendations>[3]>) {
+      return recommend(getTestPool(), silentLog, brandId, { outletId, cart: [], daypart: "dinner", ...request });
+    }
+
+    it("serves the daypart's add-ons in their own list, never in items", async () => {
+      const response = await served({});
+
+      expect(response.items.map((item) => item.itemId)).toEqual(["RICE"]);
+      expect(response.addons).toEqual([
+        { itemId: "EGG", rank: 1, reason: "popular_at_outlet" },
+        { itemId: "SAMBAL", rank: 2, reason: "popular_at_outlet" },
+        { itemId: "CHEESE", rank: 3, reason: "popular_at_outlet" },
+      ]);
+    });
+
+    it("applies cart, exclude, include and limit to the add-ons", async () => {
+      const response = await served({
+        cart: cartOf("EGG"),
+        exclude: ["SAMBAL"],
+        include: ["RICE", "EGG", "SAMBAL", "CHEESE"],
+        limit: 1,
+      });
+
+      expect(response.addons.map((item) => item.itemId)).toEqual(["CHEESE"]);
+    });
+
+    it("serves no add-ons for a daypart the brand has not configured", async () => {
+      expect((await served({ daypart: "supper" })).addons).toEqual([]);
     });
   });
 

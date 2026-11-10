@@ -39,6 +39,8 @@ const BEST_SELLER_MIN_LIST_SIZE = 10;
 // with, for favourites and cart partners), top_pair_confidence, top_pair_lift and top_pair_sample (the first
 // based_on pair's confidence, lift and n_item_a, for cart partners), outlet_rank and outlet_list_size (the stored
 // rank and the size of the outlet's daypart list before cart, exclude and include filtering, for popular items).
+// Popular items are mains only. Add-ons are a separate list (S3-04) under the same cart, exclude, include and limit
+// rules, never deduplicated against the items: list says which of the two a row belongs to.
 // Returns no rows for an unknown, inactive or deleted outlet; otherwise at least one row, with a NULL run or item
 // when none matches. Another brand's outlet is served nothing.
 const SERVE_RECOMMENDATIONS_SQL = `
@@ -174,6 +176,7 @@ candidates AS (
       ON s.run_id = p.run_id
      AND s.outlet_id = o.id
      AND s.daypart = d.name
+     AND s.item_role = 'main'
   ) l
   WHERE l.external_item_id <> ALL($3)
 ),
@@ -190,9 +193,41 @@ ranked AS (
   ) unique_items
   ORDER BY priority, rank
   LIMIT $4
+),
+addon_ranked AS (
+  SELECT l.rank, l.external_item_id, l.list_size
+  FROM (
+    SELECT s.rank, s.external_item_id, (count(*) OVER ())::int AS list_size
+    FROM outlet o
+    JOIN published p
+      ON TRUE
+    JOIN daypart d
+      ON TRUE
+    JOIN outlet_item_scores s
+      ON s.run_id = p.run_id
+     AND s.outlet_id = o.id
+     AND s.daypart = d.name
+     AND s.item_role = 'addon'
+  ) l
+  WHERE l.external_item_id <> ALL($3)
+    AND (
+      cardinality($9::text[]) = 0
+      OR l.external_item_id = ANY($9)
+    )
+  ORDER BY l.rank
+  LIMIT $4
+),
+served AS (
+  SELECT 'items' AS list, priority, source, rank, external_item_id, based_on, top_pair_confidence, top_pair_lift,
+         top_pair_sample, outlet_rank, outlet_list_size
+  FROM ranked
+  UNION ALL
+  SELECT 'addons', 3, 'outlet', rank, external_item_id, NULL, NULL, NULL,
+         NULL, rank, list_size
+  FROM addon_ranked
 )
 SELECT o.in_brand, p.run_id, cr.run_id AS customer_run_id, ar.run_id AS affinity_run_id, d.name AS daypart,
-       r.external_item_id, r.source, r.based_on, r.top_pair_confidence, r.top_pair_lift, r.top_pair_sample,
+       r.list, r.external_item_id, r.source, r.based_on, r.top_pair_confidence, r.top_pair_lift, r.top_pair_sample,
        r.outlet_rank, r.outlet_list_size
 FROM outlet o
 LEFT JOIN published p
@@ -203,9 +238,9 @@ LEFT JOIN affinity_run ar
   ON TRUE
 LEFT JOIN daypart d
   ON TRUE
-LEFT JOIN ranked r
+LEFT JOIN served r
   ON TRUE
-ORDER BY r.priority, r.rank;
+ORDER BY r.list, r.priority, r.rank;
 `;
 
 const NO_RECOMMENDATIONS: RecommendationResponseSchemaType = {
@@ -214,6 +249,7 @@ const NO_RECOMMENDATIONS: RecommendationResponseSchemaType = {
   affinityRunId: null,
   daypart: null,
   items: [],
+  addons: [],
 };
 
 const REASON_BY_SOURCE = {
@@ -228,6 +264,7 @@ interface ServedRow {
   customer_run_id: string | null;
   affinity_run_id: string | null;
   daypart: string | null;
+  list: "items" | "addons" | null;
   external_item_id: string | null;
   source: keyof typeof REASON_BY_SOURCE | null;
   based_on: string[] | null;
@@ -295,9 +332,8 @@ function toResponse(rows: ServedRow[]): RecommendationResponseSchemaType {
     customerRunId: first.customer_run_id,
     affinityRunId: first.affinity_run_id,
     daypart: first.daypart,
-    items: rows
-      .filter((row) => row.external_item_id !== null)
-      .map(toItem),
+    items: rows.filter((row) => row.list === "items").map(toItem),
+    addons: rows.filter((row) => row.list === "addons").map(toItem),
   };
 }
 

@@ -17,6 +17,7 @@ const NO_RECOMMENDATIONS = {
   affinityRunId: null,
   daypart: null,
   items: [],
+  addons: [],
 };
 
 const queryMock = vi.fn();
@@ -45,6 +46,7 @@ function itemRow(itemId: string | null, daypart: string | null = "Lunch") {
     customer_run_id: null,
     affinity_run_id: null,
     daypart,
+    list: itemId === null ? null : "items",
     external_item_id: itemId,
     source: itemId === null ? null : "outlet",
     ...NO_DETAIL_COLUMNS,
@@ -58,6 +60,7 @@ function favouriteRow(itemId: string, runId: string | null = RUN_ID) {
     customer_run_id: CUSTOMER_RUN_ID,
     affinity_run_id: null,
     daypart: runId === null ? null : "Lunch",
+    list: "items",
     external_item_id: itemId,
     source: "customer",
     ...NO_DETAIL_COLUMNS,
@@ -71,6 +74,7 @@ function cartRow(itemId: string, pair: Record<string, unknown> = {}) {
     customer_run_id: null,
     affinity_run_id: AFFINITY_RUN_ID,
     daypart: "Lunch",
+    list: "items",
     external_item_id: itemId,
     source: "cart",
     ...NO_DETAIL_COLUMNS,
@@ -112,6 +116,7 @@ function emptyOutletRow(inBrand = true) {
     customer_run_id: null,
     affinity_run_id: null,
     daypart: null,
+    list: null,
     external_item_id: null,
     source: null,
     ...NO_DETAIL_COLUMNS,
@@ -142,7 +147,26 @@ describe("getRecommendations", () => {
         { itemId: "B", rank: 2, reason: "popular_at_outlet" },
         { itemId: "C", rank: 3, reason: "popular_at_outlet" },
       ],
+      addons: [],
     });
+  });
+
+  it("returns add-ons in their own list, ranked by position there", async () => {
+    queryMock.mockResolvedValueOnce(
+      pgResult([
+        { ...itemRow("EGG"), list: "addons" },
+        { ...itemRow("SAMBAL"), list: "addons" },
+        itemRow("NASI"),
+      ]),
+    );
+
+    const result = await recommend();
+
+    expect(result.items).toStrictEqual([{ itemId: "NASI", rank: 1, reason: "popular_at_outlet" }]);
+    expect(result.addons).toStrictEqual([
+      { itemId: "EGG", rank: 1, reason: "popular_at_outlet" },
+      { itemId: "SAMBAL", rank: 2, reason: "popular_at_outlet" },
+    ]);
   });
 
   it("puts favourites first with their own reason, keeping the query's order", async () => {
@@ -166,6 +190,7 @@ describe("getRecommendations", () => {
         { itemId: "F2", rank: 2, reason: "frequently_ordered" },
         { itemId: "A", rank: 3, reason: "popular_at_outlet" },
       ],
+      addons: [],
     });
   });
 
@@ -200,6 +225,7 @@ describe("getRecommendations", () => {
           customer_run_id: null,
           affinity_run_id: AFFINITY_RUN_ID,
           daypart: "all_day",
+          list: "items",
           external_item_id: "P1",
           source: "cart",
           ...NO_DETAIL_COLUMNS,
@@ -213,6 +239,7 @@ describe("getRecommendations", () => {
       affinityRunId: AFFINITY_RUN_ID,
       daypart: "all_day",
       items: [{ itemId: "P1", rank: 1, reason: "goes_with_cart" }],
+      addons: [],
     });
   });
 
@@ -225,6 +252,7 @@ describe("getRecommendations", () => {
       affinityRunId: null,
       daypart: null,
       items: [{ itemId: "F1", rank: 1, reason: "frequently_ordered" }],
+      addons: [],
     });
   });
 
@@ -370,6 +398,7 @@ describe("getRecommendations", () => {
       affinityRunId: null,
       daypart: "Supper",
       items: [],
+      addons: [],
     });
   });
 

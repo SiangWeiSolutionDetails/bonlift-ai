@@ -1,13 +1,14 @@
-import { useEffect, useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { normaliseCustomerId } from "@bonlift-ai/contracts";
+import { FieldError } from "@/components/field-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
-import { useRunCustomers } from "../queries";
-
-const SEARCH_DEBOUNCE_MS = 300;
+import { shortCustomerId } from "../customer-id";
+import { useRunCustomerSearch, useRunCustomers } from "../queries";
 
 type CustomerListProps = {
   runId: string;
@@ -24,27 +25,60 @@ export function CustomerList({
   const { t: tCommon } = useTranslation();
   const [searchText, setSearchText] = useState("");
   const [search, setSearch] = useState<string | undefined>();
+  const [isInvalid, setIsInvalid] = useState(false);
 
-  useEffect(() => {
-    const timer = setTimeout(
-      () => setSearch(searchText.trim() || undefined),
-      SEARCH_DEBOUNCE_MS,
-    );
-    return () => clearTimeout(timer);
-  }, [searchText]);
+  // Sent only on submit and only when valid, with the same rules the API applies, so a partial number is never sent
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const normalised = normaliseCustomerId(searchText);
+    setIsInvalid(normalised.status === "invalid");
+    if (normalised.status === "valid") setSearch(normalised.value);
+    if (normalised.status === "anonymous") setSearch(undefined);
+  }
 
-  const customers = useRunCustomers(runId, search);
-  const rows = customers.data?.pages.flatMap((page) => page.customers) ?? [];
+  function clearSearch() {
+    setSearchText("");
+    setSearch(undefined);
+    setIsInvalid(false);
+  }
+
+  const list = useRunCustomers(runId);
+  const found = useRunCustomerSearch(runId, search);
+  const customers = search ? found : list;
+  const rows = search
+    ? (found.data?.customers ?? [])
+    : (list.data?.pages.flatMap((page) => page.customers) ?? []);
 
   return (
     <div className="flex min-h-0 flex-col gap-3">
-      <Input
-        type="search"
-        aria-label={t("customers.search")}
-        placeholder={t("customers.search")}
-        value={searchText}
-        onChange={(event) => setSearchText(event.target.value)}
-      />
+      <form onSubmit={onSubmit} className="grid gap-1.5">
+        <div className="flex gap-2">
+          <Input
+            type="search"
+            aria-label={t("customers.search")}
+            aria-invalid={isInvalid}
+            aria-describedby="customer-search-hint"
+            placeholder={t("customers.search")}
+            value={searchText}
+            onChange={(event) => {
+              setSearchText(event.target.value);
+              setIsInvalid(false);
+            }}
+          />
+          <Button type="submit" variant="outline">
+            {t("customers.find")}
+          </Button>
+          {search && (
+            <Button type="button" variant="ghost" onClick={clearSearch}>
+              {t("customers.clear")}
+            </Button>
+          )}
+        </div>
+        <p id="customer-search-hint" className="text-xs text-muted-foreground">
+          {t("customers.searchHint")}
+        </p>
+        {isInvalid && <FieldError message={t("customers.searchInvalid")} />}
+      </form>
 
       {customers.isPending && <Skeleton className="h-40 w-full" />}
 
@@ -73,8 +107,8 @@ export function CustomerList({
                   customer.customerId === selectedCustomerId && "bg-primary/10 font-medium",
                 )}
               >
-                <span className="min-w-0 truncate" title={customer.customerId}>
-                  {customer.customerId}
+                <span className="min-w-0 truncate font-mono text-xs" title={customer.customerId}>
+                  {shortCustomerId(customer.customerId)}
                 </span>
                 <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                   {t("customers.itemCount", { count: customer.itemCount })}
@@ -85,13 +119,13 @@ export function CustomerList({
         </ul>
       )}
 
-      {customers.hasNextPage && (
+      {!search && list.hasNextPage && (
         <Button
           type="button"
           variant="outline"
           size="sm"
-          disabled={customers.isFetchingNextPage}
-          onClick={() => customers.fetchNextPage()}
+          disabled={list.isFetchingNextPage}
+          onClick={() => list.fetchNextPage()}
         >
           {t("customers.loadMore")}
         </Button>

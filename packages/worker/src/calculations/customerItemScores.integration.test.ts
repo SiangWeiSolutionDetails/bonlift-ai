@@ -12,6 +12,9 @@ import {
 } from "../testing/fixtures.js";
 import { calculateCustomerItemScores } from "./customerItemScores.js";
 
+// Stored ids are HMAC hashes (CUS-02); the worker only needs their shape.
+const C1 = `h1:${"c1".repeat(32)}`;
+
 const DAYPARTS = [
   { name: "breakfast", start: "06:00", end: "11:00" },
   { name: "dinner", start: "17:00", end: "22:00" },
@@ -59,16 +62,16 @@ describe("calculateCustomerItemScores (integration)", () => {
     const brandId = await createBrandFixture(pool, { dayparts: DAYPARTS });
     const outletId = await createOutletFixture(pool, brandId);
     await storeOrders(pool, outletId, "2026-11-01", [
-      order("B1", "2026-11-01T08:00:00+08:00", ["TOAST"], "C1"),
-      order("B2", "2026-11-01T09:00:00+08:00", ["TOAST", "KOPI"], "C1"),
-      order("D1", "2026-11-01T18:00:00+08:00", ["RICE"], "C1"),
-      order("D2", "2026-11-01T19:00:00+08:00", ["RICE", "TEH"], "C1"),
-      order("L1", "2026-11-01T13:00:00+08:00", ["NOODLE"], "C1"),
+      order("B1", "2026-11-01T08:00:00+08:00", ["TOAST"], C1),
+      order("B2", "2026-11-01T09:00:00+08:00", ["TOAST", "KOPI"], C1),
+      order("D1", "2026-11-01T18:00:00+08:00", ["RICE"], C1),
+      order("D2", "2026-11-01T19:00:00+08:00", ["RICE", "TEH"], C1),
+      order("L1", "2026-11-01T13:00:00+08:00", ["NOODLE"], C1),
     ]);
 
     const runId = await calculate(brandId, "2026-11-01", "2026-11-01");
 
-    expect(await scoresByDaypart(runId, "C1")).toEqual({
+    expect(await scoresByDaypart(runId, C1)).toEqual({
       breakfast: { TOAST: 2, KOPI: 1 },
       dinner: { RICE: 2, TEH: 1 },
       // The 13:00 order is outside every daypart, so it only counts towards all_day
@@ -81,7 +84,7 @@ describe("calculateCustomerItemScores (integration)", () => {
     const brandId = await createBrandFixture(pool, { dayparts: DAYPARTS });
     const outletId = await createOutletFixture(pool, brandId);
     await storeOrders(pool, outletId, "2026-11-01", [
-      order("B1", "2026-11-01T08:00:00+08:00", ["TOAST"], "C1"),
+      order("B1", "2026-11-01T08:00:00+08:00", ["TOAST"], C1),
     ]);
     const runId = await createRunFixture(pool, {
       brandId,
@@ -93,7 +96,7 @@ describe("calculateCustomerItemScores (integration)", () => {
     await addOutletConfigVersion(pool, brandId, [{ name: "morning", start: "05:00", end: "12:00" }]);
     await calculateRun(runId);
 
-    expect(Object.keys(await scoresByDaypart(runId, "C1")).sort()).toEqual(["all_day", "breakfast"]);
+    expect(Object.keys(await scoresByDaypart(runId, C1)).sort()).toEqual(["all_day", "breakfast"]);
   });
 
   it("scores only the latest orders in each daypart when a limit is set", async () => {
@@ -102,19 +105,19 @@ describe("calculateCustomerItemScores (integration)", () => {
     await addCustomerConfigVersion(pool, brandId, 2);
     const outletId = await createOutletFixture(pool, brandId);
     await storeOrders(pool, outletId, "2026-11-01", [
-      order("B1", "2026-11-01T08:00:00+08:00", ["OLD"], "C1"),
-      order("D1", "2026-11-01T18:00:00+08:00", ["RICE"], "C1"),
+      order("B1", "2026-11-01T08:00:00+08:00", ["OLD"], C1),
+      order("D1", "2026-11-01T18:00:00+08:00", ["RICE"], C1),
     ]);
     await storeOrders(pool, outletId, "2026-11-02", [
-      order("B2", "2026-11-02T08:00:00+08:00", ["MID"], "C1"),
+      order("B2", "2026-11-02T08:00:00+08:00", ["MID"], C1),
     ]);
     await storeOrders(pool, outletId, "2026-11-03", [
-      order("B3", "2026-11-03T08:00:00+08:00", ["NEW"], "C1"),
+      order("B3", "2026-11-03T08:00:00+08:00", ["NEW"], C1),
     ]);
 
     const runId = await calculate(brandId, "2026-11-01", "2026-11-03");
 
-    expect(await scoresByDaypart(runId, "C1")).toEqual({
+    expect(await scoresByDaypart(runId, C1)).toEqual({
       breakfast: { NEW: 1, MID: 1 },
       // Dinner has its own latest orders: the breakfast orders don't push RICE out
       dinner: { RICE: 1 },
@@ -128,17 +131,35 @@ describe("calculateCustomerItemScores (integration)", () => {
     await addCustomerConfigVersion(pool, brandId, null);
     const outletId = await createOutletFixture(pool, brandId);
     await storeOrders(pool, outletId, "2026-11-01", [
-      order("B1", "2026-11-01T08:00:00+08:00", ["OLD"], "C1"),
+      order("B1", "2026-11-01T08:00:00+08:00", ["OLD"], C1),
     ]);
     await storeOrders(pool, outletId, "2026-11-02", [
-      order("B2", "2026-11-02T08:00:00+08:00", ["MID"], "C1"),
+      order("B2", "2026-11-02T08:00:00+08:00", ["MID"], C1),
     ]);
     await storeOrders(pool, outletId, "2026-11-03", [
-      order("B3", "2026-11-03T08:00:00+08:00", ["NEW"], "C1"),
+      order("B3", "2026-11-03T08:00:00+08:00", ["NEW"], C1),
     ]);
 
     const runId = await calculate(brandId, "2026-11-01", "2026-11-03");
 
-    expect((await scoresByDaypart(runId, "C1")).breakfast).toEqual({ NEW: 1, MID: 1, OLD: 1 });
+    expect((await scoresByDaypart(runId, C1)).breakfast).toEqual({ NEW: 1, MID: 1, OLD: 1 });
+  });
+
+  it("never scores a plaintext id stored before hashing", async () => {
+    const pool = getPool();
+    const brandId = await createBrandFixture(pool, { dayparts: DAYPARTS });
+    const outletId = await createOutletFixture(pool, brandId);
+    await storeOrders(pool, outletId, "2026-11-01", [
+      order("P1", "2026-11-01T08:00:00+08:00", ["TOAST"], "6591234567"),
+      order("H1", "2026-11-01T09:00:00+08:00", ["KOPI"], C1),
+    ]);
+
+    const runId = await calculate(brandId, "2026-11-01", "2026-11-01");
+
+    const ids = await pool.query(
+      "SELECT DISTINCT customer_external_id FROM customer_item_scores WHERE run_id = $1",
+      [runId],
+    );
+    expect(ids.rows.map((row) => row.customer_external_id)).toEqual([C1]);
   });
 });

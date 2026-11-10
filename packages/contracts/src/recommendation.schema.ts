@@ -85,9 +85,10 @@ export const RecommendationRequestSchema = Type.Object(
     customerId: Type.Optional(
       Type.Union([Type.String(), Type.Null()], {
         description:
-          "Your customer id, as used in the order data you send us. Missing, null or blank means an anonymous " +
-          "customer, who gets no personal favourites.",
-        examples: ["CUST-000123"],
+          "The customer's mobile number with its country dial code and no \"+\" (e.g. 6591234567), or their email " +
+          "address, exactly as in the order data you send us. Any other value is rejected with 400. Missing, null " +
+          "or blank means an anonymous customer, who gets no personal favourites.",
+        examples: ["6591234567"],
       }),
     ),
     channel: Type.Optional(ServingChannelSchema),

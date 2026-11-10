@@ -7,6 +7,8 @@ import {
   CustomerItemScoresCustomerParamsSchema,
   CustomerItemScoresCustomerParamsSchemaType,
   CustomerItemScoresCustomerResultSchema,
+  CustomerItemScoresCustomerSearchBodySchema,
+  CustomerItemScoresCustomerSearchBodySchemaType,
   CustomerItemScoresRunListQuerySchema,
   CustomerItemScoresRunListQuerySchemaType,
   CustomerItemScoresRunListSchema,
@@ -18,11 +20,13 @@ import {
 } from "@bonlift-ai/contracts";
 import { getPool } from "@bonlift-ai/db";
 import { FastifyInstance } from "fastify";
+import { readCustomerIdSecret } from "../config/env.js";
 import {
   getCustomerItemScoresCustomerResult,
   getCustomerItemScoresCustomers,
   getCustomerItemScoresRuns,
   publishCustomerItemScoresRun,
+  searchCustomerItemScoresCustomer,
 } from "../services/customerItemScoresResult.service.js";
 
 export async function customerItemScoresResultRoutes(app: FastifyInstance) {
@@ -86,10 +90,29 @@ export async function customerItemScoresResultRoutes(app: FastifyInstance) {
     },
     (request) => {
       const pool = getPool();
-      return getCustomerItemScoresCustomers(
+      return getCustomerItemScoresCustomers(pool, request.params.runId, request.query);
+    },
+  );
+
+  app.post<{
+    Params: RunParamsSchemaType;
+    Body: CustomerItemScoresCustomerSearchBodySchemaType;
+  }>(
+    "/runs/:runId/customer-item-scores/customers/search",
+    {
+      schema: {
+        params: RunParamsSchema,
+        body: CustomerItemScoresCustomerSearchBodySchema,
+        response: { 200: CustomerItemScoresCustomerListSchema },
+      },
+    },
+    (request) => {
+      const pool = getPool();
+      return searchCustomerItemScoresCustomer(
         pool,
         request.params.runId,
-        request.query,
+        request.body,
+        readCustomerIdSecret(),
       );
     },
   );

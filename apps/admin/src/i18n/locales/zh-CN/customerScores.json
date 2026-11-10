@@ -52,7 +52,11 @@
     "publishConfirmDescription": "{{window}} 的评分将立即替换该品牌当前生效的顾客评分。"
   },
   "customers": {
-    "search": "按顾客 ID 搜索",
+    "search": "按手机号码或电子邮箱查找顾客",
+    "find": "查找",
+    "clear": "清除",
+    "searchHint": "顾客 ID 以哈希形式存储，因此只能精确匹配。请输入带国家代码、不含“+”的完整手机号码（例如 6591234567），或电子邮箱地址。",
+    "searchInvalid": "请输入带国家代码、不含“+”的手机号码（8–15 位数字），或电子邮箱地址。",
     "empty": "没有匹配的顾客。",
     "itemCount_one": "{{count}} 件商品",
     "itemCount_other": "{{count}} 件商品",

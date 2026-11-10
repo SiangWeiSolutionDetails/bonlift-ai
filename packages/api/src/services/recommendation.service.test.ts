@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ValidationError } from "../errors.js";
+import { hashCustomerId } from "../utils/customerIdHash.js";
 import { pgResult } from "../utils/pg.test-helpers.js";
 import { getRecommendations } from "./recommendation.service.js";
 
@@ -7,6 +8,7 @@ const OUTLET_ID = "11111111-1111-1111-1111-111111111111";
 const BRAND_ID = "33333333-3333-3333-3333-333333333333";
 const RUN_ID = "22222222-2222-2222-2222-222222222222";
 const CUSTOMER_RUN_ID = "44444444-4444-4444-4444-444444444444";
+const SECRET = "test-secret-0123456789abcdef0123456789abcdef";
 const AFFINITY_RUN_ID = "55555555-5555-5555-5555-555555555555";
 const REQUEST = { outletId: OUTLET_ID, cart: [] };
 const NO_RECOMMENDATIONS = {
@@ -24,7 +26,7 @@ const logWarnMock = vi.fn();
 const fakeLog = { error: logErrorMock, warn: logWarnMock } as any;
 
 function recommend(request: any = REQUEST) {
-  return getRecommendations(fakePool, fakeLog, BRAND_ID, request);
+  return getRecommendations(fakePool, fakeLog, BRAND_ID, request, SECRET);
 }
 
 function itemRow(itemId: string | null, daypart: string | null = "Lunch") {
@@ -107,7 +109,7 @@ describe("getRecommendations", () => {
       ]),
     );
 
-    const result = await recommend({ ...REQUEST, customerId: "C1" });
+    const result = await recommend({ ...REQUEST, customerId: "6591234567" });
 
     expect(result).toStrictEqual({
       runId: RUN_ID,
@@ -133,7 +135,7 @@ describe("getRecommendations", () => {
 
     const result = await recommend({
       ...REQUEST,
-      customerId: "C1",
+      customerId: "6591234567",
       cart: [{ itemId: "X", qty: 1 }],
     });
 
@@ -171,7 +173,7 @@ describe("getRecommendations", () => {
   it("returns favourites when the outlet has no published run", async () => {
     queryMock.mockResolvedValueOnce(pgResult([favouriteRow("F1", null)]));
 
-    expect(await recommend({ ...REQUEST, customerId: "C1" })).toStrictEqual({
+    expect(await recommend({ ...REQUEST, customerId: "6591234567" })).toStrictEqual({
       runId: null,
       customerRunId: CUSTOMER_RUN_ID,
       affinityRunId: null,
@@ -265,15 +267,28 @@ describe("getRecommendations", () => {
     );
   });
 
-  it("passes the customer id without surrounding whitespace", async () => {
+  it.each([
+    { label: "a mobile number", customerId: " 6591234567\t", normalised: "6591234567" },
+    { label: "an email, lower-cased", customerId: "Tan@Mail.COM", normalised: "tan@mail.com" },
+  ])("looks up $label by its hash, never the plain id", async ({ customerId, normalised }) => {
     queryMock.mockResolvedValueOnce(pgResult([]));
 
-    await recommend({ ...REQUEST, customerId: " C1\t" });
+    await recommend({ ...REQUEST, customerId });
 
     expect(queryMock).toHaveBeenCalledWith(
       expect.any(String),
-      queryParams({ 7: "C1" }),
+      queryParams({ 7: hashCustomerId(SECRET, normalised) }),
     );
+  });
+
+  it.each([
+    ["has a leading +", "+6591234567"],
+    ["uses the legacy name prefix", "tan-6591234567"],
+    ["is too short", "6512345"],
+    ["is not an email", "tan@mail"],
+  ])("throws ValidationError without querying when the customer id %s", async (_name, customerId) => {
+    await expect(recommend({ ...REQUEST, customerId })).rejects.toThrow(ValidationError);
+    expect(queryMock).not.toHaveBeenCalled();
   });
 
   it.each([

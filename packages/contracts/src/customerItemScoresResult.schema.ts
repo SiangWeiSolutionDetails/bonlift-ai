@@ -58,12 +58,21 @@ export const CustomerItemScoresCustomerListQuerySchema = Type.Object(
   {
     limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 200 })),
     after: Type.Optional(Type.String({ minLength: 1 })),
-    search: Type.Optional(Type.String({ minLength: 1 })),
   },
   { additionalProperties: false },
 );
 export type CustomerItemScoresCustomerListQuerySchemaType = Static<
   typeof CustomerItemScoresCustomerListQuerySchema
+>;
+
+// A POST body, not a query string: the plain mobile number or email must never appear in a URL, where request and
+// proxy logs record it.
+export const CustomerItemScoresCustomerSearchBodySchema = Type.Object(
+  { customerId: Type.String({ minLength: 1, maxLength: 320 }) },
+  { additionalProperties: false },
+);
+export type CustomerItemScoresCustomerSearchBodySchemaType = Static<
+  typeof CustomerItemScoresCustomerSearchBodySchema
 >;
 
 export const CustomerItemScoresCustomerListSchema = Type.Object(

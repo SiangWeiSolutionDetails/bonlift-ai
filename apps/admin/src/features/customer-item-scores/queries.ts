@@ -10,6 +10,7 @@ import {
   listCustomerItemScoresRuns,
   listRunCustomers,
   publishCustomerItemScoresRun,
+  searchRunCustomer,
   startCustomerItemScoresRun,
 } from "./api";
 import type { CustomerItemScoresRun, StartRunInput } from "./type";
@@ -20,8 +21,11 @@ export const customerItemScoresKeys = {
   all: ["customer-item-scores"] as const,
   runs: (brandId: string) =>
     [...customerItemScoresKeys.all, "runs", brandId] as const,
-  customers: (runId: string, search: string | undefined) =>
-    [...customerItemScoresKeys.all, "customers", runId, search] as const,
+  customers: (runId: string) =>
+    [...customerItemScoresKeys.all, "customers", runId] as const,
+  // Holds the normalised id in the client cache only; it is sent in a POST body, never in a URL.
+  customerSearch: (runId: string, customerId: string) =>
+    [...customerItemScoresKeys.all, "customer-search", runId, customerId] as const,
   customer: (runId: string, customerId: string) =>
     [...customerItemScoresKeys.all, "customer", runId, customerId] as const,
 };
@@ -43,13 +47,24 @@ export function useCustomerItemScoresRuns(brandId: string | undefined) {
 }
 
 // A finished run never changes, so its results are cached for the session.
-export function useRunCustomers(runId: string, search: string | undefined) {
+export function useRunCustomers(runId: string) {
   return useInfiniteQuery({
-    queryKey: customerItemScoresKeys.customers(runId, search),
+    queryKey: customerItemScoresKeys.customers(runId),
     queryFn: ({ pageParam, signal }) =>
-      listRunCustomers(runId, { after: pageParam, search }, signal),
+      listRunCustomers(runId, { after: pageParam }, signal),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextAfter ?? undefined,
+    staleTime: Infinity,
+  });
+}
+
+// Runs only for a submitted, valid id, so partial numbers typed into the box are never sent.
+export function useRunCustomerSearch(runId: string, customerId: string | undefined) {
+  return useQuery({
+    queryKey: customerItemScoresKeys.customerSearch(runId, customerId ?? ""),
+    queryFn: customerId
+      ? ({ signal }) => searchRunCustomer(runId, customerId, signal)
+      : skipToken,
     staleTime: Infinity,
   });
 }

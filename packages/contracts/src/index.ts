@@ -24,3 +24,4 @@ export * from "./brandApiKey.schema.js";
 export * from "./brandUsage.schema.js";
 export * from "./brandCalculationSchedule.schema.js";
 export * from "./brandChannel.schema.js";
+export * from "./customerId.js";

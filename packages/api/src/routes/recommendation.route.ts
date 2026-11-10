@@ -6,6 +6,7 @@ import {
 } from "@bonlift-ai/contracts";
 import { getPool } from "@bonlift-ai/db";
 import { FastifyInstance } from "fastify";
+import { readCustomerIdSecret } from "../config/env.js";
 import { getRecommendations } from "../services/recommendation.service.js";
 
 export async function recommendationRoutes(app: FastifyInstance) {
@@ -33,6 +34,7 @@ export async function recommendationRoutes(app: FastifyInstance) {
         request.log,
         request.servingBrandId as string,
         request.body,
+        readCustomerIdSecret(),
       );
     },
   );

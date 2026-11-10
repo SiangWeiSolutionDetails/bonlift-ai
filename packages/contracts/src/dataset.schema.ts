@@ -20,6 +20,8 @@ export const DatasetOrderSchema = Type.Object({
   orderId: Type.String({ minLength: 1 }),
   orderedAt: Type.String({ format: "date-time" }),
   orderTotal: Type.Number({ minimum: 0 }),
+  // A mobile number with country code and no "+", or an email (see customerId.ts). Hashed before storing; a malformed
+  // id makes the order anonymous instead of rejecting the upload.
   customerId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
   lines: Type.Array(DatasetLineSchema),
 });
@@ -45,6 +47,8 @@ export const DatasetResultSchema = Type.Object(
         {
           date: Type.String({ pattern: "^[0-9]{8}$" }),
           orderCount: Type.Integer({ minimum: 0 }),
+          // Orders whose customerId was malformed and were stored as anonymous.
+          anonymisedCount: Type.Integer({ minimum: 0 }),
           status: Type.Union([
             Type.Literal("inserted"),
             Type.Literal("replaced"),

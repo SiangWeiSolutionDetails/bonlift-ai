@@ -10,6 +10,7 @@ import {
 } from "@bonlift-ai/contracts";
 import { getPool } from "@bonlift-ai/db";
 import { FastifyInstance } from "fastify";
+import { readCustomerIdSecret } from "../config/env.js";
 import {
   getOrderSnapshot,
   getOrderSnapshotCoverage,
@@ -29,7 +30,7 @@ export async function orderSnapshotRoutes(app: FastifyInstance) {
     },
     (request) => {
       const pool = getPool();
-      return storeOrderSnapshots(pool, request.params.outletId, request.body);
+      return storeOrderSnapshots(pool, request.params.outletId, request.body, readCustomerIdSecret());
     },
   );
 

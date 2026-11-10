@@ -1,16 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ConflictError, NotFoundError } from "../errors.js";
+import { hashCustomerId } from "../utils/customerIdHash.js";
 import { pgResult } from "../utils/pg.test-helpers.js";
 import {
   getCustomerItemScoresCustomerResult,
   getCustomerItemScoresCustomers,
   getCustomerItemScoresRuns,
   publishCustomerItemScoresRun,
+  searchCustomerItemScoresCustomer,
 } from "./customerItemScoresResult.service.js";
 
 const BRAND_ID = "11111111-1111-1111-1111-111111111111";
 const RUN_ID = "22222222-2222-2222-2222-222222222222";
 const STARTED_AT = new Date("2026-11-02T00:00:00.000Z");
+const SECRET = "test-secret-0123456789abcdef0123456789abcdef";
 
 function fakeRunRow(overrides: object = {}) {
   return {
@@ -134,12 +137,7 @@ describe("getCustomerItemScoresCustomers", () => {
       limit: 2,
     });
 
-    expect(queryMock).toHaveBeenCalledWith(expect.any(String), [
-      RUN_ID,
-      null,
-      null,
-      3,
-    ]);
+    expect(queryMock).toHaveBeenCalledWith(expect.any(String), [RUN_ID, null, 3]);
     expect(result).toStrictEqual({
       customers: [
         { customerId: "A", itemCount: 2 },
@@ -161,17 +159,42 @@ describe("getCustomerItemScoresCustomers", () => {
     expect(result.nextAfter).toBeNull();
   });
 
-  it("passes search text unmodified and matches it literally", async () => {
-    queryMock.mockResolvedValueOnce(pgResult([]));
+});
 
-    await getCustomerItemScoresCustomers(fakePool, RUN_ID, {
-      search: "50%_a/b",
-    }).catch(() => undefined);
+describe("searchCustomerItemScoresCustomer", () => {
+  it.each([
+    { label: "a mobile number", customerId: "6591234567", normalised: "6591234567" },
+    { label: "an email, trimmed and lower-cased", customerId: " Tan@Mail.com ", normalised: "tan@mail.com" },
+  ])("looks up $label by its exact hash", async ({ customerId, normalised }) => {
+    queryMock.mockResolvedValueOnce(pgResult([{ customer_id: hashCustomerId(SECRET, normalised), item_count: 2 }]));
+
+    const result = await searchCustomerItemScoresCustomer(fakePool, RUN_ID, { customerId }, SECRET);
 
     expect(queryMock).toHaveBeenCalledWith(
-      expect.stringContaining("strpos(lower(s.customer_external_id), lower($3)) > 0"),
-      [RUN_ID, null, "50%_a/b", 51],
+      expect.stringContaining("s.customer_external_id = $2"),
+      [RUN_ID, hashCustomerId(SECRET, normalised)],
     );
+    expect(result).toStrictEqual({
+      customers: [{ customerId: hashCustomerId(SECRET, normalised), itemCount: 2 }],
+      nextAfter: null,
+    });
+  });
+
+  it("searches for an id no customer has when the text is not a valid id", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([{ customer_id: null }]));
+
+    const result = await searchCustomerItemScoresCustomer(fakePool, RUN_ID, { customerId: "tan-6591234567" }, SECRET);
+
+    expect(queryMock).toHaveBeenCalledWith(expect.any(String), [RUN_ID, ""]);
+    expect(result).toStrictEqual({ customers: [], nextAfter: null });
+  });
+
+  it("throws NotFoundError when the run does not exist", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([]));
+
+    await expect(
+      searchCustomerItemScoresCustomer(fakePool, RUN_ID, { customerId: "6591234567" }, SECRET),
+    ).rejects.toThrow(NotFoundError);
   });
 });
 

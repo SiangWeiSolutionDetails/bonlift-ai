@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { readCustomerIdSecret } from "../config/env.js";
 import { getTestPool } from "../testing/testDb.js";
+import { hashCustomerId } from "../utils/customerIdHash.js";
 import { createBrand } from "./brand.service.js";
 import { createOutlet } from "./outlet.service.js";
 import { createOutletItemScoresCalculationConfigVersion } from "./outletItemScoresCalculationConfigVersion.service.js";
@@ -7,6 +9,16 @@ import { getRecommendations } from "./recommendation.service.js";
 import { createTenant } from "./tenant.service.js";
 
 const silentLog = { error: () => undefined, warn: () => undefined };
+
+const SECRET = readCustomerIdSecret();
+// Stored ids are hashed, so the scores hold the hash and requests send the plain mobile number.
+const CUSTOMER_ID = "6591234567";
+const CUSTOMER_HASH = hashCustomerId(SECRET, CUSTOMER_ID);
+
+function recommend(pool: Parameters<typeof getRecommendations>[0], log: typeof silentLog, brand: string,
+  request: Parameters<typeof getRecommendations>[3]) {
+  return getRecommendations(pool, log, brand, request, SECRET);
+}
 
 let brandId: string;
 let outletId: string;
@@ -63,9 +75,9 @@ async function storeFavourites(runId: string, rows: [daypart: string, itemId: st
     await getTestPool().query(
       `
       INSERT INTO customer_item_scores (run_id, run_date, brand_id, customer_external_id, daypart, external_item_id, score, n_orders, rank)
-      VALUES ($1, current_date, $2, 'C1', $3, $4, 0.9, 3, $5);
+      VALUES ($1, current_date, $2, $6, $3, $4, 0.9, 3, $5);
       `,
-      [runId, brandId, daypart, itemId, rank],
+      [runId, brandId, daypart, itemId, rank, CUSTOMER_HASH],
     );
   }
 }
@@ -83,10 +95,10 @@ async function storeAffinity(runId: string, rows: [itemA: string, itemB: string,
 }
 
 async function recommendedItemIds(daypart?: string): Promise<string[]> {
-  const response = await getRecommendations(getTestPool(), silentLog, brandId, {
+  const response = await recommend(getTestPool(), silentLog, brandId, {
     outletId,
     cart: [],
-    customerId: "C1",
+    customerId: CUSTOMER_ID,
     daypart,
     limit: 10,
   });
@@ -138,10 +150,10 @@ describe("getRecommendations (integration)", () => {
   });
 
   it("returns no items for a daypart the brand has not configured", async () => {
-    const response = await getRecommendations(getTestPool(), silentLog, brandId, {
+    const response = await recommend(getTestPool(), silentLog, brandId, {
       outletId,
       cart: [],
-      customerId: "C1",
+      customerId: CUSTOMER_ID,
       daypart: "supper",
       limit: 10,
     });
@@ -165,7 +177,7 @@ describe("getRecommendations (integration)", () => {
     });
 
     function recommendWithCart(cart: string[], daypart: string, include?: string[]) {
-      return getRecommendations(getTestPool(), silentLog, brandId, {
+      return recommend(getTestPool(), silentLog, brandId, {
         outletId,
         cart: cart.map((itemId) => ({ itemId, qty: 1 })),
         daypart,
@@ -186,10 +198,10 @@ describe("getRecommendations (integration)", () => {
     });
 
     it("keeps a favourite that goes with the cart ahead of the other partners", async () => {
-      const response = await getRecommendations(getTestPool(), silentLog, brandId, {
+      const response = await recommend(getTestPool(), silentLog, brandId, {
         outletId,
         cart: [{ itemId: "BURGER", qty: 1 }],
-        customerId: "C1",
+        customerId: CUSTOMER_ID,
         daypart: "breakfast",
         limit: 10,
       });

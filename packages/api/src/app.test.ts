@@ -26,6 +26,7 @@ function adminRoutes(): RouteEntry[] {
 
 beforeAll(async () => {
   vi.stubEnv("ADMIN_TOKEN", ADMIN_TOKEN);
+  vi.stubEnv("CUSTOMER_ID_SECRET", "b".repeat(64));
   // Dev routes on, so the inventory covers every route the app can register.
   vi.stubEnv("ENABLE_DEV_ROUTES", "true");
   app = buildApp();
@@ -66,6 +67,18 @@ describe("admin route inventory", () => {
       headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
     });
     expect(res.statusCode).toBe(400);
+  });
+
+  it("takes the customer search id in the body, so it never appears in the logged URL", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/runs/not-a-uuid/customer-item-scores/customers/search",
+      headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
+      payload: { customerId: "log-probe@mail.com" },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body).not.toContain("log-probe");
   });
 
   it("keeps /health public", async () => {

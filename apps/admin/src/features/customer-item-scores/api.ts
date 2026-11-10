@@ -40,12 +40,24 @@ export async function startCustomerItemScoresRun(
 
 export async function listRunCustomers(
   runId: string,
-  params: { after?: string; search?: string },
+  params: { after?: string },
   signal: AbortSignal,
 ) {
   return apiRequest<CustomerListPage>(
     `/runs/${encodeURIComponent(runId)}/customer-item-scores/customers`,
     { query: params, signal },
+  );
+}
+
+// POST, so the plain mobile number or email travels in the body and never in a logged URL.
+export async function searchRunCustomer(
+  runId: string,
+  customerId: string,
+  signal: AbortSignal,
+) {
+  return apiRequest<CustomerListPage>(
+    `/runs/${encodeURIComponent(runId)}/customer-item-scores/customers/search`,
+    { method: "POST", body: { customerId }, signal },
   );
 }
 

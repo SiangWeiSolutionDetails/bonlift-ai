@@ -52,7 +52,11 @@
     "publishConfirmDescription": "The scores for {{window}} replace the brand's live customer scores straight away."
   },
   "customers": {
-    "search": "Search by customer ID",
+    "search": "Find a customer by mobile number or email",
+    "find": "Find",
+    "clear": "Clear",
+    "searchHint": "Customer IDs are stored hashed, so only an exact match is found. Enter the full mobile number with country code and no \"+\" (e.g. 6591234567), or the email address.",
+    "searchInvalid": "Enter a mobile number with country code and no \"+\" (8–15 digits), or an email address.",
     "empty": "No matching customers.",
     "itemCount_one": "{{count}} item",
     "itemCount_other": "{{count}} items",

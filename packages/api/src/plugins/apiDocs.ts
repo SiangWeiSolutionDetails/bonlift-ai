@@ -10,7 +10,8 @@ export function registerApiDocs(app: FastifyInstance) {
     openapi: {
       // Minor bumps: new optional fields and reasons; removing `at` breaks no caller because unknown fields are ignored.
       // 1.2.0 also checks `channel` against the API key's channel (400 on mismatch), which only applies to keys with a channel.
-      info: { title: "BonLift AI Serving API", version: "1.2.0" },
+      // 1.3.0 checks customerId: a mobile number with country code and no "+", or an email; anything else is a 400.
+      info: { title: "BonLift AI Serving API", version: "1.3.0" },
       components: {
         securitySchemes: {
           apiKey: { type: "apiKey", in: "header", name: "x-api-key" },

@@ -30,10 +30,12 @@ import {
 import { createServingUsageHook } from "./plugins/servingUsage.js";
 import { registerApiDocs } from "./plugins/apiDocs.js";
 import { createAdminAuthHook } from "./plugins/adminAuth.js";
-import { areDevRoutesEnabled, readAdminToken } from "./config/env.js";
+import { areDevRoutesEnabled, readAdminToken, readCustomerIdSecret } from "./config/env.js";
 
 export function buildApp(): FastifyInstance {
   const adminToken = readAdminToken();
+  // Read at start so a missing secret stops the API instead of failing the first upload or /v1 call.
+  readCustomerIdSecret();
   const app = Fastify({
     logger: true,
     ajv: { customOptions: { removeAdditional: false } },

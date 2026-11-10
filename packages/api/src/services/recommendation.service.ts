@@ -6,6 +6,8 @@ import {
 } from "@bonlift-ai/contracts";
 import type { FastifyBaseLogger } from "fastify";
 import { Pool } from "pg";
+import { ValidationError } from "../errors.js";
+import { toHashedCustomerId } from "../utils/customerIdHash.js";
 import { assertValid } from "../utils/validate.js";
 
 // A favourite from a single order is weak evidence: every item of a customer's only order scores 1.
@@ -212,10 +214,16 @@ function uniqueItemIds(itemIds: string[]): string[] {
   return [...new Set(itemIds)];
 }
 
-// Trims the same characters as the customer item scores calculation, so " C1" finds the scores stored for "C1".
-function toCustomerId(customerId: string | null | undefined): string | null {
-  const trimmed = customerId?.replace(/^[ \t\r\n]+|[ \t\r\n]+$/g, "");
-  return trimmed ? trimmed : null;
+// Stored ids are hashed (CUS-02), so the request's id is hashed the same way before the lookup. A malformed id is the
+// caller's bug: a 400, never a silent anonymous request. The id itself is never put in the error or a log.
+function toStoredCustomerId(secret: string, customerId: string | null | undefined): string | null {
+  const customer = toHashedCustomerId(secret, customerId);
+  if (customer.status === "invalid") {
+    throw new ValidationError(
+      'customerId must be a mobile number with its country dial code and no "+" (8 to 15 digits), or an email address.',
+    );
+  }
+  return customer.status === "hashed" ? customer.id : null;
 }
 
 // A malformed request is the caller's bug and gets a 400. Anything else returns an empty list,
@@ -226,8 +234,10 @@ export async function getRecommendations(
   log: Pick<FastifyBaseLogger, "error" | "warn">,
   brandId: string,
   request: RecommendationRequestSchemaType,
+  customerIdSecret: string,
 ): Promise<RecommendationResponseSchemaType> {
   assertValid(RecommendationRequestSchema, request);
+  const customerId = toStoredCustomerId(customerIdSecret, request.customerId);
 
   const cartItemIds = uniqueItemIds(request.cart.map((item) => item.itemId));
 
@@ -239,7 +249,7 @@ export async function getRecommendations(
       request.limit ?? null,
       brandId,
       cartItemIds,
-      toCustomerId(request.customerId),
+      customerId,
       MIN_FAVOURITE_ORDERS,
       uniqueItemIds(request.include ?? []),
     ]);

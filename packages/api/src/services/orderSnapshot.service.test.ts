@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DatasetSchemaType } from "@bonlift-ai/contracts";
 import { NotFoundError, ValidationError } from "../errors.js";
+import { hashCustomerId } from "../utils/customerIdHash.js";
 import { pgResult } from "../utils/pg.test-helpers.js";
 import {
   getOrderSnapshot,
@@ -9,6 +10,7 @@ import {
 } from "./orderSnapshot.service.js";
 
 const OUTLET_ID = "33333333-3333-3333-3333-333333333333";
+const SECRET = "test-secret-0123456789abcdef0123456789abcdef";
 const INVALID_ID = "invalid-id";
 
 type DatasetDay = DatasetSchemaType["dates"][number];
@@ -35,6 +37,10 @@ function storedRow(date: string, orderCount: number, status = "inserted") {
   return { is_active: true, date, order_count: orderCount, status };
 }
 
+function storeSnapshots(pool: any, outletId: string, data: DatasetSchemaType) {
+  return storeOrderSnapshots(pool, outletId, data, SECRET);
+}
+
 beforeEach(() => {
   queryMock.mockReset();
 });
@@ -43,13 +49,13 @@ describe("storeOrderSnapshots", () => {
   describe("validation (never reaches the database)", () => {
     it("throws ValidationError when the outlet id is invalid", async () => {
       await expect(
-        storeOrderSnapshots(fakePool, INVALID_ID, dataset([{ date: "20260626", orders: [] }])),
+        storeSnapshots(fakePool, INVALID_ID, dataset([{ date: "20260626", orders: [] }])),
       ).rejects.toThrow(ValidationError);
       expect(queryMock).not.toHaveBeenCalled();
     });
 
     it("throws ValidationError when there are no dates", async () => {
-      await expect(storeOrderSnapshots(fakePool, OUTLET_ID, dataset([]))).rejects.toThrow(
+      await expect(storeSnapshots(fakePool, OUTLET_ID, dataset([]))).rejects.toThrow(
         ValidationError,
       );
       expect(queryMock).not.toHaveBeenCalled();
@@ -57,7 +63,7 @@ describe("storeOrderSnapshots", () => {
 
     it("throws ValidationError for an impossible date", async () => {
       await expect(
-        storeOrderSnapshots(fakePool, OUTLET_ID, dataset([{ date: "20260230", orders: [] }])),
+        storeSnapshots(fakePool, OUTLET_ID, dataset([{ date: "20260230", orders: [] }])),
       ).rejects.toThrow("20260230 is not a valid YYYYMMDD date.");
       expect(queryMock).not.toHaveBeenCalled();
     });
@@ -66,7 +72,7 @@ describe("storeOrderSnapshots", () => {
       const day = { date: "20260626", orders: [] };
 
       await expect(
-        storeOrderSnapshots(fakePool, OUTLET_ID, dataset([day, { ...day }])),
+        storeSnapshots(fakePool, OUTLET_ID, dataset([day, { ...day }])),
       ).rejects.toThrow("20260626 appears more than once.");
       expect(queryMock).not.toHaveBeenCalled();
     });
@@ -77,7 +83,7 @@ describe("storeOrderSnapshots", () => {
         orders: [order({ orderId: "SAL-0042", orderedAt: "2026-06-27T00:30:00+08:00" })],
       };
 
-      await expect(storeOrderSnapshots(fakePool, OUTLET_ID, dataset([day]))).rejects.toThrow(
+      await expect(storeSnapshots(fakePool, OUTLET_ID, dataset([day]))).rejects.toThrow(
         "20260626: order SAL-0042 was placed on 20260627.",
       );
       expect(queryMock).not.toHaveBeenCalled();
@@ -92,7 +98,7 @@ describe("storeOrderSnapshots", () => {
       const day = { date: "20260626", orders: [order({ orderedAt: "2026-06-26T07:30:00+08:00" })] };
 
       await expect(
-        storeOrderSnapshots(fakePool, OUTLET_ID, dataset([day])),
+        storeSnapshots(fakePool, OUTLET_ID, dataset([day])),
       ).resolves.toBeDefined();
     });
 
@@ -104,7 +110,7 @@ describe("storeOrderSnapshots", () => {
       const day = { date: "20260626", orders: [order({ orderedAt })] };
 
       await expect(
-        storeOrderSnapshots(fakePool, OUTLET_ID, dataset([day])),
+        storeSnapshots(fakePool, OUTLET_ID, dataset([day])),
       ).resolves.toBeDefined();
     });
 
@@ -112,7 +118,7 @@ describe("storeOrderSnapshots", () => {
       queryMock.mockResolvedValueOnce(pgResult([storedRow("20260626", 2)]));
       const days = [{ date: "20260626", orders: [order(), order()] }];
 
-      await storeOrderSnapshots(fakePool, OUTLET_ID, dataset(days));
+      await storeSnapshots(fakePool, OUTLET_ID, dataset(days));
 
       const [, values] = queryMock.mock.calls[0];
       expect(JSON.parse(values[1])[0].orders).toHaveLength(2);
@@ -128,7 +134,7 @@ describe("storeOrderSnapshots", () => {
       ];
 
       await expect(
-        storeOrderSnapshots(fakePool, OUTLET_ID, dataset(days)),
+        storeSnapshots(fakePool, OUTLET_ID, dataset(days)),
       ).resolves.toBeDefined();
     });
 
@@ -136,7 +142,7 @@ describe("storeOrderSnapshots", () => {
       queryMock.mockResolvedValueOnce(pgResult([storedRow("20260626", 0)]));
 
       await expect(
-        storeOrderSnapshots(fakePool, OUTLET_ID, dataset([{ date: "20260626", orders: [] }])),
+        storeSnapshots(fakePool, OUTLET_ID, dataset([{ date: "20260626", orders: [] }])),
       ).resolves.toBeDefined();
     });
   });
@@ -146,11 +152,13 @@ describe("storeOrderSnapshots", () => {
       queryMock.mockResolvedValueOnce(pgResult([storedRow("20260626", 1)]));
       const days = [{ date: "20260626", orders: [order()] }];
 
-      await storeOrderSnapshots(fakePool, OUTLET_ID, dataset(days));
+      await storeSnapshots(fakePool, OUTLET_ID, dataset(days));
 
       const [sql, values] = queryMock.mock.calls[0];
       expect(sql).toContain("INSERT INTO order_snapshots");
-      expect(values).toStrictEqual([OUTLET_ID, JSON.stringify(days)]);
+      // An order without a customerId is stored with an explicit null (anonymous).
+      const stored = days.map((day) => ({ ...day, orders: day.orders.map((o) => ({ ...o, customerId: null })) }));
+      expect(values).toStrictEqual([OUTLET_ID, JSON.stringify(stored)]);
     });
 
     it("strips unknown fields before storing", async () => {
@@ -162,7 +170,7 @@ describe("storeOrderSnapshots", () => {
         unknownRootField: "y",
       };
 
-      await storeOrderSnapshots(fakePool, OUTLET_ID, withExtras);
+      await storeSnapshots(fakePool, OUTLET_ID, withExtras);
 
       const [, values] = queryMock.mock.calls[0];
       expect(values[1]).not.toContain("unknownOrderField");
@@ -171,21 +179,67 @@ describe("storeOrderSnapshots", () => {
     it.each([
       ["an empty string", ""],
       ["null", null],
-    ])("keeps customerId as %s", async (_label, customerId) => {
+    ])("stores a customerId of %s as anonymous", async (_label, customerId) => {
       queryMock.mockResolvedValueOnce(pgResult([storedRow("20260626", 1)]));
       const days = [{ date: "20260626", orders: [order({ customerId })] }];
 
-      await storeOrderSnapshots(fakePool, OUTLET_ID, dataset(days));
+      const result = await storeSnapshots(fakePool, OUTLET_ID, dataset(days));
 
       const [, values] = queryMock.mock.calls[0];
-      expect(JSON.parse(values[1])[0].orders[0].customerId).toBe(customerId);
+      expect(JSON.parse(values[1])[0].orders[0].customerId).toBeNull();
+      expect(result.dates[0].anonymisedCount).toBe(0);
+    });
+
+    it("stores only the hash of a mobile number or email, never the plain id", async () => {
+      queryMock.mockResolvedValueOnce(pgResult([storedRow("20260626", 2)]));
+      const days = [
+        {
+          date: "20260626",
+          orders: [
+            order({ orderId: "SAL-1", customerId: "6591234567" }),
+            order({ orderId: "SAL-2", customerId: "Tan@Mail.com" }),
+          ],
+        },
+      ];
+
+      await storeSnapshots(fakePool, OUTLET_ID, dataset(days));
+
+      const [, values] = queryMock.mock.calls[0];
+      expect(JSON.parse(values[1])[0].orders.map((o: DatasetOrder) => o.customerId)).toStrictEqual([
+        hashCustomerId(SECRET, "6591234567"),
+        hashCustomerId(SECRET, "tan@mail.com"),
+      ]);
+      expect(values[1]).not.toContain("6591234567");
+      expect(values[1].toLowerCase()).not.toContain("tan@mail.com");
+    });
+
+    it("stores an order with a malformed customerId as anonymous and counts it", async () => {
+      queryMock.mockResolvedValueOnce(pgResult([storedRow("20260626", 2)]));
+      const days = [
+        {
+          date: "20260626",
+          orders: [
+            order({ orderId: "SAL-1", customerId: "tan-6591234567" }),
+            order({ orderId: "SAL-2", customerId: "6591234567" }),
+          ],
+        },
+      ];
+
+      const result = await storeSnapshots(fakePool, OUTLET_ID, dataset(days));
+
+      const [, values] = queryMock.mock.calls[0];
+      expect(JSON.parse(values[1])[0].orders[0].customerId).toBeNull();
+      expect(values[1]).not.toContain("tan-6591234567");
+      expect(result.dates).toStrictEqual([
+        { date: "20260626", orderCount: 2, anonymisedCount: 1, status: "inserted" },
+      ]);
     });
 
     it("throws NotFoundError when the outlet does not exist", async () => {
       queryMock.mockResolvedValueOnce(pgResult([]));
 
       await expect(
-        storeOrderSnapshots(fakePool, OUTLET_ID, dataset([{ date: "20260626", orders: [] }])),
+        storeSnapshots(fakePool, OUTLET_ID, dataset([{ date: "20260626", orders: [] }])),
       ).rejects.toThrow(new NotFoundError("Outlet does not exist."));
     });
 
@@ -195,7 +249,7 @@ describe("storeOrderSnapshots", () => {
       );
 
       await expect(
-        storeOrderSnapshots(fakePool, OUTLET_ID, dataset([{ date: "20260626", orders: [] }])),
+        storeSnapshots(fakePool, OUTLET_ID, dataset([{ date: "20260626", orders: [] }])),
       ).rejects.toThrow(new ValidationError("Outlet is inactive."));
     });
 
@@ -208,13 +262,13 @@ describe("storeOrderSnapshots", () => {
         { date: "20260627", orders: [] },
       ];
 
-      const result = await storeOrderSnapshots(fakePool, OUTLET_ID, dataset(days));
+      const result = await storeSnapshots(fakePool, OUTLET_ID, dataset(days));
 
       expect(result).toStrictEqual({
         outletId: OUTLET_ID,
         dates: [
-          { date: "20260626", orderCount: 30, status: "inserted" },
-          { date: "20260627", orderCount: 20, status: "replaced" },
+          { date: "20260626", orderCount: 30, anonymisedCount: 0, status: "inserted" },
+          { date: "20260627", orderCount: 20, anonymisedCount: 0, status: "replaced" },
         ],
       });
     });
@@ -222,7 +276,7 @@ describe("storeOrderSnapshots", () => {
     it("stores the order count in its own column", async () => {
       queryMock.mockResolvedValueOnce(pgResult([storedRow("20260626", 1)]));
 
-      await storeOrderSnapshots(fakePool, OUTLET_ID, dataset([{ date: "20260626", orders: [] }]));
+      await storeSnapshots(fakePool, OUTLET_ID, dataset([{ date: "20260626", orders: [] }]));
 
       const [sql] = queryMock.mock.calls[0];
       expect(sql).toContain("order_count = EXCLUDED.order_count");

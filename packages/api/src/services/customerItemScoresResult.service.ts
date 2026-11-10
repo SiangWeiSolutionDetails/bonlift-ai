@@ -5,6 +5,8 @@ import {
   CustomerItemScoresCustomerListSchemaType,
   CustomerItemScoresCustomerParamsSchema,
   CustomerItemScoresCustomerResultSchemaType,
+  CustomerItemScoresCustomerSearchBodySchema,
+  CustomerItemScoresCustomerSearchBodySchemaType,
   CustomerItemScoresRunListQuerySchema,
   CustomerItemScoresRunListQuerySchemaType,
   CustomerItemScoresRunRecordSchemaType,
@@ -14,6 +16,7 @@ import {
 } from "@bonlift-ai/contracts";
 import { Pool } from "pg";
 import { ConflictError, NotFoundError } from "../errors.js";
+import { toHashedCustomerId } from "../utils/customerIdHash.js";
 import { assertValid } from "../utils/validate.js";
 
 const DEFAULT_RUN_LIMIT = 50;
@@ -164,6 +167,15 @@ export async function publishCustomerItemScoresRun(
   return mapRunRow({ ...row, is_published: true });
 }
 
+const RUN_CTE = `
+    WITH run AS (
+      SELECT r.id
+      FROM computation_runs r
+      WHERE r.id = $1
+        AND r.job_type = 'customer_item_scores'
+        AND EXISTS (SELECT 1 FROM brands b WHERE b.id = r.brand_id AND b.deleted_at IS NULL)
+    )`;
+
 export async function getCustomerItemScoresCustomers(
   pool: Pool,
   runId: string,
@@ -175,16 +187,9 @@ export async function getCustomerItemScoresCustomers(
   const limit = query.limit ?? DEFAULT_CUSTOMER_LIMIT;
 
   // Keyset paging over the primary key's prefix. One extra row tells whether another page exists.
-  // strpos, not LIKE: a % or _ in the search text must match literally.
   const result = await pool.query(
     `
-    WITH run AS (
-      SELECT r.id
-      FROM computation_runs r
-      WHERE r.id = $1
-        AND r.job_type = 'customer_item_scores'
-        AND EXISTS (SELECT 1 FROM brands b WHERE b.id = r.brand_id AND b.deleted_at IS NULL)
-    )
+    ${RUN_CTE}
     SELECT c.customer_id, c.item_count
     FROM run
     LEFT JOIN LATERAL (
@@ -192,13 +197,12 @@ export async function getCustomerItemScoresCustomers(
       FROM customer_item_scores s
       WHERE s.run_id = run.id
         AND ($2::text IS NULL OR s.customer_external_id > $2)
-        AND ($3::text IS NULL OR strpos(lower(s.customer_external_id), lower($3)) > 0)
       GROUP BY s.customer_external_id
       ORDER BY s.customer_external_id
-      LIMIT $4
+      LIMIT $3
     ) c ON TRUE;
     `,
-    [runId, query.after ?? null, query.search ?? null, limit + 1],
+    [runId, query.after ?? null, limit + 1],
   );
 
   if (result.rows.length === 0) {
@@ -214,6 +218,49 @@ export async function getCustomerItemScoresCustomers(
       itemCount: row.item_count,
     })),
     nextAfter: rows.length > limit ? page[page.length - 1].customer_id : null,
+  };
+}
+
+// Ids are stored hashed, so a search is an exact lookup of the full mobile number or email, hashed the same way.
+// Text that is not a valid id cannot match any customer: it becomes "", which no stored id equals, so the result is
+// empty rather than an error. The run is still checked, so an unknown run is a 404 either way.
+export async function searchCustomerItemScoresCustomer(
+  pool: Pool,
+  runId: string,
+  body: CustomerItemScoresCustomerSearchBodySchemaType,
+  customerIdSecret: string,
+): Promise<CustomerItemScoresCustomerListSchemaType> {
+  assertValid(RunParamsSchema, { runId });
+  assertValid(CustomerItemScoresCustomerSearchBodySchema, body);
+
+  const customer = toHashedCustomerId(customerIdSecret, body.customerId);
+  const searchId = customer.status === "hashed" ? customer.id : "";
+
+  const result = await pool.query(
+    `
+    ${RUN_CTE}
+    SELECT c.customer_id, c.item_count
+    FROM run
+    LEFT JOIN LATERAL (
+      SELECT s.customer_external_id AS customer_id, count(DISTINCT s.external_item_id)::int AS item_count
+      FROM customer_item_scores s
+      WHERE s.run_id = run.id
+        AND s.customer_external_id = $2
+      GROUP BY s.customer_external_id
+    ) c ON TRUE;
+    `,
+    [runId, searchId],
+  );
+
+  if (result.rows.length === 0) {
+    throw new NotFoundError("Run does not exist.");
+  }
+
+  return {
+    customers: result.rows
+      .filter((row) => row.customer_id !== null)
+      .map((row) => ({ customerId: row.customer_id, itemCount: row.item_count })),
+    nextAfter: null,
   };
 }
 

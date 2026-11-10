@@ -41,6 +41,8 @@ dayparts AS (
 -- One row per identified order. outlet_id is in the key because an orderId is only unique per outlet and date.
 -- Inactive outlets are included: that history is still the customer's; deleted outlets are not. Blank IDs are anonymous and surrounding
 -- whitespace is dropped, so "C1 " is C1. If a repeated orderId disagrees, the ORDER BY tiebreak picks the same copy every run.
+-- Only hashed ids (CUS-02) are scored: a plaintext id stored before hashing is treated as anonymous, so it never becomes a
+-- second profile for the same customer or reaches customer_item_scores.
 orders AS (
   SELECT DISTINCT ON (os.outlet_id, os.order_date, o->>'orderId')
          os.outlet_id,
@@ -58,7 +60,7 @@ orders AS (
    AND os.order_date >= run.input_window_from
    AND os.order_date <= run.input_window_to
   CROSS JOIN LATERAL jsonb_array_elements(os.orders) AS o
-  WHERE btrim(o->>'customerId', E' \\t\\r\\n') <> ''
+  WHERE starts_with(btrim(o->>'customerId', E' \\t\\r\\n'), 'h1:')
   ORDER BY os.outlet_id, os.order_date, o->>'orderId', customer_id, lines, ordered_time
 ),
 -- One row per item: each line plus its addons; modifiers ignored (P3-D1)

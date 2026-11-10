@@ -10,6 +10,7 @@ import {
 } from "@bonlift-ai/contracts";
 import { Pool } from "pg";
 import { NotFoundError, ValidationError } from "../errors.js";
+import { toHashedCustomerId } from "../utils/customerIdHash.js";
 import { assertValid, assertValidDate } from "../utils/validate.js";
 import Value from "typebox/value";
 
@@ -36,16 +37,37 @@ function assertValidDays(days: DatasetDaySchemaType[]) {
   }
 }
 
+// Plain customer ids never reach the database: each is replaced by its hash, or by null (anonymous) when malformed,
+// so one bad id does not reject the whole upload. The count of malformed ids per date goes back to the caller.
+function hashCustomerIds(secret: string, days: DatasetDaySchemaType[]) {
+  const anonymisedByDate = new Map<string, number>();
+
+  const hashedDays = days.map((day) => {
+    let anonymised = 0;
+    const orders = day.orders.map((order) => {
+      const customer = toHashedCustomerId(secret, order.customerId);
+      if (customer.status === "invalid") anonymised += 1;
+      return { ...order, customerId: customer.status === "hashed" ? customer.id : null };
+    });
+    anonymisedByDate.set(day.date, anonymised);
+    return { ...day, orders };
+  });
+
+  return { hashedDays, anonymisedByDate };
+}
+
 export async function storeOrderSnapshots(
   pool: Pool,
   outletId: string,
   data: DatasetSchemaType,
+  customerIdSecret: string,
 ): Promise<DatasetResultSchemaType> {
   assertValid(OutletParamsSchema, { outletId });
 
   const dataset = Value.Clean(DatasetSchema, data);
   assertValid(DatasetSchema, dataset);
   assertValidDays(dataset.dates);
+  const { hashedDays, anonymisedByDate } = hashCustomerIds(customerIdSecret, dataset.dates);
 
   const result = await pool.query(
     `
@@ -89,7 +111,7 @@ export async function storeOrderSnapshots(
     LEFT JOIN saved s ON TRUE
     ORDER BY s.order_date;
     `,
-    [outletId, JSON.stringify(dataset.dates)],
+    [outletId, JSON.stringify(hashedDays)],
   );
 
   if (result.rows.length === 0) {
@@ -105,6 +127,7 @@ export async function storeOrderSnapshots(
     dates: result.rows.map((row) => ({
       date: row.date,
       orderCount: row.order_count,
+      anonymisedCount: anonymisedByDate.get(row.date) ?? 0,
       status: row.status,
     })),
   };

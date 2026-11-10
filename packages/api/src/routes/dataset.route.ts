@@ -7,6 +7,7 @@ import {
 } from "@bonlift-ai/contracts";
 import { getPool } from "@bonlift-ai/db";
 import { FastifyInstance } from "fastify";
+import { readCustomerIdSecret } from "../config/env.js";
 import { storeOrderSnapshots } from "../services/orderSnapshot.service.js";
 
 export async function datasetRoutes(app: FastifyInstance) {
@@ -22,7 +23,7 @@ export async function datasetRoutes(app: FastifyInstance) {
     },
     (request) => {
       const pool = getPool();
-      return storeOrderSnapshots(pool, request.params.outletId, request.body);
+      return storeOrderSnapshots(pool, request.params.outletId, request.body, readCustomerIdSecret());
     },
   );
 }

@@ -42,8 +42,8 @@ export const RecommendationRequestSchema = Type.Object(
         minLength: 1,
         description:
           "The time-of-day period of the order, such as breakfast or lunch, using the names configured for the brand. " +
-          "Popular items, popular add-ons and the customer's favourites are taken from this period; items that go " +
-          "with the cart do not depend on it. Missing means the whole day. A name the brand has not configured returns no items.",
+          "Both popular items and the customer's favourites are taken from this period; items that go with the cart " +
+          "do not depend on it. Missing means the whole day. A name the brand has not configured returns no items.",
         examples: ["lunch"],
       }),
     ),
@@ -78,8 +78,7 @@ export const RecommendationRequestSchema = Type.Object(
       Type.Integer({
         minimum: 1,
         maximum: 50,
-        description:
-          "Maximum number of entries in `items`, and separately in `addons`. Defaults to every recommended item.",
+        description: "Maximum number of items to return. Defaults to every recommended item.",
       }),
     ),
     // Missing, null or blank is anonymous: no favourites.
@@ -228,13 +227,6 @@ export const RecommendationResponseSchema = Type.Object(
       description:
         "Recommended items, best first. May be empty, e.g. for an unknown outlet or when no results are available yet: " +
         "continue the order without recommendations.",
-    }),
-    addons: Type.Array(RecommendationItemSchema, {
-      description:
-        "Add-ons popular at this outlet in the served `daypart`, best first, ranked on their own and never mixed into " +
-        "`items`. An add-on is an item your order data sends inside a line's `addons`, so offer these when the customer " +
-        "customises a main, and only those the main allows. `cart`, `exclude` and `include` apply as for `items`. " +
-        "Every entry has the reason `popular_at_outlet`. May be empty.",
     }),
   },
   {

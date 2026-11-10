@@ -12,8 +12,7 @@ export function registerApiDocs(app: FastifyInstance) {
       // 1.2.0 also checks `channel` against the API key's channel (400 on mismatch), which only applies to keys with a channel.
       // 1.3.0 checks customerId: a mobile number with country code and no "+", or an email; anything else is a 400.
       // 1.4.0 adds the optional `detail` per recommended item, with the facts behind its reason.
-      // 1.5.0 adds `addons`, popular add-ons ranked apart from `items`, which no longer contains add-on-only items.
-      info: { title: "BonLift AI Serving API", version: "1.5.0" },
+      info: { title: "BonLift AI Serving API", version: "1.4.0" },
       components: {
         securitySchemes: {
           apiKey: { type: "apiKey", in: "header", name: "x-api-key" },

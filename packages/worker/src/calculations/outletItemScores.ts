@@ -6,7 +6,6 @@ import { Run } from "../runs/runs.repository.js";
 const BEGIN_SQL = `BEGIN; SET LOCAL jit = off; SET LOCAL work_mem = '32MB'`;
 
 // $1 = run id. Config, brand, outlet and window all come from the run row, so the statement scores exactly what the run recorded.
-// top_n applies to each daypart's main and addon lists separately.
 const SCORE_AND_PUBLISH_SQL = `
 WITH run AS (
   SELECT r.id, r.brand_id, r.outlet_id, r.job_type, r.run_date,
@@ -41,32 +40,30 @@ orders AS (
   CROSS JOIN LATERAL jsonb_array_elements(os.orders) AS o
   ORDER BY os.order_date, o->>'orderId'
 ),
--- One row per item: each line as a main, plus its addons as addons; modifiers ignored (P3-D1).
--- The role comes from where the item sits, so an item sold both alone and as an addon is ranked in both lists (S3-04).
+-- One row per item: each line plus its addons; modifiers ignored (P3-D1)
 items AS (
   SELECT o.order_date,
          o.order_id,
          o.ordered_time,
-         x.item_role,
-         x.i->>'itemId'               AS item_id,
-         (x.i->>'qty')::numeric       AS qty,
-         (x.i->>'unitPrice')::numeric AS unit_price
+         i->>'itemId'               AS item_id,
+         (i->>'qty')::numeric       AS qty,
+         (i->>'unitPrice')::numeric AS unit_price
   FROM orders o
   CROSS JOIN LATERAL jsonb_array_elements(o.lines) AS l
   CROSS JOIN LATERAL (
-    SELECT l, 'main'
+    SELECT l
     UNION ALL
-    SELECT a, 'addon' FROM jsonb_array_elements(
+    SELECT a FROM jsonb_array_elements(
       CASE WHEN jsonb_typeof(l->'addons') = 'array' THEN l->'addons' END
     ) AS a
-  ) AS x(i, item_role)
+  ) AS x(i)
 ),
--- One row per (order, role, item) with net qty > 0; negative prices dropped (P3-D7)
+-- One row per (order, item) with net qty > 0; negative prices dropped (P3-D7)
 order_items AS (
-  SELECT order_date, order_id, ordered_time, item_role, item_id
+  SELECT order_date, order_id, ordered_time, item_id
   FROM items
   WHERE unit_price >= 0
-  GROUP BY order_date, order_id, ordered_time, item_role, item_id
+  GROUP BY order_date, order_id, ordered_time, item_id
   HAVING sum(qty) > 0
 ),
 -- Weight depends only on the date, so power() runs once per day. MATERIALIZED stops the planner
@@ -79,7 +76,7 @@ date_weights AS MATERIALIZED (
 ),
 -- A daypart with start > end crosses midnight; orders outside every daypart only count towards all_day (P3-D6)
 scored_items AS (
-  SELECT oi.order_date, oi.order_id, oi.item_role, oi.item_id, d.name AS daypart, w.weight
+  SELECT oi.order_date, oi.order_id, oi.item_id, d.name AS daypart, w.weight
   FROM order_items oi
   JOIN date_weights w USING (order_date)
   JOIN dayparts d
@@ -89,22 +86,21 @@ scored_items AS (
             ELSE oi.ordered_time >= d.start OR  oi.ordered_time < d."end"
        END
 ),
--- Denominator: weight of every non-empty order in the daypart, each order once, shared by both roles so an addon's
--- score is the share of all orders that added it
+-- Denominator: weight of every non-empty order in the daypart, each order once
 daypart_totals AS (
   SELECT daypart, sum(weight) AS total_weight
   FROM (SELECT DISTINCT order_date, order_id, daypart, weight FROM scored_items) o
   GROUP BY daypart
 ),
 item_scores AS (
-  SELECT daypart, item_role, item_id, sum(weight) AS weight, count(*) AS n_orders
+  SELECT daypart, item_id, sum(weight) AS weight, count(*) AS n_orders
   FROM scored_items
-  GROUP BY daypart, item_role, item_id
+  GROUP BY daypart, item_id
 ),
 ranked AS (
-  SELECT s.daypart, s.item_role, s.item_id, s.weight / t.total_weight AS score, s.n_orders,
+  SELECT s.daypart, s.item_id, s.weight / t.total_weight AS score, s.n_orders,
          row_number() OVER (
-           PARTITION BY s.daypart, s.item_role
+           PARTITION BY s.daypart
            ORDER BY s.weight / t.total_weight DESC, s.n_orders DESC, s.item_id
          ) AS rank
   FROM item_scores s
@@ -112,10 +108,10 @@ ranked AS (
 ),
 inserted AS (
   INSERT INTO outlet_item_scores (
-    run_id, run_date, brand_id, outlet_id, external_item_id, daypart, item_role, score, n_orders, rank
+    run_id, run_date, brand_id, outlet_id, external_item_id, daypart, score, n_orders, rank
   )
   SELECT run.id, run.run_date, run.brand_id, run.outlet_id,
-         r.item_id, r.daypart, r.item_role, r.score, r.n_orders, r.rank
+         r.item_id, r.daypart, r.score, r.n_orders, r.rank
   FROM ranked r
   CROSS JOIN run
   WHERE r.rank <= run.top_n

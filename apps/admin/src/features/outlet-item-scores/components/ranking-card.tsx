@@ -25,7 +25,7 @@ import {
 } from "../format";
 import { useOutletItemScoresRunResult } from "../queries";
 import { groupByDaypart, orderDayparts } from "../ranking";
-import type { OutletItemRole, OutletItemScore, OutletItemScoresRun } from "../type";
+import type { OutletItemScore, OutletItemScoresRun } from "../type";
 import { CopyableId } from "./copyable-id";
 import { RunConfigBadge, RunStatusBadge } from "./run-badges";
 
@@ -86,7 +86,6 @@ function RankingBody({ run }: RankingCardProps) {
   const result = useOutletItemScoresRunResult(run.id, run.status);
   const groups = useMemo(() => groupByDaypart(result.data?.items ?? []), [result.data]);
   const [selectedDaypart, setSelectedDaypart] = useState<string | undefined>();
-  const [role, setRole] = useState<OutletItemRole>("main");
 
   if (run.status === "running") {
     return <Message>{t("ranking.running")}</Message>;
@@ -116,39 +115,23 @@ function RankingBody({ run }: RankingCardProps) {
   // Fall back to the first daypart when the selection doesn't exist in this run
   const daypart =
     selectedDaypart && groups.has(selectedDaypart) ? selectedDaypart : dayparts[0];
-  const roleItems = (groups.get(daypart) ?? []).filter((item) => item.itemRole === role);
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <ToggleGroup
-          type="single"
-          variant="outline"
-          value={daypart}
-          onValueChange={(value) => value && setSelectedDaypart(value)}
-          className="flex-wrap"
-        >
-          {dayparts.map((option) => (
-            <ToggleGroupItem key={option} value={option}>
-              {option === ALL_DAY_DAYPART ? t("ranking.allDay") : option}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-        <ToggleGroup
-          type="single"
-          variant="outline"
-          value={role}
-          onValueChange={(value) => value && setRole(value as OutletItemRole)}
-        >
-          <ToggleGroupItem value="main">{t("ranking.mains")}</ToggleGroupItem>
-          <ToggleGroupItem value="addon">{t("ranking.addons")}</ToggleGroupItem>
-        </ToggleGroup>
-      </div>
-      {roleItems.length > 0 ? (
-        <DaypartRanking items={roleItems} />
-      ) : (
-        <Message>{t(role === "addon" ? "ranking.noAddons" : "ranking.noMains")}</Message>
-      )}
+      <ToggleGroup
+        type="single"
+        variant="outline"
+        value={daypart}
+        onValueChange={(value) => value && setSelectedDaypart(value)}
+        className="flex-wrap"
+      >
+        {dayparts.map((option) => (
+          <ToggleGroupItem key={option} value={option}>
+            {option === ALL_DAY_DAYPART ? t("ranking.allDay") : option}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
+      <DaypartRanking items={groups.get(daypart) ?? []} />
     </div>
   );
 }

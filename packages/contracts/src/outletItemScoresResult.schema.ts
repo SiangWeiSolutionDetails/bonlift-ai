@@ -68,13 +68,9 @@ export type PublishOutletItemScoresRunBodySchemaType = Static<
   typeof PublishOutletItemScoresRunBodySchema
 >;
 
-export const OutletItemRoleSchema = Type.Union([Type.Literal("main"), Type.Literal("addon")]);
-export type OutletItemRoleSchemaType = Static<typeof OutletItemRoleSchema>;
-
 export const OutletItemScoreRecordSchema = Type.Object(
   {
     daypart: Type.String(),
-    itemRole: OutletItemRoleSchema,
     rank: Type.Integer({ minimum: 1 }),
     itemId: Type.String(),
     itemName: NullableString,

@@ -185,7 +185,7 @@ export async function getOutletItemScoresRunResult(
         AND EXISTS (SELECT 1 FROM outlets o WHERE o.id = r.outlet_id AND o.deleted_at IS NULL)
     ),
     scores AS (
-      SELECT s.daypart, s.item_role, s.rank, s.external_item_id, s.score, s.n_orders
+      SELECT s.daypart, s.rank, s.external_item_id, s.score, s.n_orders
       FROM outlet_item_scores s
       JOIN run ON s.run_id = run.id
     ),
@@ -215,14 +215,13 @@ export async function getOutletItemScoresRunResult(
              SELECT jsonb_agg(
                       jsonb_build_object(
                         'daypart',  s.daypart,
-                        'itemRole', s.item_role,
                         'rank',     s.rank,
                         'itemId',   s.external_item_id,
                         'itemName', n.item_name,
                         'score',    s.score::float8,
                         'nOrders',  s.n_orders
                       )
-                      ORDER BY s.daypart, s.item_role DESC, s.rank
+                      ORDER BY s.daypart, s.rank
                     )
              FROM scores s
              LEFT JOIN names n ON n.item_id = s.external_item_id

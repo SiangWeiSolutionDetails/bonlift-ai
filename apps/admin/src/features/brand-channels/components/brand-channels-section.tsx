@@ -62,8 +62,8 @@ export function BrandChannelsSection({ brandId, readOnly }: BrandChannelsSection
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-40">{t("channels.code")}</TableHead>
               <TableHead>{t("channels.name")}</TableHead>
+              <TableHead className="w-40">{t("channels.code")}</TableHead>
               <TableHead className="w-24">{t("channels.active")}</TableHead>
             </TableRow>
           </TableHeader>
@@ -85,8 +85,8 @@ export function BrandChannelsSection({ brandId, readOnly }: BrandChannelsSection
             ) : (
               channels.map((channel) => (
                 <TableRow key={channel.channelId}>
-                  <TableCell className="font-mono">{channel.code}</TableCell>
                   <TableCell className="font-medium">{channel.name}</TableCell>
+                  <TableCell className="font-mono">{channel.code}</TableCell>
                   <TableCell>
                     {/* Switching off stops the channel's keys, so it asks first; switching on does not */}
                     <Switch

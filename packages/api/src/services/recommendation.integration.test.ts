@@ -22,6 +22,7 @@ function recommend(pool: Parameters<typeof getRecommendations>[0], log: typeof s
 
 let brandId: string;
 let outletId: string;
+let outletRunId: string;
 
 // A succeeded run on the brand's latest config version, published the way the worker publishes it.
 async function publishRun(
@@ -82,14 +83,17 @@ async function storeFavourites(runId: string, rows: [daypart: string, itemId: st
   }
 }
 
-async function storeAffinity(runId: string, rows: [itemA: string, itemB: string, confidence: number][]) {
-  for (const [itemA, itemB, confidence] of rows) {
+async function storeAffinity(
+  runId: string,
+  rows: [itemA: string, itemB: string, confidence: number, lift?: number, nItemA?: number][],
+) {
+  for (const [itemA, itemB, confidence, lift = 2, nItemA = 20] of rows) {
     await getTestPool().query(
       `
       INSERT INTO item_affinity_scores (run_id, run_date, brand_id, item_a, item_b, n_pair, n_item_a, confidence, lift, rank)
-      VALUES ($1, current_date, $2, $3, $4, 10, 20, $5, 2, 1);
+      VALUES ($1, current_date, $2, $3, $4, 10, $7, $5, $6, 1);
       `,
-      [runId, brandId, itemA, itemB, confidence],
+      [runId, brandId, itemA, itemB, confidence, lift, nItemA],
     );
   }
 }
@@ -103,6 +107,20 @@ async function recommendedItemIds(daypart?: string): Promise<string[]> {
     limit: 10,
   });
   return response.items.map((item) => item.itemId);
+}
+
+async function servedItemsById(request: Partial<Parameters<typeof getRecommendations>[3]>) {
+  const response = await recommend(getTestPool(), silentLog, brandId, {
+    outletId,
+    cart: [],
+    limit: 10,
+    ...request,
+  });
+  return Object.fromEntries(response.items.map((item) => [item.itemId, item]));
+}
+
+function cartOf(...itemIds: string[]) {
+  return itemIds.map((itemId) => ({ itemId, qty: 1 }));
 }
 
 beforeEach(async () => {
@@ -122,7 +140,7 @@ beforeEach(async () => {
     "test",
   );
 
-  const outletRunId = await publishRun("outlet_item_scores");
+  outletRunId = await publishRun("outlet_item_scores");
   await storeOutletScores(outletRunId, [
     ["breakfast", "TOAST", 1],
     ["dinner", "RICE", 1],
@@ -162,6 +180,54 @@ describe("getRecommendations (integration)", () => {
     expect(response.daypart).toBe("supper");
   });
 
+  describe("best sellers", () => {
+    beforeEach(async () => {
+      await storeOutletScores(
+        outletRunId,
+        ["D2", "D3", "D4", "D5", "D6", "D7", "D8", "D9", "D10"].map((itemId, index) => [
+          "dinner",
+          itemId,
+          index + 2,
+        ]),
+      );
+    });
+
+    it("marks the top 3 of a 10-item list as best sellers", async () => {
+      const items = await servedItemsById({ daypart: "dinner" });
+
+      expect(items.RICE.detail).toStrictEqual({ bestSeller: true });
+      expect(items.D3.detail).toStrictEqual({ bestSeller: true });
+      expect(items.D4).toStrictEqual({ itemId: "D4", rank: 4, reason: "popular_at_outlet" });
+    });
+
+    it("counts rank and list size on the stored list when exclude shrinks the served list", async () => {
+      const items = await servedItemsById({ daypart: "dinner", exclude: ["RICE"] });
+
+      expect(items.D2).toStrictEqual({
+        itemId: "D2",
+        rank: 1,
+        reason: "popular_at_outlet",
+        detail: { bestSeller: true },
+      });
+      expect(items.D4).toStrictEqual({ itemId: "D4", rank: 3, reason: "popular_at_outlet" });
+    });
+
+    it("counts the list size on the stored list when include shrinks the served list", async () => {
+      const items = await servedItemsById({ daypart: "dinner", include: ["D3", "D4"] });
+
+      expect(Object.values(items)).toStrictEqual([
+        { itemId: "D3", rank: 1, reason: "popular_at_outlet", detail: { bestSeller: true } },
+        { itemId: "D4", rank: 2, reason: "popular_at_outlet" },
+      ]);
+    });
+  });
+
+  it("drops every favourite for a non-empty cart when no affinity results exist", async () => {
+    const items = await servedItemsById({ cart: cartOf("BURGER"), customerId: CUSTOMER_ID, daypart: "breakfast" });
+
+    expect(Object.keys(items)).toEqual(["TOAST"]);
+  });
+
   describe("with items that go with the cart", () => {
     let affinityRunId: string;
 
@@ -191,9 +257,9 @@ describe("getRecommendations (integration)", () => {
 
       expect(response.affinityRunId).toBe(affinityRunId);
       expect(response.items).toEqual([
-        { itemId: "KAYA", rank: 1, reason: "goes_with_cart" },
-        { itemId: "COLA", rank: 2, reason: "goes_with_cart" },
-        { itemId: "FRIES", rank: 3, reason: "goes_with_cart" },
+        { itemId: "KAYA", rank: 1, reason: "goes_with_cart", detail: { basedOn: ["BURGER"] } },
+        { itemId: "COLA", rank: 2, reason: "goes_with_cart", detail: { basedOn: ["BURGER", "RICE"] } },
+        { itemId: "FRIES", rank: 3, reason: "goes_with_cart", detail: { basedOn: ["BURGER"] } },
       ]);
     });
 
@@ -207,11 +273,107 @@ describe("getRecommendations (integration)", () => {
       });
 
       expect(response.items).toEqual([
-        { itemId: "KAYA", rank: 1, reason: "frequently_ordered" },
-        { itemId: "FRIES", rank: 2, reason: "goes_with_cart" },
-        { itemId: "COLA", rank: 3, reason: "goes_with_cart" },
+        { itemId: "KAYA", rank: 1, reason: "frequently_ordered", detail: { basedOn: ["BURGER"] } },
+        { itemId: "FRIES", rank: 2, reason: "goes_with_cart", detail: { basedOn: ["BURGER"] } },
+        { itemId: "COLA", rank: 3, reason: "goes_with_cart", detail: { basedOn: ["BURGER"] } },
         { itemId: "TOAST", rank: 4, reason: "popular_at_outlet" },
       ]);
+    });
+
+    it("lists the cart items a partner goes with, strongest pair first", async () => {
+      await storeAffinity(affinityRunId, [
+        ["TEA", "COLA", 0.8],
+        ["APPLE", "FRIES", 0.6, 1.5],
+        ["TEA", "FRIES", 0.6, 3],
+      ]);
+
+      const items = await servedItemsById({ cart: cartOf("BURGER", "TEA", "APPLE"), daypart: "dinner" });
+
+      expect(items.COLA.detail).toStrictEqual({ basedOn: ["TEA", "BURGER"] });
+      expect(items.FRIES.detail).toStrictEqual({ basedOn: ["TEA", "BURGER", "APPLE"] });
+    });
+
+    it("describes a partner by its top pair's share and lift once the pair has enough orders", async () => {
+      await storeAffinity(affinityRunId, [
+        ["TEA", "PIE", 0.666, 2, 50],
+        ["TEA", "BUN", 0.7, 1.5, 60],
+        ["BURGER", "BUN", 0.3, 4, 100],
+        ["TEA", "CAKE", 0.9, 5, 49],
+      ]);
+
+      const items = await servedItemsById({ cart: cartOf("TEA", "BURGER"), daypart: "dinner" });
+
+      expect(items.PIE).toStrictEqual({
+        itemId: "PIE",
+        rank: expect.any(Number),
+        reason: "goes_with_cart",
+        detail: { basedOn: ["TEA"], pairShare: 0.67, strongPairing: true },
+      });
+      expect(items.BUN.detail).toStrictEqual({ basedOn: ["TEA", "BURGER"], pairShare: 0.7 });
+      expect(items.CAKE.detail).toStrictEqual({ basedOn: ["TEA"] });
+    });
+
+    it("rounds the share on the stored value and omits a share below 1 in 10", async () => {
+      await storeAffinity(affinityRunId, [
+        ["TEA", "JAM", 0.285, 1.5, 200],
+        ["TEA", "MUG", 0.04, 2.5, 400],
+      ]);
+
+      const items = await servedItemsById({ cart: cartOf("TEA"), daypart: "dinner" });
+
+      expect(items.JAM.detail).toStrictEqual({ basedOn: ["TEA"], pairShare: 0.29 });
+      expect(items.MUG.detail).toStrictEqual({ basedOn: ["TEA"], strongPairing: true });
+    });
+
+    it("lists at most 3 cart items a partner goes with", async () => {
+      await storeAffinity(affinityRunId, [
+        ["TEA", "COLA", 0.8],
+        ["APPLE", "COLA", 0.7],
+        ["PEAR", "COLA", 0.2],
+      ]);
+
+      const items = await servedItemsById({ cart: cartOf("BURGER", "TEA", "APPLE", "PEAR"), daypart: "dinner" });
+
+      expect(items.COLA.detail).toStrictEqual({ basedOn: ["TEA", "APPLE", "BURGER"] });
+    });
+
+    it("drops a favourite that does not go with the cart", async () => {
+      const items = await servedItemsById({ cart: cartOf("RICE"), customerId: CUSTOMER_ID, daypart: "breakfast" });
+
+      expect(items.KAYA).toBeUndefined();
+    });
+
+    it("lists only the cart items a favourite goes with", async () => {
+      const items = await servedItemsById({
+        cart: cartOf("BURGER", "RICE"),
+        customerId: CUSTOMER_ID,
+        daypart: "breakfast",
+      });
+
+      expect(items.KAYA.detail).toStrictEqual({ basedOn: ["BURGER"] });
+    });
+
+    it("gives a favourite no detail when the cart is empty", async () => {
+      const items = await servedItemsById({ customerId: CUSTOMER_ID, daypart: "breakfast" });
+
+      expect(items.KAYA).toStrictEqual({ itemId: "KAYA", rank: 1, reason: "frequently_ordered" });
+    });
+
+    it("keeps a favourite that is also a strong partner as a favourite, without a share", async () => {
+      await storeAffinity(affinityRunId, [["TEA", "KAYA", 0.8, 3, 100]]);
+
+      const items = await servedItemsById({
+        cart: cartOf("TEA"),
+        customerId: CUSTOMER_ID,
+        daypart: "breakfast",
+      });
+
+      expect(items.KAYA).toStrictEqual({
+        itemId: "KAYA",
+        rank: 1,
+        reason: "frequently_ordered",
+        detail: { basedOn: ["TEA"] },
+      });
     });
 
     it("only returns included partners", async () => {

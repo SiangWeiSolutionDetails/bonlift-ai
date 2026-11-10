@@ -29,6 +29,15 @@ function recommend(request: any = REQUEST) {
   return getRecommendations(fakePool, fakeLog, BRAND_ID, request, SECRET);
 }
 
+const NO_DETAIL_COLUMNS: Record<string, string[] | number | null> = {
+  based_on: null,
+  top_pair_confidence: null,
+  top_pair_lift: null,
+  top_pair_sample: null,
+  outlet_rank: null,
+  outlet_list_size: null,
+};
+
 function itemRow(itemId: string | null, daypart: string | null = "Lunch") {
   return {
     in_brand: true,
@@ -38,6 +47,7 @@ function itemRow(itemId: string | null, daypart: string | null = "Lunch") {
     daypart,
     external_item_id: itemId,
     source: itemId === null ? null : "outlet",
+    ...NO_DETAIL_COLUMNS,
   };
 }
 
@@ -50,7 +60,41 @@ function favouriteRow(itemId: string, runId: string | null = RUN_ID) {
     daypart: runId === null ? null : "Lunch",
     external_item_id: itemId,
     source: "customer",
+    ...NO_DETAIL_COLUMNS,
   };
+}
+
+function cartRow(itemId: string, pair: Record<string, unknown> = {}) {
+  return {
+    in_brand: true,
+    run_id: RUN_ID,
+    customer_run_id: null,
+    affinity_run_id: AFFINITY_RUN_ID,
+    daypart: "Lunch",
+    external_item_id: itemId,
+    source: "cart",
+    ...NO_DETAIL_COLUMNS,
+    ...pair,
+  };
+}
+
+function topPair(confidence: number, lift: number, sample: number) {
+  return {
+    based_on: ["KOPI"],
+    top_pair_confidence: confidence,
+    top_pair_lift: lift,
+    top_pair_sample: sample,
+  };
+}
+
+function outletRow(itemId: string, outletRank: number, outletListSize: number) {
+  return { ...itemRow(itemId), outlet_rank: outletRank, outlet_list_size: outletListSize };
+}
+
+async function servedItem(row: Record<string, unknown>) {
+  queryMock.mockResolvedValueOnce(pgResult([row]));
+  const result = await recommend({ ...REQUEST, cart: [{ itemId: "KOPI", qty: 1 }] });
+  return result.items[0];
 }
 
 function queryParams(overrides: Record<number, unknown> = {}) {
@@ -70,6 +114,7 @@ function emptyOutletRow(inBrand = true) {
     daypart: null,
     external_item_id: null,
     source: null,
+    ...NO_DETAIL_COLUMNS,
   };
 }
 
@@ -157,6 +202,7 @@ describe("getRecommendations", () => {
           daypart: "all_day",
           external_item_id: "P1",
           source: "cart",
+          ...NO_DETAIL_COLUMNS,
         },
       ]),
     );
@@ -368,5 +414,129 @@ describe("getRecommendations", () => {
   ])("throws ValidationError without querying when %s", async (_name, request) => {
     await expect(recommend(request)).rejects.toThrow(ValidationError);
     expect(queryMock).not.toHaveBeenCalled();
+  });
+
+  describe("reason detail", () => {
+    it("omits detail when nothing applies", async () => {
+      queryMock.mockResolvedValueOnce(
+        pgResult([favouriteRow("F1"), cartRow("P1"), outletRow("A", 4, 10)]),
+      );
+
+      const result = await recommend({
+        ...REQUEST,
+        customerId: "6591234567",
+        cart: [{ itemId: "KOPI", qty: 1 }],
+      });
+
+      expect(result.items).toStrictEqual([
+        { itemId: "F1", rank: 1, reason: "frequently_ordered" },
+        { itemId: "P1", rank: 2, reason: "goes_with_cart" },
+        { itemId: "A", rank: 3, reason: "popular_at_outlet" },
+      ]);
+    });
+
+    it("lists the cart items an item goes with, in the query's order", async () => {
+      expect(await servedItem(cartRow("P1", { based_on: ["KOPI", "TOAST"] }))).toStrictEqual({
+        itemId: "P1",
+        rank: 1,
+        reason: "goes_with_cart",
+        detail: { basedOn: ["KOPI", "TOAST"] },
+      });
+    });
+
+    it("lists the cart items a favourite goes with", async () => {
+      expect(await servedItem({ ...favouriteRow("F1"), based_on: ["KOPI"] })).toStrictEqual({
+        itemId: "F1",
+        rank: 1,
+        reason: "frequently_ordered",
+        detail: { basedOn: ["KOPI"] },
+      });
+    });
+
+    it("gives the top pair's share once the pair has 50 orders", async () => {
+      expect(await servedItem(cartRow("P1", topPair(0.67, 1.5, 50)))).toStrictEqual({
+        itemId: "P1",
+        rank: 1,
+        reason: "goes_with_cart",
+        detail: { basedOn: ["KOPI"], pairShare: 0.67 },
+      });
+    });
+
+    it("gives a share of exactly 0.1 and omits one below it", async () => {
+      expect((await servedItem(cartRow("P1", topPair(0.1, 1.5, 50)))).detail).toStrictEqual({
+        basedOn: ["KOPI"],
+        pairShare: 0.1,
+      });
+      expect((await servedItem(cartRow("P1", topPair(0.09, 1.5, 50)))).detail).toStrictEqual({
+        basedOn: ["KOPI"],
+      });
+    });
+
+    it("keeps a strong pairing when the share is too small to show", async () => {
+      expect((await servedItem(cartRow("P1", topPair(0.04, 2.5, 400)))).detail).toStrictEqual({
+        basedOn: ["KOPI"],
+        strongPairing: true,
+      });
+    });
+
+    it("lists at most 3 cart items", async () => {
+      expect(
+        (await servedItem(cartRow("P1", { based_on: ["A", "B", "C", "D"] }))).detail,
+      ).toStrictEqual({ basedOn: ["A", "B", "C"] });
+    });
+
+    it("omits the share and strong pairing when the top pair has fewer than 50 orders", async () => {
+      expect(await servedItem(cartRow("P1", topPair(0.7, 3, 49)))).toStrictEqual({
+        itemId: "P1",
+        rank: 1,
+        reason: "goes_with_cart",
+        detail: { basedOn: ["KOPI"] },
+      });
+    });
+
+    it("marks a strong pairing at a lift of exactly 2", async () => {
+      expect(await servedItem(cartRow("P1", topPair(0.7, 2, 50)))).toStrictEqual({
+        itemId: "P1",
+        rank: 1,
+        reason: "goes_with_cart",
+        detail: { basedOn: ["KOPI"], pairShare: 0.7, strongPairing: true },
+      });
+    });
+
+    it("does not mark a strong pairing at a lift of 1.99", async () => {
+      expect(await servedItem(cartRow("P1", topPair(0.7, 1.99, 50)))).toStrictEqual({
+        itemId: "P1",
+        rank: 1,
+        reason: "goes_with_cart",
+        detail: { basedOn: ["KOPI"], pairShare: 0.7 },
+      });
+    });
+
+    it("never gives a favourite a share or strong pairing, even with pair columns set", async () => {
+      expect(
+        await servedItem({ ...favouriteRow("F1"), ...topPair(0.7, 3, 100) }),
+      ).toStrictEqual({
+        itemId: "F1",
+        rank: 1,
+        reason: "frequently_ordered",
+        detail: { basedOn: ["KOPI"] },
+      });
+    });
+
+    it.each([
+      { label: "marks", outletRank: 3, listSize: 10, detail: { bestSeller: true } },
+      { label: "does not mark", outletRank: 4, listSize: 10, detail: undefined },
+      { label: "does not mark", outletRank: 3, listSize: 9, detail: undefined },
+    ])(
+      "$label a best seller at stored rank $outletRank of a $listSize-item list",
+      async ({ outletRank, listSize, detail }) => {
+        expect(await servedItem(outletRow("A", outletRank, listSize))).toStrictEqual({
+          itemId: "A",
+          rank: 1,
+          reason: "popular_at_outlet",
+          ...(detail && { detail }),
+        });
+      },
+    );
   });
 });

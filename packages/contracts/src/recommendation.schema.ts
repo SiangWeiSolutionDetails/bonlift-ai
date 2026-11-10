@@ -127,6 +127,60 @@ export type RecommendationReasonSchemaType = Static<
   typeof RecommendationReasonSchema
 >;
 
+// Facts only: the wording stays with the caller. Every field is omitted when it does not apply.
+export const RecommendationDetailSchema = Type.Object(
+  {
+    basedOn: Type.Optional(
+      Type.Array(Type.String(), {
+        minItems: 1,
+        maxItems: 3,
+        description:
+          "Up to 3 cart item ids this item is often ordered with, strongest first. Sent with `goes_with_cart` and " +
+          "`frequently_ordered` when the cart has such items. Use the first one for wording such as " +
+          "\"Goes with your Kopi\" (`goes_with_cart`) or \"Your usual with Kopi\" (`frequently_ordered`).",
+        examples: [["ITEM-1001", "ITEM-2002"]],
+      }),
+    ),
+    pairShare: Type.Optional(
+      Type.Number({
+        minimum: 0.1,
+        maximum: 1,
+        description:
+          "Share of orders containing the first `basedOn` item that also contained this item, from 0 to 1 with " +
+          "two decimals. Sent with `goes_with_cart` only, and only when enough orders back it and it is at least 0.1. " +
+          "Example wording for 0.7: \"7 in 10 who order Kopi add this\".",
+        examples: [0.7],
+      }),
+    ),
+    strongPairing: Type.Optional(
+      Type.Literal(true, {
+        description:
+          "This item is ordered with the first `basedOn` item at least twice as often as chance. Sent with `goes_with_cart` " +
+          "only, and only when true. Example wording: \"A classic pairing\".",
+      }),
+    ),
+    bestSeller: Type.Optional(
+      Type.Literal(true, {
+        description:
+          "One of the top sellers at this outlet in the served `daypart`. Sent with `popular_at_outlet` only, and " +
+          "only when true. Example wording: \"Best seller here\".",
+      }),
+    ),
+  },
+  {
+    additionalProperties: false,
+    description:
+      "Optional facts behind `reason`, for wording the reason shown to the customer. Omitted when there is nothing " +
+      "to add. Combine `reason` with the response's `daypart` for wording such as \"Your usual breakfast pick\" " +
+      "(`frequently_ordered`) or \"Popular for lunch here\" (`popular_at_outlet`). When `daypart` is `all_day`, use " +
+      "wording without a time of day. New fields may be added: ignore " +
+      "fields you do not know.",
+  },
+);
+export type RecommendationDetailSchemaType = Static<
+  typeof RecommendationDetailSchema
+>;
+
 export const RecommendationItemSchema = Type.Object(
   {
     itemId: Type.String({ description: "Your menu item id.", examples: ["ITEM-3003"] }),
@@ -137,6 +191,7 @@ export const RecommendationItemSchema = Type.Object(
       examples: [1],
     }),
     reason: RecommendationReasonSchema,
+    detail: Type.Optional(RecommendationDetailSchema),
   },
   { additionalProperties: false },
 );

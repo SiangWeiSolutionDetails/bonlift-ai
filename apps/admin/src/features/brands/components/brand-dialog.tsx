@@ -28,6 +28,8 @@ import { BrandDataSourceSection } from "@/features/brand-data-source/components/
 import { OutletItemScoresConfigSection } from "@/features/outlet-item-scores-config/components/outlet-item-scores-config-section";
 import { CustomerItemScoresConfigSection } from "@/features/customer-item-scores-config/components/customer-item-scores-config-section";
 import { ItemAffinityConfigSection } from "@/features/item-affinity-config/components/item-affinity-config-section";
+import { BrandCalculationScheduleSection } from "@/features/brand-calculation-schedule/components/brand-calculation-schedule-section";
+import { BrandChannelsSection } from "@/features/brand-channels/components/brand-channels-section";
 
 const CALCULATIONS = [
   {
@@ -79,6 +81,12 @@ export function BrandDialog({ brand, tenantName, readOnly = false, onClose }: Br
               <TabsTrigger value="calculationConfigs" className="flex-none">
                 {t("tabs.calculationConfigs")}
               </TabsTrigger>
+              <TabsTrigger value="schedule" className="flex-none">
+                {t("tabs.schedule")}
+              </TabsTrigger>
+              <TabsTrigger value="channels" className="flex-none">
+                {t("tabs.channels")}
+              </TabsTrigger>
             </TabsList>
             <BrandTab value="general">
               <BrandForm brand={brand} tenantName={tenantName} readOnly={readOnly} />
@@ -88,6 +96,12 @@ export function BrandDialog({ brand, tenantName, readOnly = false, onClose }: Br
             </BrandTab>
             <BrandTab value="calculationConfigs">
               <BrandCalculationConfigs brandId={brand.id} readOnly={readOnly} />
+            </BrandTab>
+            <BrandTab value="schedule">
+              <BrandCalculationScheduleSection brandId={brand.id} readOnly={readOnly} />
+            </BrandTab>
+            <BrandTab value="channels">
+              <BrandChannelsSection brandId={brand.id} readOnly={readOnly} />
             </BrandTab>
           </Tabs>
         )}

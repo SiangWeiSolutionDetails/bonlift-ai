@@ -48,6 +48,18 @@ export const BrandUsageApiKeySchema = Type.Object(
 );
 export type BrandUsageApiKeySchemaType = Static<typeof BrandUsageApiKeySchema>;
 
+// channelId null: calls of keys without a channel (created before channels existed).
+export const BrandUsageChannelSchema = Type.Object(
+  {
+    channelId: Type.Union([Type.String({ format: "uuid" }), Type.Null()]),
+    code: Type.Union([Type.String(), Type.Null()]),
+    name: Type.Union([Type.String(), Type.Null()]),
+    ...ServingCallCountsSchema.properties,
+  },
+  { additionalProperties: false },
+);
+export type BrandUsageChannelSchemaType = Static<typeof BrandUsageChannelSchema>;
+
 export const BrandUsageCalculationSchema = Type.Object(
   {
     jobType: CalculationJobTypeSchema,
@@ -68,6 +80,7 @@ export const BrandUsageSchema = Type.Object(
     tz: Type.String(),
     days: Type.Array(BrandUsageDaySchema),
     apiKeys: Type.Array(BrandUsageApiKeySchema),
+    channels: Type.Array(BrandUsageChannelSchema),
     calculations: Type.Array(BrandUsageCalculationSchema),
   },
   { additionalProperties: false },

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { TriangleAlertIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import { Link } from "@tanstack/react-router";
 import { CreateBrandApiKeyBodySchema } from "@bonlift-ai/contracts";
 import { FieldError } from "@/components/field-error";
 import { FieldHint } from "@/components/field-hint";
@@ -16,7 +17,16 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
+import { useBrandChannels } from "@/features/brand-channels/queries";
 import { getErrorMessage } from "@/lib/error-message";
 import { typeboxResolver } from "@/lib/typebox-resolver";
 import { useCreateBrandApiKey } from "../queries";
@@ -75,10 +85,14 @@ function CreateKeyForm({ brandId, onCreated, onCancel }: CreateKeyFormProps) {
     formState: { errors },
   } = useForm<CreateBrandApiKeyInput>({
     resolver: typeboxResolver(CreateBrandApiKeyBodySchema),
-    defaultValues: { name: "" },
+    defaultValues: { name: "", channelId: "" },
   });
   // Already trimmed by setValueAs, so a name of only spaces keeps the button disabled
   const name = useWatch({ control, name: "name" });
+  const channelId = useWatch({ control, name: "channelId" });
+  // A key serves one channel; a switched-off channel can't take new keys
+  const channels = useBrandChannels(brandId);
+  const activeChannels = channels.data?.filter((channel) => channel.isActive) ?? [];
   // "0" is never expires. Kept as text so clearing the box does not snap back mid-typing.
   const [expiresText, setExpiresText] = useState("0");
   const createMutation = useCreateBrandApiKey();
@@ -129,6 +143,50 @@ function CreateKeyForm({ brandId, onCreated, onCancel }: CreateKeyFormProps) {
           {...register("name", { setValueAs: (value: string) => value.trim() })}
         />
         <FieldError message={errors.name?.message} />
+      </div>
+
+      <div className="grid gap-2">
+        <div className="flex items-center gap-1.5">
+          <Label htmlFor="api-key-channel">{t("list.channel")}</Label>
+          <FieldHint id="api-key-channel-hint" hint={t("list.channelHint")} />
+        </div>
+        {channels.isPending ? (
+          <Skeleton className="h-9 w-full" />
+        ) : channels.error ? (
+          <p className="text-sm text-destructive">{getErrorMessage(channels.error, tCommon)}</p>
+        ) : activeChannels.length === 0 ? (
+          <p className="rounded-xl border border-dashed px-4 py-3 text-sm text-muted-foreground">
+            {t("list.noChannels")}{" "}
+            <Link to="/brands" className="font-medium text-foreground underline underline-offset-4">
+              {t("list.openBrands")}
+            </Link>
+          </p>
+        ) : (
+          <Controller
+            control={control}
+            name="channelId"
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger
+                  id="api-key-channel"
+                  className="w-full"
+                  aria-invalid={!!errors.channelId}
+                  aria-describedby="api-key-channel-hint"
+                >
+                  <SelectValue placeholder={t("list.channelPlaceholder")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {activeChannels.map((channel) => (
+                    <SelectItem key={channel.channelId} value={channel.channelId}>
+                      {channel.name} <span className="font-mono text-muted-foreground">{channel.code}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+        )}
+        <FieldError message={errors.channelId?.message} />
       </div>
 
       <div className="grid gap-2">
@@ -185,7 +243,7 @@ function CreateKeyForm({ brandId, onCreated, onCancel }: CreateKeyFormProps) {
         <Button type="button" variant="outline" onClick={onCancel}>
           {tCommon("actions.cancel")}
         </Button>
-        <Button type="submit" disabled={!name || createMutation.isPending}>
+        <Button type="submit" disabled={!name || !channelId || createMutation.isPending}>
           {createMutation.isPending ? tCommon("actions.creating") : t("list.create")}
         </Button>
       </DialogFooter>

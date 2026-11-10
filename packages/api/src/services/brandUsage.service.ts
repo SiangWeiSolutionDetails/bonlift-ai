@@ -11,6 +11,7 @@ import { assertValid } from "../utils/validate.js";
 export interface ServingUsageEvent {
   brandId: string;
   apiKeyId: string;
+  channelId: string | null;
   route: string;
   statusCode: number;
   durationMs: number;
@@ -33,7 +34,7 @@ const BRAND_USAGE_SQL = `
       AND b.deleted_at IS NULL
   ),
   calls AS (
-    SELECT (e.created_at AT TIME ZONE $4)::date AS day, e.api_key_id, e.status_code
+    SELECT (e.created_at AT TIME ZONE $4)::date AS day, e.api_key_id, e.channel_id, e.status_code
     FROM bounds
     JOIN serving_usage_events e
       ON e.brand_id = bounds.brand_id
@@ -73,6 +74,12 @@ const BRAND_USAGE_SQL = `
     LEFT JOIN brand_api_keys k ON k.id = c.api_key_id
     GROUP BY c.api_key_id, k.name, k.key_prefix
   ),
+  channel_counts AS (
+    SELECT c.channel_id, ch.code, ch.name, count(*) AS total, ${CALL_COUNTS}
+    FROM calls c
+    LEFT JOIN channels ch ON ch.id = c.channel_id
+    GROUP BY c.channel_id, ch.code, ch.name
+  ),
   run_counts AS (
     SELECT job_type, status, count(*) AS runs
     FROM runs
@@ -96,6 +103,15 @@ const BRAND_USAGE_SQL = `
               'serverErrors', server_errors
             ) ORDER BY total DESC, name), '[]'::json)
      FROM key_counts) AS api_keys,
+    (SELECT coalesce(json_agg(json_build_object(
+              'channelId', channel_id,
+              'code', code,
+              'name', name,
+              'succeeded', succeeded,
+              'clientErrors', client_errors,
+              'serverErrors', server_errors
+            ) ORDER BY total DESC, code), '[]'::json)
+     FROM channel_counts) AS channels,
     (SELECT coalesce(json_agg(json_build_object(
               'jobType', job_type,
               'status', status,
@@ -121,12 +137,13 @@ export async function recordServingUsage(
 ): Promise<void> {
   await pool.query(
     `
-    INSERT INTO serving_usage_events (brand_id, api_key_id, route, status_code, duration_ms)
-    VALUES ($1, $2, $3, $4, $5)
+    INSERT INTO serving_usage_events (brand_id, api_key_id, channel_id, route, status_code, duration_ms)
+    VALUES ($1, $2, $3, $4, $5, $6)
     `,
     [
       event.brandId,
       event.apiKeyId,
+      event.channelId,
       event.route,
       event.statusCode,
       event.durationMs,
@@ -164,6 +181,7 @@ export async function getBrandUsage(
     tz: query.tz,
     days: row.days,
     apiKeys: row.api_keys,
+    channels: row.channels,
     calculations: row.calculations,
   };
 }

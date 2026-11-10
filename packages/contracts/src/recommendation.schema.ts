@@ -20,6 +20,15 @@ export type RecommendationCartItemSchemaType = Static<
   typeof RecommendationCartItemSchema
 >;
 
+// Shared by every /v1 request. The API key decides the channel; when sent, this must match it (checked by the
+// serving channel hook).
+export const ServingChannelSchema = Type.String({
+  description:
+    "The ordering channel, e.g. tqr, pos or sok. Optional: your API key already decides the channel. " +
+    "When sent, it must be your key's channel code, or the request is rejected with 400.",
+  examples: ["tqr"],
+});
+
 export const RecommendationRequestSchema = Type.Object(
   {
     outletId: Type.String({
@@ -81,13 +90,7 @@ export const RecommendationRequestSchema = Type.Object(
         examples: ["CUST-000123"],
       }),
     ),
-    // Accepted now, used when channel rules are served.
-    channel: Type.Optional(
-      Type.String({
-        description: "The ordering channel, e.g. table QR, POS or kiosk. Accepted but not yet used.",
-        examples: ["tqr"],
-      }),
-    ),
+    channel: Type.Optional(ServingChannelSchema),
     pax: Type.Optional(
       Type.Integer({
         minimum: 1,

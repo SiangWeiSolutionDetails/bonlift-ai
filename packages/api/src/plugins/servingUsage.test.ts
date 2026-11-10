@@ -4,6 +4,7 @@ import { createServingUsageHook } from "./servingUsage.js";
 
 const BRAND_ID = "11111111-1111-1111-1111-111111111111";
 const API_KEY_ID = "22222222-2222-2222-2222-222222222222";
+const CHANNEL_ID = "33333333-3333-3333-3333-333333333333";
 
 const queryMock = vi.fn();
 const fakePool = { query: queryMock } as any;
@@ -13,6 +14,7 @@ function request(overrides: Record<string, unknown> = {}) {
   return {
     servingBrandId: BRAND_ID,
     servingApiKeyId: API_KEY_ID,
+    servingChannel: { id: CHANNEL_ID, code: "tqr", isActive: true },
     routeOptions: { url: "/v1/recommendations" },
     log: { error: errorLog },
     ...overrides,
@@ -31,7 +33,7 @@ beforeEach(() => {
 });
 
 describe("createServingUsageHook", () => {
-  it("records the brand, key, route pattern, status and rounded duration", async () => {
+  it("records the brand, key, channel, route pattern, status and rounded duration", async () => {
     queryMock.mockResolvedValueOnce(pgResult([], 1));
 
     await hook(request(), reply(503, 12.6));
@@ -39,6 +41,7 @@ describe("createServingUsageHook", () => {
     expect(queryMock).toHaveBeenCalledWith(expect.any(String), [
       BRAND_ID,
       API_KEY_ID,
+      CHANNEL_ID,
       "/v1/recommendations",
       503,
       13,
@@ -50,7 +53,7 @@ describe("createServingUsageHook", () => {
 
     await hook(request({ routeOptions: {}, url: "/v1/anything?x=1" }), reply(404));
 
-    expect(queryMock.mock.calls[0][1][2]).toBe("unmatched");
+    expect(queryMock.mock.calls[0][1][3]).toBe("unmatched");
   });
 
   it("records nothing for a call the API key hook rejected", async () => {
@@ -67,5 +70,15 @@ describe("createServingUsageHook", () => {
       expect.objectContaining({ err: expect.any(Error) }),
       "Serving usage was not recorded",
     );
+  });
+});
+
+describe("createServingUsageHook for a key without a channel", () => {
+  it("records the call with no channel", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([], 1));
+
+    await hook(request({ servingChannel: null }), reply());
+
+    expect(queryMock.mock.calls[0][1][2]).toBeNull();
   });
 });

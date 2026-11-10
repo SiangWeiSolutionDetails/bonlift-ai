@@ -1,6 +1,6 @@
 import type { FastifyRequest } from "fastify";
 import { Pool } from "pg";
-import { ServiceUnavailableError, UnauthorizedError } from "../errors.js";
+import { ServiceUnavailableError, UnauthorizedError, ValidationError } from "../errors.js";
 import {
   BrandApiKeyMatch,
   findLiveBrandApiKey,
@@ -12,7 +12,14 @@ declare module "fastify" {
   interface FastifyRequest {
     servingBrandId: string | null;
     servingApiKeyId: string | null;
+    servingChannel: ServingChannel | null;
   }
+}
+
+export interface ServingChannel {
+  id: string;
+  code: string;
+  isActive: boolean;
 }
 
 export const API_KEY_CACHE_TTL_MS = 60_000;
@@ -23,14 +30,17 @@ export interface ServingKeyAuthOptions {
   now?: () => number;
 }
 
+// channel is null for keys created before channels existed.
 export interface ServingCaller {
   apiKeyId: string;
   brandId: string;
   name: string;
+  channel: ServingChannel | null;
 }
 
 // Only live keys are cached, so the cache is bounded by the number of keys. A revoked key keeps working
 // until its entry expires (at most ttlMs); an expired key stops at once because expiresAt is checked on every hit.
+// The key's channel is cached with it, so switching a channel off (or on) also takes up to ttlMs to apply.
 export function createServingKeyAuthenticator({
   getPool,
   ttlMs = API_KEY_CACHE_TTL_MS,
@@ -59,7 +69,7 @@ export function createServingKeyAuthenticator({
     if (!match || !isSameApiKey(match, presented)) return null;
     if (match.expiresAt && match.expiresAt.getTime() <= now()) return null;
 
-    return { apiKeyId: match.id, brandId: match.brandId, name: match.name };
+    return { apiKeyId: match.id, brandId: match.brandId, name: match.name, channel: match.channel };
   };
 }
 
@@ -83,6 +93,24 @@ export function createServingAuthHook(
     }
     request.servingBrandId = caller.brandId;
     request.servingApiKeyId = caller.apiKeyId;
+    request.servingChannel = caller.channel;
     request.log = request.log.child({ caller: `${caller.brandId}/${caller.name}` });
+  };
+}
+
+// Runs after the body is parsed. The key decides the channel: a body `channel` is optional, and must match it when sent.
+// Keys without a channel (created before channels existed) are served as before, with `channel` ignored.
+export function createServingChannelHook() {
+  return async (request: FastifyRequest) => {
+    const channel = request.servingChannel;
+    if (!channel) return;
+
+    if (!channel.isActive) {
+      throw new ValidationError(`Channel ${channel.code} is switched off for this brand.`);
+    }
+    const sent = (request.body as { channel?: unknown } | undefined)?.channel;
+    if (sent !== undefined && sent !== channel.code) {
+      throw new ValidationError(`channel must be ${channel.code} for this API key.`);
+    }
   };
 }

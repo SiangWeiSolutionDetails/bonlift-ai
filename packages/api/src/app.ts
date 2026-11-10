@@ -6,6 +6,7 @@ import { brandRoutes } from "./routes/brand.route.js";
 import { outletRoutes } from "./routes/outlet.route.js";
 import { mockDatasetRoutes } from "./routes/mockDataset.route.js";
 import { brandDataSourceRoutes } from "./routes/brandDataSource.route.js";
+import { brandCalculationScheduleRoutes } from "./routes/brandCalculationSchedule.route.js";
 import { datasetRoutes } from "./routes/dataset.route.js";
 import { orderSnapshotRoutes } from "./routes/orderSnapshot.route.js";
 import { calculationRoutes } from "./routes/calculation.route.js";
@@ -18,10 +19,12 @@ import { itemAffinityResultRoutes } from "./routes/itemAffinityResult.route.js";
 import { recommendationRoutes } from "./routes/recommendation.route.js";
 import { itemAffinityServingRoutes } from "./routes/itemAffinityServing.route.js";
 import { brandApiKeyRoutes } from "./routes/brandApiKey.route.js";
+import { brandChannelRoutes } from "./routes/brandChannel.route.js";
 import { brandUsageRoutes } from "./routes/brandUsage.route.js";
 import { getPool } from "@bonlift-ai/db";
 import {
   createServingAuthHook,
+  createServingChannelHook,
   createServingKeyAuthenticator,
 } from "./plugins/servingAuth.js";
 import { createServingUsageHook } from "./plugins/servingUsage.js";
@@ -69,6 +72,7 @@ export function buildApp(): FastifyInstance {
     admin.register(brandRoutes);
     admin.register(outletRoutes);
     admin.register(brandDataSourceRoutes);
+    admin.register(brandCalculationScheduleRoutes);
     admin.register(datasetRoutes);
     admin.register(orderSnapshotRoutes);
     admin.register(calculationRoutes);
@@ -79,6 +83,7 @@ export function buildApp(): FastifyInstance {
     admin.register(itemAffinityCalculationConfigVersionRoutes);
     admin.register(itemAffinityResultRoutes);
     admin.register(brandUsageRoutes);
+    admin.register(brandChannelRoutes);
     admin.register(brandApiKeyRoutes);
 
     if (areDevRoutesEnabled()) {
@@ -91,10 +96,12 @@ export function buildApp(): FastifyInstance {
     async (serving) => {
       serving.decorateRequest("servingBrandId", null);
       serving.decorateRequest("servingApiKeyId", null);
+      serving.decorateRequest("servingChannel", null);
       serving.addHook(
         "onRequest",
         createServingAuthHook(createServingKeyAuthenticator({ getPool })),
       );
+      serving.addHook("preHandler", createServingChannelHook());
       serving.addHook("onResponse", createServingUsageHook(getPool));
       serving.register(recommendationRoutes);
       serving.register(itemAffinityServingRoutes);

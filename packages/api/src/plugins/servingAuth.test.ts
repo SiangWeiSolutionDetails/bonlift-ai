@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { generateApiKey, hashApiKey } from "../services/brandApiKey.service.js";
 import { pgResult } from "../utils/pg.test-helpers.js";
-import { createServingKeyAuthenticator } from "./servingAuth.js";
+import { ValidationError } from "../errors.js";
+import { createServingChannelHook, createServingKeyAuthenticator } from "./servingAuth.js";
 
 const BRAND_ID = "11111111-1111-1111-1111-111111111111";
 const API_KEY_ID = "22222222-2222-2222-2222-222222222222";
+const CHANNEL_ID = "33333333-3333-3333-3333-333333333333";
 const { key: KEY, keyPrefix: KEY_PREFIX } = generateApiKey();
 const TTL_MS = 60_000;
 
@@ -19,6 +21,9 @@ function keyRow(overrides: Record<string, unknown> = {}) {
     name: "pos-boat-quay",
     key_hash: hashApiKey(KEY),
     expires_at: null,
+    channel_id: null,
+    channel_code: null,
+    channel_is_active: null,
     ...overrides,
   };
 }
@@ -44,6 +49,7 @@ describe("createServingKeyAuthenticator", () => {
       apiKeyId: API_KEY_ID,
       brandId: BRAND_ID,
       name: "pos-boat-quay",
+      channel: null,
     });
     expect(queryMock).toHaveBeenCalledWith(
       expect.stringContaining("revoked_at IS NULL"),
@@ -123,5 +129,49 @@ describe("createServingKeyAuthenticator", () => {
     queryMock.mockRejectedValueOnce(new Error("connection refused"));
 
     await expect(authenticator()(KEY)).rejects.toThrow("connection refused");
+  });
+});
+
+describe("createServingKeyAuthenticator with a channel", () => {
+  it("returns the key's channel with its code and state", async () => {
+    queryMock.mockResolvedValueOnce(
+      pgResult([keyRow({ channel_id: CHANNEL_ID, channel_code: "tqr", channel_is_active: false })]),
+    );
+
+    expect((await authenticator()(KEY))?.channel).toStrictEqual({
+      id: CHANNEL_ID,
+      code: "tqr",
+      isActive: false,
+    });
+  });
+});
+
+describe("createServingChannelHook", () => {
+  const hook = createServingChannelHook();
+  const TQR = { id: CHANNEL_ID, code: "tqr", isActive: true };
+
+  function request(servingChannel: unknown, body: unknown) {
+    return { servingChannel, body } as any;
+  }
+
+  it.each([
+    ["the body sends the key's channel", TQR, { channel: "tqr" }],
+    ["the body sends no channel", TQR, {}],
+    ["there is no body", TQR, undefined],
+    ["the key has no channel, whatever the body sends", null, { channel: "anything" }],
+  ])("accepts the call when %s", async (_name, channel, body) => {
+    await expect(hook(request(channel, body))).resolves.toBeUndefined();
+  });
+
+  it("rejects a channel that differs from the key's", async () => {
+    await expect(hook(request(TQR, { channel: "pos" }))).rejects.toThrow(ValidationError);
+  });
+
+  it("rejects a non-string channel", async () => {
+    await expect(hook(request(TQR, { channel: 1 }))).rejects.toThrow(ValidationError);
+  });
+
+  it("rejects every call of a key whose channel is switched off", async () => {
+    await expect(hook(request({ ...TQR, isActive: false }, {}))).rejects.toThrow(ValidationError);
   });
 });

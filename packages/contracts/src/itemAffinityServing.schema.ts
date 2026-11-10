@@ -1,5 +1,5 @@
 import Type, { Static } from "typebox";
-import { RecommendationCartItemSchema } from "./recommendation.schema.js";
+import { RecommendationCartItemSchema, ServingChannelSchema } from "./recommendation.schema.js";
 
 // Serving contract (/v1), same compatibility rules as recommendation.schema.ts: unknown request fields are accepted and
 // ignored, callers ignore unknown response fields and reasons, breaking changes go to /v2. Descriptions are published.
@@ -48,6 +48,7 @@ export const ItemAffinityRequestSchema = Type.Object(
         description: "Maximum number of items to return. Defaults to every matching item.",
       }),
     ),
+    channel: Type.Optional(ServingChannelSchema),
   },
   {
     description:

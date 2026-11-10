@@ -107,8 +107,17 @@ export async function createBrand(
         RETURNING ${BRAND_COLUMNS}
       ),
       bds AS (
-        INSERT INTO brand_data_sources (brand_id) 
+        INSERT INTO brand_data_sources (brand_id)
         SELECT id FROM b
+      ),
+      bcs AS (
+        INSERT INTO brand_calculation_schedules (brand_id)
+        SELECT id FROM b
+      ),
+      -- Every channel, switched off until an admin switches it on.
+      bch AS (
+        INSERT INTO brand_channels (brand_id, channel_id)
+        SELECT b.id, c.id FROM b CROSS JOIN channels c
       ),
       ccv AS (
         INSERT INTO calculation_config_versions (brand_id, job_type)

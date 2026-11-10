@@ -30,7 +30,9 @@
   },
   "tabs": {
     "general": "General",
-    "calculationConfigs": "Calculation Configs"
+    "calculationConfigs": "Calculation Configs",
+    "schedule": "Schedule",
+    "channels": "Channels"
   },
   "dataSource": {
     "title": "Data Source",
@@ -45,6 +47,43 @@
     "maxChunkDays": "Max Chunk Days",
     "maxChunkDaysHint": "Days per request. 1 or more.",
     "save": "Save Data Source"
+  },
+  "schedule": {
+    "enabled": "Nightly Calculations",
+    "enabledHint": "Recalculates and publishes this brand's results every day. Manual runs work either way.",
+    "runTime": "Run Time",
+    "runTimeHint": "Local time of day in the selected time zone. Schedule it after the previous day's orders have been sent.",
+    "timeZone": "Time Zone",
+    "timeZoneHint": "Sets the run time and which day counts as yesterday for the order windows.",
+    "outletWindowDays": "Popular Items Window (Days)",
+    "outletWindowDaysHint": "Days of orders used per outlet, ending yesterday. 1 to 366.",
+    "customerWindowDays": "Customer Items Window (Days)",
+    "customerWindowDaysHint": "Days of orders used for customer favourites, ending yesterday. 1 to 366.",
+    "affinityWindowDays": "Item Affinity Window (Days)",
+    "affinityWindowDaysHint": "Days of orders used for items often bought together, ending yesterday. 1 to 366.",
+    "save": "Save Schedule",
+    "status": {
+      "title": "Status",
+      "nextRun": "Next Run",
+      "lastRun": "Last Run",
+      "queued": "Runs Queued",
+      "failedToQueue": "Failed To Queue",
+      "paused": "Paused",
+      "neverRun": "Never run",
+      "lastError": "Last run failed: {{error}}"
+    }
+  },
+  "channels": {
+    "description": "Each ordering app is a channel: TQR (table QR), SOK (kiosk) and POS. Every API key serves one channel, and requests are recorded by channel.",
+    "defaultsHint": "Channels are switched off for new brands. API keys can only be created for an active channel.",
+    "code": "Code",
+    "name": "Name",
+    "active": "Active",
+    "activeLabel": "{{name}} active",
+    "empty": "No channels are available.",
+    "deactivate": "Switch Off",
+    "deactivateConfirmTitle": "Switch off {{name}}?",
+    "deactivateConfirmDescription": "Within a minute, requests made with this channel's API keys are rejected until it is switched on again. Existing keys are kept."
   },
   "halfLifePreview": {
     "title": "Order weight by age",

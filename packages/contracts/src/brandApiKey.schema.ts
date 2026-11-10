@@ -14,6 +14,9 @@ export const BrandApiKeyRecordSchema = Type.Object(
     id: Type.String({ format: "uuid" }),
     brandId: Type.String({ format: "uuid" }),
     name: Type.String(),
+    // Null for keys created before channels existed: they serve requests without channel checks.
+    channelId: Type.Union([Type.String({ format: "uuid" }), Type.Null()]),
+    channelCode: Type.Union([Type.String(), Type.Null()]),
     keyPrefix: Type.String(),
     status: BrandApiKeyStatusSchema,
     createdBy: Type.String(),
@@ -34,6 +37,8 @@ export type BrandApiKeyListSchemaType = Static<typeof BrandApiKeyListSchema>;
 export const CreateBrandApiKeyBodySchema = Type.Object(
   {
     name: NameSchema,
+    // Must be one of the brand's channels; the key serves that channel only.
+    channelId: Type.String({ format: "uuid" }),
     expiresInDays: Type.Optional(Type.Integer({ minimum: 1, maximum: 3650 })),
   },
   { additionalProperties: false },

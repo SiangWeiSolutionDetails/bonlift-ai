@@ -8,8 +8,9 @@ const PUBLIC_PREFIX = "/v1/";
 export function registerApiDocs(app: FastifyInstance) {
   app.register(swagger, {
     openapi: {
-      // Minor bump: new optional fields and reasons only. Unknown request fields are ignored, so removing `at` breaks no caller.
-      info: { title: "BonLift AI Serving API", version: "1.1.0" },
+      // Minor bumps: new optional fields and reasons; removing `at` breaks no caller because unknown fields are ignored.
+      // 1.2.0 also checks `channel` against the API key's channel (400 on mismatch), which only applies to keys with a channel.
+      info: { title: "BonLift AI Serving API", version: "1.2.0" },
       components: {
         securitySchemes: {
           apiKey: { type: "apiKey", in: "header", name: "x-api-key" },

@@ -1,6 +1,8 @@
 import { Pool } from "pg";
 
 const MIGRATIONS_TABLE = "pgmigrations";
+// Reference data seeded by migrations: tests read it, and nothing re-seeds it after a TRUNCATE.
+const SEEDED_TABLES = ["channels"];
 
 let pool: Pool | undefined;
 let truncateSql: string | undefined;
@@ -38,8 +40,8 @@ async function buildTruncateSql(db: Pool): Promise<string | undefined> {
     SELECT format('%I.%I', schemaname, tablename) AS name
     FROM pg_tables
     WHERE schemaname = 'public'
-      AND tablename <> $1`,
-    [MIGRATIONS_TABLE],
+      AND tablename <> ALL($1)`,
+    [[MIGRATIONS_TABLE, ...SEEDED_TABLES]],
   );
 
   if (result.rows.length === 0) {

@@ -25,6 +25,13 @@
   "charts": {
     "calls": "按结果统计的 API 调用"
   },
+  "breakdown": {
+    "byChannel": "按渠道的 API 调用",
+    "byKey": "按密钥的 API 调用",
+    "name": "名称",
+    "unassigned": "未分配（无渠道的密钥）",
+    "deletedKey": "已删除的密钥"
+  },
   "days": {
     "description": "按结果统计的 API 调用次数，以及启动的计算次数。日期按 {{tz}} 时区划分；表格不显示没有用量的日期。",
     "empty": "此期间没有用量。",

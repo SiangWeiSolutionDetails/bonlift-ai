@@ -30,7 +30,9 @@
   },
   "tabs": {
     "general": "基本信息",
-    "calculationConfigs": "计算配置"
+    "calculationConfigs": "计算配置",
+    "schedule": "计划任务",
+    "channels": "渠道"
   },
   "dataSource": {
     "title": "数据源",
@@ -45,6 +47,43 @@
     "maxChunkDays": "每批最大天数",
     "maxChunkDaysHint": "每次请求的天数，不少于 1。",
     "save": "保存数据源"
+  },
+  "schedule": {
+    "enabled": "每晚自动计算",
+    "enabledHint": "每天重新计算并发布该品牌的结果。无论是否开启，均可手动运行。",
+    "runTime": "运行时间",
+    "runTimeHint": "所选时区的当地时间。请安排在前一天的订单发送完成之后。",
+    "timeZone": "时区",
+    "timeZoneHint": "决定运行时间，以及订单日期范围中的“昨天”是哪一天。",
+    "outletWindowDays": "热门商品日期范围（天）",
+    "outletWindowDaysHint": "每个门店使用的订单天数，截至昨天。1 至 366。",
+    "customerWindowDays": "顾客商品日期范围（天）",
+    "customerWindowDaysHint": "计算顾客常点商品使用的订单天数，截至昨天。1 至 366。",
+    "affinityWindowDays": "商品关联日期范围（天）",
+    "affinityWindowDaysHint": "计算常一起购买的商品使用的订单天数，截至昨天。1 至 366。",
+    "save": "保存计划",
+    "status": {
+      "title": "状态",
+      "nextRun": "下次运行",
+      "lastRun": "上次运行",
+      "queued": "已排队的运行",
+      "failedToQueue": "排队失败",
+      "paused": "已暂停",
+      "neverRun": "从未运行",
+      "lastError": "上次运行失败：{{error}}"
+    }
+  },
+  "channels": {
+    "description": "每个点单应用都是一个渠道：TQR（扫码点餐）、SOK（自助点餐机）和 POS。每个 API 密钥只服务一个渠道，请求按渠道记录。",
+    "defaultsHint": "新品牌的渠道默认停用。只能为已启用的渠道创建 API 密钥。",
+    "code": "代码",
+    "name": "名称",
+    "active": "启用",
+    "activeLabel": "启用 {{name}}",
+    "empty": "暂无可用渠道。",
+    "deactivate": "停用",
+    "deactivateConfirmTitle": "停用 {{name}}？",
+    "deactivateConfirmDescription": "一分钟内生效：重新启用前，使用此渠道 API 密钥的请求都会被拒绝。现有密钥会保留。"
   },
   "halfLifePreview": {
     "title": "不同订单时间的权重",

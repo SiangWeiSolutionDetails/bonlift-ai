@@ -11,3 +11,8 @@ export {
   ITEM_AFFINITY_QUEUE_NAME,
   queueItemAffinity,
 } from "./queues/itemAffinity.queue.js";
+export type { BrandScheduleTiming } from "./queues/scheduledCalculations.queue.js";
+export {
+  removeBrandCalculationSchedule,
+  syncBrandCalculationSchedule,
+} from "./queues/scheduledCalculations.queue.js";

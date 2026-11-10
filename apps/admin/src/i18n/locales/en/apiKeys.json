@@ -35,7 +35,7 @@
     "expiresInDays": "Expires In (Days)",
     "expiresInDaysHint": "0 means the key never expires. Otherwise 1 to 3,650 days.",
     "expiresInDaysNeverMark": "0 (Never)",
-    "expiresInDaysMaximum":"Maximum expires in 3,650 days.",
+    "expiresInDaysMaximum": "Maximum expires in 3,650 days.",
     "createdTitle": "Key for {{name}}",
     "createdDescription": "Store it in the calling system’s configuration or secret store.",
     "createdWarning": "Copy the key now. It can’t be shown again; if it’s lost, revoke it and create a new one.",
@@ -43,6 +43,12 @@
     "hide": "Hide Key",
     "copy": "Copy Key",
     "copied": "Copied",
-    "done": "Done"
+    "done": "Done",
+    "channel": "Channel",
+    "channelHint": "The ordering app that uses this key. The key serves this channel only.",
+    "channelPlaceholder": "Select a channel",
+    "noChannels": "This brand has no active channel. Switch one on in the brand's Channels tab first.",
+    "openBrands": "Open Brands",
+    "unassigned": "Unassigned"
   }
 }

@@ -1,5 +1,10 @@
 import { getPool } from "@bonlift-ai/db";
+import {
+  removeBrandCalculationSchedule,
+  syncBrandCalculationSchedule,
+} from "@bonlift-ai/worker";
 import { FastifyInstance } from "fastify";
+import { syncBrandCalculationScheduleBestEffort } from "../services/brandCalculationSchedule.service.js";
 import {
   createBrand,
   deleteBrand,
@@ -67,6 +72,10 @@ export async function brandRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const pool = getPool();
       const brand = await createBrand(pool, request.body);
+      // Best effort: Redis being down must not fail the brand; the worker's startup reconcile schedules it later.
+      if (!(await syncBrandCalculationScheduleBestEffort(pool, syncBrandCalculationSchedule, brand.id))) {
+        request.log.warn({ brandId: brand.id }, "Calculation schedule not synced; the worker will reconcile it");
+      }
       reply.status(201);
       return brand;
     },
@@ -101,6 +110,10 @@ export async function brandRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const pool = getPool();
       await deleteBrand(pool, request.params.brandId);
+      // Best effort: a scheduler left behind removes itself the next time it fires for the deleted brand.
+      await removeBrandCalculationSchedule(request.params.brandId).catch((error) => {
+        request.log.warn({ err: error, brandId: request.params.brandId }, "Calculation schedule not removed");
+      });
       return reply.status(204).send();
     },
   );

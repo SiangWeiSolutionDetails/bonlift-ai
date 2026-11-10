@@ -1,13 +1,21 @@
 import { Worker } from "bullmq";
 import { getRedisConnection } from "../connection.js";
-import { processScheduledCalculations } from "../processors/scheduledCalculations.processor.js";
-import { SCHEDULED_CALCULATIONS_QUEUE_NAME } from "../queues/scheduledCalculations.queue.js";
-import { ScheduledRunWindows } from "../runs/scheduledRuns.repository.js";
+import {
+  processScheduledCalculations,
+  ScheduledCalculationsSummary,
+} from "../processors/scheduledCalculations.processor.js";
+import {
+  SCHEDULED_CALCULATIONS_QUEUE_NAME,
+  ScheduledCalculationJobData,
+} from "../queues/scheduledCalculations.queue.js";
 
-export function startScheduledCalculationsWorker(windows: ScheduledRunWindows): Worker {
-  const worker = new Worker(
+export function startScheduledCalculationsWorker(): Worker<
+  ScheduledCalculationJobData,
+  ScheduledCalculationsSummary
+> {
+  const worker = new Worker<ScheduledCalculationJobData, ScheduledCalculationsSummary>(
     SCHEDULED_CALCULATIONS_QUEUE_NAME,
-    processScheduledCalculations(windows),
+    processScheduledCalculations,
     {
       connection: getRedisConnection(),
       concurrency: 1,
@@ -18,14 +26,21 @@ export function startScheduledCalculationsWorker(windows: ScheduledRunWindows): 
     console.log(`[${SCHEDULED_CALCULATIONS_QUEUE_NAME}] listening`);
   });
 
-  worker.on("completed", (_job, summary) => {
+  worker.on("completed", (job, summary) => {
+    const brandId = job.data.brandId;
     console.log(
-      `[${SCHEDULED_CALCULATIONS_QUEUE_NAME}] queued ${summary.queued} runs, ${summary.failedToQueue} failed to queue`,
+      summary.skipped === "disabled"
+        ? `[${SCHEDULED_CALCULATIONS_QUEUE_NAME}] brand ${brandId} schedule is off or deleted, removed it`
+        : summary.skipped === "timing_changed"
+          ? `[${SCHEDULED_CALCULATIONS_QUEUE_NAME}] brand ${brandId} fired with an outdated time, rescheduled it`
+          : `[${SCHEDULED_CALCULATIONS_QUEUE_NAME}] brand ${brandId}: queued ${summary.queued} runs, ${summary.failedToQueue} failed to queue`,
     );
   });
 
-  worker.on("failed", (_job, error) => {
-    console.error(`[${SCHEDULED_CALCULATIONS_QUEUE_NAME}] failed: ${error.message}`);
+  worker.on("failed", (job, error) => {
+    console.error(
+      `[${SCHEDULED_CALCULATIONS_QUEUE_NAME}] brand ${job?.data?.brandId} failed: ${error.message}`,
+    );
   });
 
   worker.on("error", (error) => {

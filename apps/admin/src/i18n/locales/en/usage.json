@@ -25,6 +25,13 @@
   "charts": {
     "calls": "API Calls by Result"
   },
+  "breakdown": {
+    "byChannel": "API Calls by Channel",
+    "byKey": "API Calls by Key",
+    "name": "Name",
+    "unassigned": "Unassigned (keys without a channel)",
+    "deletedKey": "Deleted key"
+  },
   "days": {
     "description": "API calls by result, and calculation runs started. Days are in {{tz}}; the table hides days without usage.",
     "empty": "No usage in this period.",

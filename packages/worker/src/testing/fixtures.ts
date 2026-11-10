@@ -30,7 +30,8 @@ function uniqueName(prefix: string): string {
   return `${prefix} ${nameCounter}`;
 }
 
-// Same rows createBrand inserts: the brand plus version 1 of each calculation config.
+// Same rows createBrand inserts: the brand, its channel mapping (all off), version 1 of each calculation config, and its
+// default schedule.
 export async function createBrandFixture(
   pool: Pool,
   options: { isActive?: boolean; deleted?: boolean; dayparts?: DaypartFixture[] } = {},
@@ -45,6 +46,10 @@ export async function createBrandFixture(
       INSERT INTO brands (tenant_id, name, is_active, deleted_at)
       SELECT t.id, $2, $3, CASE WHEN $4 THEN now() END FROM t
       RETURNING id
+    ),
+    bch AS (
+      INSERT INTO brand_channels (brand_id, channel_id)
+      SELECT b.id, c.id FROM b CROSS JOIN channels c
     ),
     ccv AS (
       INSERT INTO calculation_config_versions (brand_id, job_type)
@@ -64,6 +69,10 @@ export async function createBrandFixture(
     iaccv AS (
       INSERT INTO item_affinity_calculation_config_versions (id)
       SELECT id FROM ccv WHERE job_type = 'item_affinity'
+    ),
+    bcs AS (
+      INSERT INTO brand_calculation_schedules (brand_id)
+      SELECT id FROM b
     )
     SELECT id FROM b;
     `,

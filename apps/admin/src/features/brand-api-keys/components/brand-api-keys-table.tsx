@@ -23,7 +23,7 @@ import {
 } from "../queries";
 import type { BrandApiKey } from "../type";
 
-const COLUMN_COUNT = 6;
+const COLUMN_COUNT = 7;
 const SKELETON_ROW_COUNT = 5;
 const MASKED_SECRET = "••••••••";
 
@@ -76,6 +76,7 @@ export function BrandApiKeysTable({ brandId }: BrandApiKeysTableProps) {
           <TableHeader>
             <TableRow>
               <TableHead>{t("list.name")}</TableHead>
+              <TableHead>{t("list.channel")}</TableHead>
               <TableHead>{t("list.key")}</TableHead>
               <TableHead className="w-32">{t("list.created")}</TableHead>
               <TableHead className="w-32">{t("list.expires")}</TableHead>
@@ -136,6 +137,10 @@ function ApiKeyRows({ apiKeys, isPending, error, onRevoke, onDelete }: ApiKeyRow
     return (
       <TableRow key={apiKey.id}>
         <TableCell className="font-medium">{apiKey.name}</TableCell>
+        {/* Keys from before channels existed have none and serve without channel checks */}
+        <TableCell className={apiKey.channelCode ? "font-mono" : "text-muted-foreground"}>
+          {apiKey.channelCode ?? t("list.unassigned")}
+        </TableCell>
         <TableCell className="font-mono text-muted-foreground">
           {apiKey.keyPrefix}.{MASKED_SECRET}
         </TableCell>

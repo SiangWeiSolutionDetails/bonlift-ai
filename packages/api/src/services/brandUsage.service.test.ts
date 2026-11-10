@@ -19,6 +19,9 @@ function usageRow() {
     api_keys: [
       { apiKeyId: API_KEY_ID, name: "pos", keyPrefix: "a1b2c3d4", succeeded: 3, clientErrors: 1, serverErrors: 0 },
     ],
+    channels: [
+      { channelId: null, code: null, name: null, succeeded: 3, clientErrors: 1, serverErrors: 0 },
+    ],
     calculations: [{ jobType: "item_affinity", status: "succeeded", runs: 2 }],
   };
 }
@@ -80,7 +83,7 @@ describe("getBrandUsage", () => {
     expect(sql).toContain("r.brand_id = bounds.brand_id");
   });
 
-  it("returns the days, keys and calculations with the query echoed", async () => {
+  it("returns the days, keys, channels and calculations with the query echoed", async () => {
     queryMock.mockResolvedValueOnce(pgResult([usageRow()]));
 
     expect(await getBrandUsage(fakePool, BRAND_ID, QUERY)).toStrictEqual({
@@ -88,6 +91,7 @@ describe("getBrandUsage", () => {
       ...QUERY,
       days: usageRow().days,
       apiKeys: usageRow().api_keys,
+      channels: usageRow().channels,
       calculations: usageRow().calculations,
     });
   });
@@ -106,6 +110,7 @@ describe("recordServingUsage", () => {
     await recordServingUsage(fakePool, {
       brandId: BRAND_ID,
       apiKeyId: API_KEY_ID,
+      channelId: null,
       route: "/v1/recommendations",
       statusCode: 200,
       durationMs: 12,
@@ -113,7 +118,7 @@ describe("recordServingUsage", () => {
 
     expect(queryMock).toHaveBeenCalledWith(
       expect.stringContaining("INSERT INTO serving_usage_events"),
-      [BRAND_ID, API_KEY_ID, "/v1/recommendations", 200, 12],
+      [BRAND_ID, API_KEY_ID, null, "/v1/recommendations", 200, 12],
     );
   });
 });

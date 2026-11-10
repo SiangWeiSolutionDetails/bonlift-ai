@@ -15,7 +15,8 @@ import {
 
 const BRAND_ID = "11111111-1111-1111-1111-111111111111";
 const KEY_ID = "22222222-2222-2222-2222-222222222222";
-const INPUT = { brandId: BRAND_ID, name: "pos-boat-quay", createdBy: "cli:test" };
+const CHANNEL_ID = "33333333-3333-3333-3333-333333333333";
+const INPUT = { brandId: BRAND_ID, name: "pos-boat-quay", channelId: CHANNEL_ID, createdBy: "cli:test" };
 
 const queryMock = vi.fn();
 const fakePool = { query: queryMock } as any;
@@ -27,6 +28,8 @@ function createdRow(overrides: Record<string, unknown> = {}) {
     id: KEY_ID,
     brand_id: BRAND_ID,
     name: "pos-boat-quay",
+    channel_id: CHANNEL_ID,
+    channel_code: "pos",
     key_prefix: "0a1b2c3d",
     status: "live",
     created_by: "cli:test",
@@ -41,6 +44,8 @@ const RECORD = {
   id: KEY_ID,
   brandId: BRAND_ID,
   name: "pos-boat-quay",
+  channelId: CHANNEL_ID,
+  channelCode: "pos",
   keyPrefix: "0a1b2c3d",
   status: "live",
   createdBy: "cli:test",
@@ -92,6 +97,8 @@ describe("createBrandApiKey", () => {
       hashApiKey(created.key),
       "cli:test",
       null,
+      CHANNEL_ID,
+      null,
     ]);
     expect(values).not.toContain(created.key);
     expect(created).toStrictEqual({ ...RECORD, key: created.key });
@@ -114,6 +121,12 @@ describe("createBrandApiKey", () => {
     await expect(createBrandApiKey(fakePool, INPUT)).rejects.toThrow(NotFoundError);
   });
 
+  it("throws ValidationError when the channel is unknown (a row without a key)", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([{ id: null }]));
+
+    await expect(createBrandApiKey(fakePool, INPUT)).rejects.toThrow(ValidationError);
+  });
+
   it("throws ConflictError when the brand already has a live key with the name", async () => {
     queryMock.mockRejectedValueOnce({
       code: UNIQUE_VIOLATION,
@@ -126,6 +139,9 @@ describe("createBrandApiKey", () => {
   it.each([
     ["the brand id is not a uuid", { ...INPUT, brandId: "brand-1" }],
     ["the name is blank", { ...INPUT, name: " " }],
+    ["the channel id is not a uuid", { ...INPUT, channelId: "pos" }],
+    ["no channel is given", { ...INPUT, channelId: undefined }],
+    ["both a channel id and a channel code are given", { ...INPUT, channelCode: "pos" }],
     ["the expiry is not a whole number of days", { ...INPUT, expiresInDays: 1.5 }],
   ])("throws ValidationError without querying when %s", async (_name, input) => {
     await expect(createBrandApiKey(fakePool, input)).rejects.toThrow(ValidationError);

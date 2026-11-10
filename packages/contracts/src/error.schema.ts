@@ -19,7 +19,9 @@ export type ErrorResponseSchemaType = Static<typeof ErrorResponseSchema>;
 export const ServingErrorResponseSchemas = {
   400: {
     ...ErrorResponseSchema,
-    description: "The request is malformed, e.g. a required field is missing or a value is out of range.",
+    description:
+      "The request is malformed, e.g. a required field is missing or a value is out of range. Also returned when " +
+      "`channel` is sent and is not your API key's channel, or when your key's channel is switched off for the brand.",
   },
   401: {
     ...ErrorResponseSchema,

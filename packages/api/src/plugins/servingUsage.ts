@@ -13,6 +13,7 @@ export function createServingUsageHook(getPool: () => Pool) {
       await recordServingUsage(getPool(), {
         brandId: request.servingBrandId,
         apiKeyId: request.servingApiKeyId,
+        channelId: request.servingChannel?.id ?? null,
         // The route pattern, never the raw URL, so unknown paths can't fill the table with distinct values.
         route: request.routeOptions.url ?? "unmatched",
         statusCode: reply.statusCode,

@@ -163,9 +163,8 @@ export const RecommendationDetailSchema = Type.Object(
     bestSeller: Type.Optional(
       Type.Literal(true, {
         description:
-          "One of the top sellers at this outlet in the served `daypart`, judged among add-ons for an entry in " +
-          "`addons`. Sent with `popular_at_outlet` only, and only when true. Example wording: \"Best seller here\" " +
-          "or, in `addons`, \"Most popular add-on\".",
+          "One of the top sellers at this outlet in the served `daypart`. Sent with `popular_at_outlet` only, and " +
+          "only when true. Example wording: \"Best seller here\".",
       }),
     ),
   },
@@ -227,8 +226,8 @@ export const RecommendationResponseSchema = Type.Object(
     }),
     items: Type.Array(RecommendationItemSchema, {
       description:
-        "Recommended items, best first. Add-ons are not included here: they are in `addons`. May be empty, e.g. for an " +
-        "unknown outlet or when no results are available yet: continue the order without recommendations.",
+        "Recommended items, best first. May be empty, e.g. for an unknown outlet or when no results are available yet: " +
+        "continue the order without recommendations.",
     }),
     addons: Type.Array(RecommendationItemSchema, {
       description:

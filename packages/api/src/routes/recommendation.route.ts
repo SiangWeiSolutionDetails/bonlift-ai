@@ -21,7 +21,7 @@ export async function recommendationRoutes(app: FastifyInstance) {
           "popular items are for the requested `daypart`, or the whole day when none is sent. Items in the cart or in `exclude` are " +
           "never returned. Popular add-ons for the daypart come separately in `addons`. Apply your own availability " +
           "and dietary filters before display, and show the top items. " +
-          "Any failure on our side returns empty `items` and `addons`, so the order can always continue.",
+          "Any failure on our side returns an empty list, so the order can always continue.",
         tags: ["Recommendations"],
         body: RecommendationRequestSchema,
         response: { 200: RecommendationResponseSchema, ...ServingErrorResponseSchemas },

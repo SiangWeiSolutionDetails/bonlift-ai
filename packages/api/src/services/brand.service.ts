@@ -145,6 +145,10 @@ export async function createBrand(
       iaccv AS (
         INSERT INTO item_affinity_calculation_config_versions (id)
         SELECT affinity_ccv.id FROM affinity_ccv
+      ),
+      scv AS (
+        INSERT INTO serving_config_versions (brand_id)
+        SELECT id FROM b
       )
       SELECT ${BRAND_COLUMNS} FROM b;
       `,

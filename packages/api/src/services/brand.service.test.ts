@@ -206,6 +206,17 @@ describe("createBrand", () => {
     );
   });
 
+  it("creates version 1 of the serving config with the brand", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([fakeBrandRow()]));
+
+    await createBrand(fakePool, CREATE_DATA);
+
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.stringContaining("INSERT INTO serving_config_versions"),
+      expect.anything(),
+    );
+  });
+
   it("throws NotFoundError when the tenant does not exist or is deleted", async () => {
     queryMock.mockResolvedValueOnce(pgResult([]));
 

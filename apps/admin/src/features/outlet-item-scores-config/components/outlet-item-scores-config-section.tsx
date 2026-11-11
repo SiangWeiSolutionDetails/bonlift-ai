@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  Controller,
   useFieldArray,
   useForm,
   useWatch,
@@ -27,6 +28,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TimePicker } from "@/components/time-picker";
 import { getErrorMessage } from "@/lib/error-message";
 import { typeboxResolver } from "@/lib/typebox-resolver";
 import {
@@ -285,12 +287,19 @@ function OutletItemScoresConfigForm({
                     <Label htmlFor={`daypart-${index}-start`}>
                       {t("outletItemScoresConfig.daypartStart")}
                     </Label>
-                    <Input
-                      id={`daypart-${index}-start`}
-                      type="time"
-                      readOnly={readOnly}
-                      aria-invalid={!!daypartErrors?.start}
-                      {...register(`dayparts.${index}.start`)}
+                    <Controller
+                      control={control}
+                      name={`dayparts.${index}.start`}
+                      render={({ field: timeField }) => (
+                        <TimePicker
+                          id={`daypart-${index}-start`}
+                          value={timeField.value ?? ""}
+                          onChange={timeField.onChange}
+                          onBlur={timeField.onBlur}
+                          readOnly={readOnly}
+                          invalid={!!daypartErrors?.start}
+                        />
+                      )}
                     />
                     <FieldError message={daypartErrors?.start?.message} />
                   </div>
@@ -298,12 +307,19 @@ function OutletItemScoresConfigForm({
                     <Label htmlFor={`daypart-${index}-end`}>
                       {t("outletItemScoresConfig.daypartEnd")}
                     </Label>
-                    <Input
-                      id={`daypart-${index}-end`}
-                      type="time"
-                      readOnly={readOnly}
-                      aria-invalid={!!daypartErrors?.end}
-                      {...register(`dayparts.${index}.end`)}
+                    <Controller
+                      control={control}
+                      name={`dayparts.${index}.end`}
+                      render={({ field: timeField }) => (
+                        <TimePicker
+                          id={`daypart-${index}-end`}
+                          value={timeField.value ?? ""}
+                          onChange={timeField.onChange}
+                          onBlur={timeField.onBlur}
+                          readOnly={readOnly}
+                          invalid={!!daypartErrors?.end}
+                        />
+                      )}
                     />
                     <FieldError message={daypartErrors?.end?.message} />
                   </div>

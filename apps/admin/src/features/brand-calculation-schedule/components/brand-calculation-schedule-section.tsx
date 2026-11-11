@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { TimePicker } from "@/components/time-picker";
 import { formatDateTime } from "@/lib/date-format";
 import { getErrorMessage } from "@/lib/error-message";
 import { getChanges } from "@/lib/get-changes";
@@ -151,14 +152,20 @@ function BrandCalculationScheduleForm({
               <Label htmlFor="schedule-run-time">{t("schedule.runTime")}</Label>
               <FieldHint id="schedule-run-time-hint" hint={t("schedule.runTimeHint")} />
             </div>
-            <Input
-              id="schedule-run-time"
-              type="time"
-              step={60}
-              readOnly={readOnly}
-              aria-invalid={!!errors.runTime}
-              aria-describedby="schedule-run-time-hint"
-              {...register("runTime")}
+            <Controller
+              control={control}
+              name="runTime"
+              render={({ field }) => (
+                <TimePicker
+                  id="schedule-run-time"
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  readOnly={readOnly}
+                  invalid={!!errors.runTime}
+                  describedBy="schedule-run-time-hint"
+                />
+              )}
             />
             <FieldError message={errors.runTime?.message} />
           </div>

@@ -63,5 +63,10 @@
     "NETWORK_ERROR": "Unable to reach the server. Check your connection and try again.",
     "HTTP_ERROR": "The request failed. Please try again.",
     "UNKNOWN": "An unexpected error occurred."
+  },
+  "timePicker": {
+    "open": "Choose time",
+    "hour": "Hour",
+    "minute": "Minute"
   }
 }

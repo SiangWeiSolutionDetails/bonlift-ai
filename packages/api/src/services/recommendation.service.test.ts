@@ -98,7 +98,7 @@ async function servedItem(row: Record<string, unknown>) {
 }
 
 function queryParams(overrides: Record<number, unknown> = {}) {
-  const params: unknown[] = [OUTLET_ID, "all_day", [], null, BRAND_ID, [], null, 2, []];
+  const params: unknown[] = [OUTLET_ID, "all_day", [], null, BRAND_ID, [], null, 1, []];
   for (const [index, value] of Object.entries(overrides)) {
     params[Number(index) - 1] = value;
   }

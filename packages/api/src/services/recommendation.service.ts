@@ -12,8 +12,9 @@ import { ValidationError } from "../errors.js";
 import { toHashedCustomerId } from "../utils/customerIdHash.js";
 import { assertValid } from "../utils/validate.js";
 
-// A favourite from a single order is weak evidence: every item of a customer's only order scores 1.
-const MIN_FAVOURITE_ORDERS = 2;
+// 1 serves every scored item. A single order is weak evidence (every item of a customer's only order scores 1); raise
+// to 2 to require a repeat order.
+const MIN_FAVOURITE_ORDERS = 1;
 // A pair share or lift from a few orders of the cart item is noise, so neither is shown below this many.
 const MIN_PAIR_SAMPLE = 50;
 // Below 1 in 10 the share reads as a reason not to order it ("0 in 10 who order Kopi add this").

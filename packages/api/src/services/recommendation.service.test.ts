@@ -8,6 +8,7 @@ const OUTLET_ID = "11111111-1111-1111-1111-111111111111";
 const BRAND_ID = "33333333-3333-3333-3333-333333333333";
 const RUN_ID = "22222222-2222-2222-2222-222222222222";
 const CUSTOMER_RUN_ID = "44444444-4444-4444-4444-444444444444";
+const AFFINITY_RUN_ID = "55555555-5555-5555-5555-555555555555";
 const SECRET = "test-secret-0123456789abcdef0123456789abcdef";
 const REQUEST = { outletId: OUTLET_ID, cart: [] };
 const NO_RECOMMENDATIONS = {
@@ -28,7 +29,9 @@ function recommend(request: any = REQUEST) {
   return getRecommendations(fakePool, fakeLog, BRAND_ID, request, SECRET);
 }
 
-const NO_DETAIL_COLUMNS: Record<string, number | null> = {
+const NO_DETAIL_COLUMNS: Record<string, number | string[] | null> = {
+  affinity_run_id: null,
+  based_on: null,
   min_favourite_orders: 1,
   best_seller_max_rank: 3,
   best_seller_min_list_size: 10,
@@ -71,7 +74,7 @@ async function servedItem(row: Record<string, unknown>) {
 }
 
 function queryParams(overrides: Record<number, unknown> = {}) {
-  const params: unknown[] = [OUTLET_ID, "all_day", [], null, BRAND_ID, null, []];
+  const params: unknown[] = [OUTLET_ID, "all_day", [], null, BRAND_ID, [], null, []];
   for (const [index, value] of Object.entries(overrides)) {
     params[Number(index) - 1] = value;
   }
@@ -134,6 +137,20 @@ describe("getRecommendations", () => {
     });
   });
 
+  it("returns the published affinity run id", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([{ ...favouriteRow("F1"), affinity_run_id: AFFINITY_RUN_ID }]));
+
+    const result = await recommend({ ...REQUEST, customerId: "6591234567" });
+
+    expect(result.affinityRunId).toBe(AFFINITY_RUN_ID);
+  });
+
+  it("returns an empty list when only an affinity run is published", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([{ ...emptyOutletRow(), affinity_run_id: AFFINITY_RUN_ID }]));
+
+    expect(await recommend()).toStrictEqual(NO_RECOMMENDATIONS);
+  });
+
   it("returns favourites when the outlet has no published run", async () => {
     queryMock.mockResolvedValueOnce(pgResult([favouriteRow("F1", null)]));
 
@@ -157,7 +174,7 @@ describe("getRecommendations", () => {
     );
   });
 
-  it("removes each cart item id once", async () => {
+  it("removes each cart item id once and pairs favourites with each cart item id once", async () => {
     queryMock.mockResolvedValueOnce(pgResult([]));
 
     await recommend({
@@ -171,11 +188,11 @@ describe("getRecommendations", () => {
 
     expect(queryMock).toHaveBeenCalledWith(
       expect.any(String),
-      queryParams({ 3: ["A", "B"] }),
+      queryParams({ 3: ["A", "B"], 6: ["A", "B"] }),
     );
   });
 
-  it("removes excluded items together with the cart items", async () => {
+  it("removes excluded items together with the cart items, pairing with the cart items only", async () => {
     queryMock.mockResolvedValueOnce(pgResult([]));
 
     await recommend({
@@ -186,7 +203,7 @@ describe("getRecommendations", () => {
 
     expect(queryMock).toHaveBeenCalledWith(
       expect.any(String),
-      queryParams({ 3: ["A", "B"] }),
+      queryParams({ 3: ["A", "B"], 6: ["A"] }),
     );
   });
 
@@ -197,7 +214,7 @@ describe("getRecommendations", () => {
 
     expect(queryMock).toHaveBeenCalledWith(
       expect.any(String),
-      queryParams({ 7: ["C", "D"] }),
+      queryParams({ 8: ["C", "D"] }),
     );
   });
 
@@ -241,7 +258,7 @@ describe("getRecommendations", () => {
 
     expect(queryMock).toHaveBeenCalledWith(
       expect.any(String),
-      queryParams({ 6: hashCustomerId(SECRET, normalised) }),
+      queryParams({ 7: hashCustomerId(SECRET, normalised) }),
     );
   });
 
@@ -359,6 +376,30 @@ describe("getRecommendations", () => {
         itemId: "F1",
         rank: 1,
         reason: "frequently_ordered",
+      });
+    });
+
+    it("lists the cart items a favourite goes with, at most 3, in the query's order", async () => {
+      expect(await servedItem({ ...favouriteRow("F1"), based_on: ["C2", "C1", "C4", "C3"] })).toStrictEqual({
+        itemId: "F1",
+        rank: 1,
+        reason: "frequently_ordered",
+        detail: { basedOn: ["C2", "C1", "C4"] },
+      });
+    });
+
+    it.each([
+      ["null", null],
+      ["empty", []],
+    ])("gives a favourite no detail when its cart items are %s", async (_name, basedOn) => {
+      expect((await servedItem({ ...favouriteRow("F1"), based_on: basedOn })).detail).toBeUndefined();
+    });
+
+    it("never gives a popular item basedOn", async () => {
+      expect(await servedItem({ ...itemRow("A"), based_on: ["C1"] })).toStrictEqual({
+        itemId: "A",
+        rank: 1,
+        reason: "popular_at_outlet",
       });
     });
 

@@ -480,12 +480,11 @@ describe("items the customer rejected (integration)", () => {
     );
 
     const stored = await pool.query(
-      "SELECT is_identified, item_ids, reasons, rejected_item_ids FROM recommendation_serves WHERE id = $1",
+      "SELECT item_ids, reasons, rejected_item_ids FROM recommendation_serves WHERE id = $1",
       [response.recommendationId],
     );
     expect(stored.rows).toStrictEqual([
       {
-        is_identified: true,
         item_ids: ["KAYA"],
         reasons: ["frequently_ordered"],
         rejected_item_ids: ["KAYA"],

@@ -240,13 +240,11 @@ function uniqueItemIds(itemIds: string[]): string[] {
   return [...new Set(itemIds)];
 }
 
-// What the caller was served, kept for feedback (S6-04). isIdentified says whether a valid customerId was sent; the id
-// itself is not kept.
+// What an identified customer was served, kept for feedback (S6-04). The customer id itself is not kept.
 export interface RecommendationServe {
   id: string;
   brandId: string;
   outletId: string;
-  isIdentified: boolean;
   daypart: string;
   runId: string | null;
   customerRunId: string | null;
@@ -257,14 +255,13 @@ export interface RecommendationServe {
 
 export interface ServedRecommendations {
   response: RecommendationResponseSchemaType;
-  // Null when no items were returned: there is nothing to give feedback on.
+  // Null when no items were returned or the customer is anonymous: there is nothing to give feedback on.
   serve: RecommendationServe | null;
 }
 
 function toServe(
   brandId: string,
   outletId: string,
-  isIdentified: boolean,
   response: RecommendationResponseSchemaType,
 ): RecommendationServe | null {
   if (response.recommendationId === null) return null;
@@ -272,7 +269,6 @@ function toServe(
     id: response.recommendationId,
     brandId,
     outletId,
-    isIdentified,
     daypart: response.daypart as string,
     runId: response.runId,
     customerRunId: response.customerRunId,
@@ -333,7 +329,7 @@ export async function getRecommendations(
   const served = await serveResponse(pool, log, brandId, request, customerId);
   // Only identified customers can give feedback, so an anonymous response is neither identified nor recorded.
   const response = customerId === null ? { ...served, recommendationId: null } : served;
-  return { response, serve: toServe(brandId, request.outletId, customerId !== null, response) };
+  return { response, serve: toServe(brandId, request.outletId, response) };
 }
 
 export async function recordRecommendationServe(
@@ -344,17 +340,15 @@ export async function recordRecommendationServe(
   await pool.query(
     `
     INSERT INTO recommendation_serves (
-      id, brand_id, channel_id, outlet_id, is_identified, daypart, run_id, customer_run_id, affinity_run_id,
-      item_ids, reasons
+      id, brand_id, channel_id, outlet_id, daypart, run_id, customer_run_id, affinity_run_id, item_ids, reasons
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
     `,
     [
       serve.id,
       serve.brandId,
       channelId,
       serve.outletId,
-      serve.isIdentified,
       serve.daypart,
       serve.runId,
       serve.customerRunId,

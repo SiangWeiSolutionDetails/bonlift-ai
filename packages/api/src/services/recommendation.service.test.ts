@@ -457,7 +457,6 @@ describe("getRecommendations serve", () => {
       id: response.recommendationId,
       brandId: BRAND_ID,
       outletId: OUTLET_ID,
-      isIdentified: true,
       daypart: "Lunch",
       runId: RUN_ID,
       customerRunId: null,
@@ -486,21 +485,13 @@ describe("getRecommendations serve", () => {
     expect(serve).toBeNull();
   });
 
-  it("marks the serve identified when a valid customer id was sent, without keeping the id", async () => {
+  it("keeps an identified customer's serve without the customer id", async () => {
     queryMock.mockResolvedValueOnce(pgResult([favouriteRow("F1")]));
 
     const { serve } = await serveFor({ ...REQUEST, customerId: "6591234567" });
 
-    expect(serve).toMatchObject({ isIdentified: true, customerRunId: CUSTOMER_RUN_ID, reasons: ["frequently_ordered"] });
+    expect(serve).toMatchObject({ customerRunId: CUSTOMER_RUN_ID, reasons: ["frequently_ordered"] });
     expect(JSON.stringify(serve)).not.toContain("6591234567");
-  });
-
-  it("marks the serve identified even when popular items are served to the customer", async () => {
-    queryMock.mockResolvedValueOnce(pgResult([itemRow("A")]));
-
-    const { serve } = await serveFor({ ...REQUEST, customerId: "6591234567" });
-
-    expect(serve?.isIdentified).toBe(true);
   });
 
   it.each([

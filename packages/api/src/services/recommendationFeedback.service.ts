@@ -10,8 +10,9 @@ import { assertValid } from "../utils/validate.js";
 
 // $1 = recommendation id, $2 = the API key's brand id, $3 = item id, $4 = 'accepted' or 'rejected',
 // $5 = hashed customer id.
-// Feedback only counts for an item of the brand's own identified serve, within 2 hours of it; anything else matches no
-// serve and changes nothing. Each item is added to its array once, so a retry adds nothing.
+// Feedback only counts for an item of the brand's own serve, within 2 hours of it; only identified customers' serves
+// are recorded. Anything else matches no serve and changes nothing. Each item is added to its array once, so a retry
+// adds nothing.
 // A rejection is remembered for the customer (the latest rejection wins) and an acceptance forgets it. Every write
 // hangs off the serve update, so nothing happens without a match.
 const RECORD_FEEDBACK_SQL = `
@@ -27,7 +28,6 @@ WITH feedback AS (
       END
   WHERE s.id = $1
     AND s.brand_id = $2
-    AND s.is_identified
     AND $3 = ANY(s.item_ids)
     AND s.served_at > now() - interval '2 hours'
   RETURNING s.brand_id

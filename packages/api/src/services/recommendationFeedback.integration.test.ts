@@ -23,7 +23,6 @@ async function storeServe(overrides: Partial<RecommendationServe> = {}): Promise
     id: randomUUID(),
     brandId,
     outletId,
-    isIdentified: true,
     daypart: "all_day",
     runId: null,
     customerRunId: null,
@@ -118,15 +117,6 @@ describe("recordRecommendationFeedback (integration)", () => {
       "UPDATE recommendation_serves SET served_at = now() - interval '2 hours 1 minute' WHERE id = $1",
       [id],
     );
-
-    await feedback(id, { itemId: "A", type: "rejected", customerId: CUSTOMER_ID });
-
-    expect(await feedbackArrays(id)).toStrictEqual({ accepted: [], rejected: [] });
-    expect(await rejectedItemIds()).toEqual([]);
-  });
-
-  it("ignores feedback on an anonymous serve, even with a customer id", async () => {
-    const id = await storeServe({ isIdentified: false });
 
     await feedback(id, { itemId: "A", type: "rejected", customerId: CUSTOMER_ID });
 

@@ -123,7 +123,7 @@ const BRAND_USAGE_SQL = `
 
 // Postgres and Node both use the IANA database, so a zone Node rejects is rejected here as a 400
 // instead of reaching the query as a 500.
-function assertValidTimeZone(tz: string) {
+export function assertValidTimeZone(tz: string) {
   try {
     new Intl.DateTimeFormat("en", { timeZone: tz });
   } catch {

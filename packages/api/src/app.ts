@@ -22,6 +22,7 @@ import { itemAffinityServingRoutes } from "./routes/itemAffinityServing.route.js
 import { brandApiKeyRoutes } from "./routes/brandApiKey.route.js";
 import { brandChannelRoutes } from "./routes/brandChannel.route.js";
 import { brandUsageRoutes } from "./routes/brandUsage.route.js";
+import { recommendationFeedbackReportRoutes } from "./routes/recommendationFeedbackReport.route.js";
 import { getPool } from "@bonlift-ai/db";
 import {
   createServingAuthHook,
@@ -87,6 +88,7 @@ export function buildApp(): FastifyInstance {
     admin.register(itemAffinityResultRoutes);
     admin.register(servingConfigVersionRoutes);
     admin.register(brandUsageRoutes);
+    admin.register(recommendationFeedbackReportRoutes);
     admin.register(brandChannelRoutes);
     admin.register(brandApiKeyRoutes);
 

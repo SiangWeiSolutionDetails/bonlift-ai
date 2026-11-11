@@ -24,6 +24,7 @@ export * from "./recommendationFeedback.schema.js";
 export * from "./itemAffinityServing.schema.js";
 export * from "./brandApiKey.schema.js";
 export * from "./brandUsage.schema.js";
+export * from "./recommendationFeedbackReport.schema.js";
 export * from "./brandCalculationSchedule.schema.js";
 export * from "./brandChannel.schema.js";
 export * from "./customerId.js";

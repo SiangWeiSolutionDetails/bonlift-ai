@@ -109,8 +109,6 @@ function ServingConfigForm({
   const { t: tCommon } = useTranslation();
   const defaultValues: CreateServingConfigVersionInput = {
     minFavouriteOrders: config.minFavouriteOrders,
-    minPairSample: config.minPairSample,
-    strongPairingLift: config.strongPairingLift,
     bestSellerMaxRank: config.bestSellerMaxRank,
     bestSellerMinListSize: config.bestSellerMinListSize,
   };
@@ -169,23 +167,6 @@ function ServingConfigForm({
             readOnly={readOnly}
             error={errors.minFavouriteOrders?.message}
             registration={register("minFavouriteOrders", { valueAsNumber: true })}
-          />
-          <NumberField
-            id="serving-config-min-pair-sample"
-            label={t("minPairSample")}
-            hint={t("minPairSampleHint")}
-            readOnly={readOnly}
-            error={errors.minPairSample?.message}
-            registration={register("minPairSample", { valueAsNumber: true })}
-          />
-          <NumberField
-            id="serving-config-strong-pairing-lift"
-            label={t("strongPairingLift")}
-            hint={t("strongPairingLiftHint")}
-            step={0.01}
-            readOnly={readOnly}
-            error={errors.strongPairingLift?.message}
-            registration={register("strongPairingLift", { valueAsNumber: true })}
           />
           <NumberField
             id="serving-config-best-seller-max-rank"

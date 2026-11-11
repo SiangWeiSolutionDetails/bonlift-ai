@@ -43,8 +43,6 @@ export function ServingConfigVersions({
       brandId,
       input: {
         minFavouriteOrders: version.minFavouriteOrders,
-        minPairSample: version.minPairSample,
-        strongPairingLift: version.strongPairingLift,
         bestSellerMaxRank: version.bestSellerMaxRank,
         bestSellerMinListSize: version.bestSellerMinListSize,
       },
@@ -154,10 +152,6 @@ function VersionItem({
           <dl className="grid grid-cols-[auto_auto] gap-x-3 gap-y-1">
             <dt className="opacity-70">{t("minFavouriteOrders")}</dt>
             <dd>{version.minFavouriteOrders}</dd>
-            <dt className="opacity-70">{t("minPairSample")}</dt>
-            <dd>{version.minPairSample}</dd>
-            <dt className="opacity-70">{t("strongPairingLift")}</dt>
-            <dd>{version.strongPairingLift}</dd>
             <dt className="opacity-70">{t("bestSellerMaxRank")}</dt>
             <dd>{version.bestSellerMaxRank}</dd>
             <dt className="opacity-70">{t("bestSellerMinListSize")}</dt>

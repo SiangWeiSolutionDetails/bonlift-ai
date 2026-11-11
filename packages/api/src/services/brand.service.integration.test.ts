@@ -10,8 +10,7 @@ describe("brand.service (integration)", () => {
     const brand = await createBrand(pool, { tenantId: tenant.id, name: "Kopi House" });
 
     const result = await pool.query(
-      `SELECT version, created_by, min_favourite_orders, min_pair_sample,
-              strong_pairing_lift::float8 AS strong_pairing_lift,
+      `SELECT version, created_by, min_favourite_orders,
               best_seller_max_rank, best_seller_min_list_size
        FROM serving_config_versions
        WHERE brand_id = $1`,
@@ -23,8 +22,6 @@ describe("brand.service (integration)", () => {
         version: 1,
         created_by: null,
         min_favourite_orders: 1,
-        min_pair_sample: 50,
-        strong_pairing_lift: 2,
         best_seller_max_rank: 3,
         best_seller_min_list_size: 10,
       },

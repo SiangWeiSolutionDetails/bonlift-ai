@@ -19,8 +19,6 @@ const VERSION_ROW = {
   created_by: "api",
   created_at: CREATED_AT,
   min_favourite_orders: 2,
-  min_pair_sample: 40,
-  strong_pairing_lift: 2.5,
   best_seller_max_rank: 3,
   best_seller_min_list_size: 10,
 };
@@ -61,8 +59,6 @@ describe("getLatestServingConfigVersion", () => {
       createdBy: "api",
       createdAt: CREATED_AT.toISOString(),
       minFavouriteOrders: 2,
-      minPairSample: 40,
-      strongPairingLift: 2.5,
       bestSellerMaxRank: 3,
       bestSellerMinListSize: 10,
     });
@@ -90,7 +86,7 @@ describe("createServingConfigVersion", () => {
       createServingConfigVersion(
         fakePool,
         BRAND_ID,
-        { minPairSample: 5 },
+        { bestSellerMaxRank: 5 },
         "api",
       ),
     ).rejects.toThrow(ConflictError);
@@ -102,13 +98,13 @@ describe("createServingConfigVersion", () => {
     await createServingConfigVersion(
       fakePool,
       BRAND_ID,
-      { minPairSample: 30 },
+      { bestSellerMaxRank: 30 },
       "api",
     );
 
     expect(queryMock).toHaveBeenCalledWith(
       expect.stringContaining("serving_config_versions"),
-      [BRAND_ID, "api", null, 30, null, null, null],
+      [BRAND_ID, "api", null, 30, null],
     );
   });
 });

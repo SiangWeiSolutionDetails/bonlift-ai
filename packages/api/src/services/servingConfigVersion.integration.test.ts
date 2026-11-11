@@ -49,8 +49,6 @@ describe("servingConfigVersion.service (integration)", () => {
       brandId,
       version: 1,
       minFavouriteOrders: 1,
-      minPairSample: 50,
-      strongPairingLift: 2,
       bestSellerMaxRank: 3,
       bestSellerMinListSize: 10,
     });
@@ -58,7 +56,7 @@ describe("servingConfigVersion.service (integration)", () => {
 
   it("lists versions newest first", async () => {
     const pool = getTestPool();
-    await createServingConfigVersion(pool, brandId, { minPairSample: 20 }, "api");
+    await createServingConfigVersion(pool, brandId, { minFavouriteOrders: 2 }, "api");
     await createServingConfigVersion(pool, brandId, { bestSellerMaxRank: 5 }, "api");
 
     const versions = await getServingConfigVersions(pool, brandId);
@@ -68,22 +66,20 @@ describe("servingConfigVersion.service (integration)", () => {
 
   it("merges unsent settings from the latest version and bumps the version", async () => {
     const pool = getTestPool();
-    await createServingConfigVersion(pool, brandId, { minPairSample: 20 }, "api");
+    await createServingConfigVersion(pool, brandId, { minFavouriteOrders: 2 }, "api");
 
     const created = await createServingConfigVersion(
       pool,
       brandId,
-      { strongPairingLift: 1.5 },
+      { bestSellerMaxRank: 5 },
       "api",
     );
 
     expect(created).toMatchObject({
       version: 3,
       createdBy: "api",
-      minFavouriteOrders: 1,
-      minPairSample: 20,
-      strongPairingLift: 1.5,
-      bestSellerMaxRank: 3,
+      minFavouriteOrders: 2,
+      bestSellerMaxRank: 5,
       bestSellerMinListSize: 10,
     });
   });
@@ -96,18 +92,18 @@ describe("servingConfigVersion.service (integration)", () => {
       await holder.query(
         `
         INSERT INTO serving_config_versions (
-          brand_id, version, created_by, min_favourite_orders, min_pair_sample,
-          strong_pairing_lift, best_seller_max_rank, best_seller_min_list_size
+          brand_id, version, created_by, min_favourite_orders,
+          best_seller_max_rank, best_seller_min_list_size
         )
-        SELECT brand_id, 2, 'holder', min_favourite_orders, min_pair_sample,
-          strong_pairing_lift, best_seller_max_rank, best_seller_min_list_size
+        SELECT brand_id, 2, 'holder', min_favourite_orders,
+          best_seller_max_rank, best_seller_min_list_size
         FROM serving_config_versions
         WHERE brand_id = $1 AND version = 1;
         `,
         [brandId],
       );
 
-      const outcome = createServingConfigVersion(pool, brandId, { minPairSample: 20 }, "api").then(
+      const outcome = createServingConfigVersion(pool, brandId, { minFavouriteOrders: 2 }, "api").then(
         () => undefined,
         (error: unknown) => error,
       );
@@ -129,20 +125,14 @@ describe("servingConfigVersion.service (integration)", () => {
       await expect(getLatestServingConfigVersion(pool, id)).rejects.toThrow(NotFoundError);
       await expect(getServingConfigVersions(pool, id)).rejects.toThrow(NotFoundError);
       await expect(
-        createServingConfigVersion(pool, id, { minPairSample: 20 }, "api"),
+        createServingConfigVersion(pool, id, { minFavouriteOrders: 2 }, "api"),
       ).rejects.toThrow(NotFoundError);
     }
   });
 
-  it("rejects a strong pairing lift above the column range", async () => {
-    await expect(
-      createServingConfigVersion(getTestPool(), brandId, { strongPairingLift: 10000 }, "api"),
-    ).rejects.toThrow(ValidationError);
-  });
-
   it("rejects an out-of-range value", async () => {
     await expect(
-      createServingConfigVersion(getTestPool(), brandId, { strongPairingLift: 0.5 }, "api"),
+      createServingConfigVersion(getTestPool(), brandId, { bestSellerMaxRank: 0 }, "api"),
     ).rejects.toThrow(ValidationError);
   });
 });

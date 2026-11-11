@@ -1,4 +1,5 @@
 import Type, { Static } from "typebox";
+import { ErrorResponseSchema } from "./error.schema.js";
 
 // Serving contract (/v1), same compatibility rules as recommendation.schema.ts: unknown request fields are accepted and
 // ignored, breaking changes go to /v2. Descriptions are published.
@@ -39,8 +40,8 @@ export const RecommendationFeedbackBodySchema = Type.Object(
         description:
           "The same `customerId` you sent with the recommendations request, in the same format: a mobile number " +
           "with its country dial code and no \"+\", or an email address. Any other value is rejected with 400. " +
-          "Send it so a rejected item is not recommended to this customer again for a while. Missing, null or " +
-          "blank means an anonymous customer.",
+          "Send it with both `accepted` and `rejected`: a rejected item is then not recommended to this customer " +
+          "again for a while, and accepting it later lifts that. Missing, null or blank means an anonymous customer.",
         examples: ["6591234567"],
       }),
     ),
@@ -57,3 +58,10 @@ export type RecommendationFeedbackBodySchemaType = Static<
 export const RecommendationFeedbackResponseSchema = Type.Null({
   description: "Feedback received. There is no response body.",
 });
+
+// Unlike /v1/recommendations, feedback does not hide a failure on our side: the caller retries it.
+export const RecommendationFeedbackErrorResponseSchema = {
+  ...ErrorResponseSchema,
+  description:
+    "The feedback could not be recorded on our side. Retry it later; the same feedback is only counted once.",
+};

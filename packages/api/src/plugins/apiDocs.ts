@@ -19,7 +19,8 @@ export function registerApiDocs(app: FastifyInstance) {
       // 1.7.0 favourites that go with an item in the cart come first (with `basedOn`); affinityRunId is the item
       // affinity run used for that ordering, null when the brand has none.
       // 1.8.0 adds `recommendationId` to /v1/recommendations and POST /v1/recommendations/{recommendationId}/feedback;
-      // items an identified customer rejected recently are no longer recommended to them.
+      // items an identified customer rejected recently are no longer recommended to them. Feedback documents its 500
+      // (retry), unlike /v1/recommendations, which returns an empty list on failure.
       info: { title: "BonLift AI Serving API", version: "1.8.0" },
       components: {
         securitySchemes: {

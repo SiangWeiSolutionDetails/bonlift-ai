@@ -1,6 +1,7 @@
 import {
   RecommendationFeedbackBodySchema,
   RecommendationFeedbackBodySchemaType,
+  RecommendationFeedbackErrorResponseSchema,
   RecommendationFeedbackParamsSchema,
   RecommendationFeedbackParamsSchemaType,
   RecommendationFeedbackResponseSchema,
@@ -97,7 +98,11 @@ export async function recommendationRoutes(app: FastifyInstance) {
         tags: ["Recommendations"],
         params: RecommendationFeedbackParamsSchema,
         body: RecommendationFeedbackBodySchema,
-        response: { 202: RecommendationFeedbackResponseSchema, ...ServingErrorResponseSchemas },
+        response: {
+          202: RecommendationFeedbackResponseSchema,
+          ...ServingErrorResponseSchemas,
+          500: RecommendationFeedbackErrorResponseSchema,
+        },
       },
     },
     async (request, reply) => {

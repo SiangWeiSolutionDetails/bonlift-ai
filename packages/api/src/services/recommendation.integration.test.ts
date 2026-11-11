@@ -6,6 +6,7 @@ import { createBrand } from "./brand.service.js";
 import { createOutlet } from "./outlet.service.js";
 import { createOutletItemScoresCalculationConfigVersion } from "./outletItemScoresCalculationConfigVersion.service.js";
 import { getRecommendations } from "./recommendation.service.js";
+import { createServingConfigVersion } from "./servingConfigVersion.service.js";
 import { createTenant } from "./tenant.service.js";
 
 const silentLog = { error: () => undefined, warn: () => undefined };
@@ -165,6 +166,43 @@ describe("getRecommendations (integration)", () => {
 
   it("serves the all_day lists when no daypart is sent", async () => {
     expect(await recommendedItemIds(undefined)).toEqual(["KAYA", "TOAST", "RICE"]);
+  });
+
+  describe("serving config", () => {
+    it("drops a favourite below a raised minimum of orders", async () => {
+      expect(await recommendedItemIds("breakfast")).toEqual(["KAYA", "TOAST"]);
+
+      await createServingConfigVersion(getTestPool(), brandId, { minFavouriteOrders: 4 }, "test");
+
+      expect(await recommendedItemIds("breakfast")).toEqual(["TOAST"]);
+    });
+
+    it("marks best sellers from the latest config version", async () => {
+      await createServingConfigVersion(
+        getTestPool(),
+        brandId,
+        { bestSellerMaxRank: 1, bestSellerMinListSize: 1 },
+        "test",
+      );
+
+      const items = await servedItemsById({ daypart: "dinner" });
+
+      expect(items.RICE.detail).toStrictEqual({ bestSeller: true });
+    });
+
+    it("serves an empty list for a brand with no serving config", async () => {
+      const pool = getTestPool();
+      const tenant = await createTenant(pool, { name: "Bare Foods" });
+      const bare = await pool.query("INSERT INTO brands (tenant_id, name) VALUES ($1, 'Bare') RETURNING id", [
+        tenant.id,
+      ]);
+      const bareBrandId = bare.rows[0].id;
+      const bareOutlet = await createOutlet(pool, { brandId: bareBrandId, name: "Bare Outlet" });
+
+      const response = await recommend(pool, silentLog, bareBrandId, { outletId: bareOutlet.id, cart: [] });
+
+      expect(response.items).toEqual([]);
+    });
   });
 
   it("returns no items for a daypart the brand has not configured", async () => {

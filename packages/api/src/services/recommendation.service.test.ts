@@ -29,7 +29,15 @@ function recommend(request: any = REQUEST) {
   return getRecommendations(fakePool, fakeLog, BRAND_ID, request, SECRET);
 }
 
+const DEFAULT_CONFIG_COLUMNS = {
+  min_pair_sample: 50,
+  strong_pairing_lift: 2,
+  best_seller_max_rank: 3,
+  best_seller_min_list_size: 10,
+};
+
 const NO_DETAIL_COLUMNS: Record<string, string[] | number | null> = {
+  ...DEFAULT_CONFIG_COLUMNS,
   based_on: null,
   top_pair_confidence: null,
   top_pair_lift: null,
@@ -98,7 +106,7 @@ async function servedItem(row: Record<string, unknown>) {
 }
 
 function queryParams(overrides: Record<number, unknown> = {}) {
-  const params: unknown[] = [OUTLET_ID, "all_day", [], null, BRAND_ID, [], null, 1, []];
+  const params: unknown[] = [OUTLET_ID, "all_day", [], null, BRAND_ID, [], null, []];
   for (const [index, value] of Object.entries(overrides)) {
     params[Number(index) - 1] = value;
   }
@@ -279,7 +287,7 @@ describe("getRecommendations", () => {
 
     expect(queryMock).toHaveBeenCalledWith(
       expect.any(String),
-      queryParams({ 9: ["C", "D"] }),
+      queryParams({ 8: ["C", "D"] }),
     );
   });
 
@@ -390,6 +398,26 @@ describe("getRecommendations", () => {
     expect(await recommend()).toStrictEqual(NO_RECOMMENDATIONS);
     expect(logErrorMock).toHaveBeenCalledWith(
       expect.objectContaining({ err: error, outletId: OUTLET_ID }),
+      expect.any(String),
+    );
+  });
+
+  it("returns an empty list and logs the error when the brand has no serving config", async () => {
+    queryMock.mockResolvedValueOnce(
+      pgResult([
+        {
+          ...itemRow("A"),
+          min_pair_sample: null,
+          strong_pairing_lift: null,
+          best_seller_max_rank: null,
+          best_seller_min_list_size: null,
+        },
+      ]),
+    );
+
+    expect(await recommend()).toStrictEqual(NO_RECOMMENDATIONS);
+    expect(logErrorMock).toHaveBeenCalledWith(
+      { outletId: OUTLET_ID, brandId: BRAND_ID },
       expect.any(String),
     );
   });
@@ -538,5 +566,40 @@ describe("getRecommendations", () => {
         });
       },
     );
+
+    describe("with a custom serving config", () => {
+      it("shows the pair share from the configured minimum sample", async () => {
+        const config = { min_pair_sample: 10 };
+        expect((await servedItem(cartRow("P1", { ...topPair(0.5, 1.5, 10), ...config }))).detail).toStrictEqual({
+          basedOn: ["KOPI"],
+          pairShare: 0.5,
+        });
+        expect(
+          (await servedItem(cartRow("P1", { ...topPair(0.5, 1.5, 60), min_pair_sample: 100 }))).detail,
+        ).toStrictEqual({ basedOn: ["KOPI"] });
+      });
+
+      it("marks a strong pairing from the configured lift", async () => {
+        expect(
+          (await servedItem(cartRow("P1", { ...topPair(0.7, 1.5, 50), strong_pairing_lift: 1.5 }))).detail,
+        ).toStrictEqual({ basedOn: ["KOPI"], pairShare: 0.7, strongPairing: true });
+        expect(
+          (await servedItem(cartRow("P1", { ...topPair(0.7, 2.5, 50), strong_pairing_lift: 3 }))).detail,
+        ).toStrictEqual({ basedOn: ["KOPI"], pairShare: 0.7 });
+      });
+
+      it("marks best sellers from the configured rank and list size", async () => {
+        expect(
+          (await servedItem({ ...outletRow("A", 5, 6), best_seller_max_rank: 5, best_seller_min_list_size: 6 }))
+            .detail,
+        ).toStrictEqual({ bestSeller: true });
+        expect(
+          (await servedItem({ ...outletRow("A", 3, 10), best_seller_max_rank: 2 })).detail,
+        ).toBeUndefined();
+        expect(
+          (await servedItem({ ...outletRow("A", 1, 10), best_seller_min_list_size: 11 })).detail,
+        ).toBeUndefined();
+      });
+    });
   });
 });

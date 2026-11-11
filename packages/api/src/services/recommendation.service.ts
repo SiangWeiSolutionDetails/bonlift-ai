@@ -12,25 +12,14 @@ import { ValidationError } from "../errors.js";
 import { toHashedCustomerId } from "../utils/customerIdHash.js";
 import { assertValid } from "../utils/validate.js";
 
-// 1 serves every scored item. A single order is weak evidence (every item of a customer's only order scores 1); raise
-// to 2 to require a repeat order.
-const MIN_FAVOURITE_ORDERS = 1;
-// A pair share or lift from a few orders of the cart item is noise, so neither is shown below this many.
-const MIN_PAIR_SAMPLE = 50;
 // Below 1 in 10 the share reads as a reason not to order it ("0 in 10 who order Kopi add this").
 const MIN_PAIR_SHARE = 0.1;
 // Callers word the reason from the first few cart items; a big cart would otherwise list every one.
 const MAX_BASED_ON = 3;
-// Lift 2 means the pair is ordered together twice as often as chance: worth calling a strong pairing.
-const STRONG_PAIRING_LIFT = 2;
-// "Best seller" means the top of the list, not merely being on it.
-const BEST_SELLER_MAX_RANK = 3;
-// In a short list every item is near the top, so ranking high there says little.
-const BEST_SELLER_MIN_LIST_SIZE = 10;
 
 // $1 = outlet id, $2 = daypart name, $3 = item ids to remove (cart and exclude), $4 = limit or NULL for all,
-// $5 = the API key's brand id, $6 = cart item ids, $7 = customer id or NULL, $8 = minimum orders behind a favourite,
-// $9 = item ids allowed to be returned, empty for any.
+// $5 = the API key's brand id, $6 = cart item ids, $7 = customer id or NULL, $8 = item ids allowed to be
+// returned, empty for any. The thresholds come from the brand's latest serving config.
 // Favourites and popular items are read for the requested daypart only, matched exactly: every run also stores an
 // all_day list. Favourites come first and must go with the cart (RE-4.3): some cart item has them as an affinity
 // partner. With an empty cart every favourite passes; with no published affinity run none does. Then items that go
@@ -80,6 +69,16 @@ affinity_run AS (
 ),
 daypart AS (
   SELECT $2::text AS name
+),
+serving_config AS (
+  SELECT c.min_favourite_orders, c.min_pair_sample, c.strong_pairing_lift, c.best_seller_max_rank,
+         c.best_seller_min_list_size
+  FROM outlet o
+  JOIN serving_config_versions c
+    ON c.brand_id = o.brand_id
+  WHERE o.in_brand
+  ORDER BY c.version DESC
+  LIMIT 1
 ),
 -- Affinity has no daypart, so cart partners check the name against the brand's latest daypart config instead: an
 -- unknown daypart returns no items from any list.
@@ -146,9 +145,10 @@ candidates AS (
     ON s.run_id = cr.run_id
    AND s.customer_external_id = $7
    AND s.daypart = $2
+  CROSS JOIN serving_config sc
   LEFT JOIN cart_pair_items i
     ON i.item_b = s.external_item_id
-  WHERE s.n_orders >= $8
+  WHERE s.n_orders >= sc.min_favourite_orders
     AND s.external_item_id <> ALL($3)
     AND (
       cardinality($6::text[]) = 0
@@ -185,8 +185,8 @@ ranked AS (
     SELECT DISTINCT ON (external_item_id) priority, source, rank, external_item_id, based_on, top_pair_confidence,
            top_pair_lift, top_pair_sample, outlet_rank, outlet_list_size
     FROM candidates
-    WHERE cardinality($9::text[]) = 0
-       OR external_item_id = ANY($9)
+    WHERE cardinality($8::text[]) = 0
+       OR external_item_id = ANY($8)
     ORDER BY external_item_id, priority
   ) unique_items
   ORDER BY priority, rank
@@ -194,7 +194,8 @@ ranked AS (
 )
 SELECT o.in_brand, p.run_id, cr.run_id AS customer_run_id, ar.run_id AS affinity_run_id, d.name AS daypart,
        r.external_item_id, r.source, r.based_on, r.top_pair_confidence, r.top_pair_lift, r.top_pair_sample,
-       r.outlet_rank, r.outlet_list_size
+       r.outlet_rank, r.outlet_list_size, sc.min_pair_sample, sc.strong_pairing_lift::float8 AS strong_pairing_lift,
+       sc.best_seller_max_rank, sc.best_seller_min_list_size
 FROM outlet o
 LEFT JOIN published p
   ON TRUE
@@ -203,6 +204,8 @@ LEFT JOIN customer_run cr
 LEFT JOIN affinity_run ar
   ON TRUE
 LEFT JOIN daypart d
+  ON TRUE
+LEFT JOIN serving_config sc
   ON TRUE
 LEFT JOIN ranked r
   ON TRUE
@@ -237,6 +240,10 @@ interface ServedRow {
   top_pair_sample: number | null;
   outlet_rank: number | null;
   outlet_list_size: number | null;
+  min_pair_sample: number | null;
+  strong_pairing_lift: number | null;
+  best_seller_max_rank: number | null;
+  best_seller_min_list_size: number | null;
 }
 
 function toBasedOn(row: ServedRow): RecommendationDetailSchemaType {
@@ -244,7 +251,8 @@ function toBasedOn(row: ServedRow): RecommendationDetailSchemaType {
 }
 
 function hasPairSample(row: ServedRow): boolean {
-  return row.source === "cart" && row.top_pair_sample !== null && row.top_pair_sample >= MIN_PAIR_SAMPLE;
+  return row.source === "cart" && row.top_pair_sample !== null && row.min_pair_sample !== null &&
+    row.top_pair_sample >= row.min_pair_sample;
 }
 
 function toPairing(row: ServedRow): RecommendationDetailSchemaType {
@@ -252,7 +260,9 @@ function toPairing(row: ServedRow): RecommendationDetailSchemaType {
     return {};
   }
   const share = row.top_pair_confidence >= MIN_PAIR_SHARE ? { pairShare: row.top_pair_confidence } : {};
-  return row.top_pair_lift !== null && row.top_pair_lift >= STRONG_PAIRING_LIFT
+  return row.top_pair_lift !== null &&
+    row.strong_pairing_lift !== null &&
+    row.top_pair_lift >= row.strong_pairing_lift
     ? { ...share, strongPairing: true }
     : share;
 }
@@ -261,9 +271,11 @@ function toBestSeller(row: ServedRow): RecommendationDetailSchemaType {
   const isBestSeller =
     row.source === "outlet" &&
     row.outlet_rank !== null &&
-    row.outlet_rank <= BEST_SELLER_MAX_RANK &&
+    row.best_seller_max_rank !== null &&
+    row.outlet_rank <= row.best_seller_max_rank &&
     row.outlet_list_size !== null &&
-    row.outlet_list_size >= BEST_SELLER_MIN_LIST_SIZE;
+    row.best_seller_min_list_size !== null &&
+    row.outlet_list_size >= row.best_seller_min_list_size;
   return isBestSeller ? { bestSeller: true } : {};
 }
 
@@ -300,6 +312,10 @@ function toResponse(rows: ServedRow[]): RecommendationResponseSchemaType {
       .filter((row) => row.external_item_id !== null)
       .map(toItem),
   };
+}
+
+function isMissingServingConfig(first: ServedRow | undefined): boolean {
+  return first?.in_brand === true && first.min_pair_sample === null;
 }
 
 function uniqueItemIds(itemIds: string[]): string[] {
@@ -342,12 +358,15 @@ export async function getRecommendations(
       brandId,
       cartItemIds,
       customerId,
-      MIN_FAVOURITE_ORDERS,
       uniqueItemIds(request.include ?? []),
     ]);
 
     if (result.rows[0]?.in_brand === false) {
       log.warn({ outletId: request.outletId }, "Outlet belongs to another brand");
+    }
+    if (isMissingServingConfig(result.rows[0])) {
+      log.error({ outletId: request.outletId, brandId }, "Brand has no serving config");
+      return NO_RECOMMENDATIONS;
     }
     return toResponse(result.rows);
   } catch (error) {

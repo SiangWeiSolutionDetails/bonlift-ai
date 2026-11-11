@@ -32,8 +32,8 @@ function uniqueName(prefix: string): string {
   return `${prefix} ${nameCounter}`;
 }
 
-// Same rows createBrand inserts: the brand, its channel mapping (all off), version 1 of each calculation config, and its
-// default schedule.
+// Same rows createBrand inserts: the brand, its channel mapping (all off), version 1 of each calculation config, its
+// default schedule and version 1 of its serving config.
 export async function createBrandFixture(
   pool: Pool,
   options: { isActive?: boolean; deleted?: boolean; dayparts?: DaypartFixture[] } = {},
@@ -74,6 +74,10 @@ export async function createBrandFixture(
     ),
     bcs AS (
       INSERT INTO brand_calculation_schedules (brand_id)
+      SELECT id FROM b
+    ),
+    scv AS (
+      INSERT INTO serving_config_versions (brand_id)
       SELECT id FROM b
     )
     SELECT id FROM b;

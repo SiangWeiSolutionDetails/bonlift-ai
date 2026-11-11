@@ -1,0 +1,24 @@
+{
+  "title": "Recommendation Serving",
+  "version": "v{{version}}",
+  "currentHint": "Saving creates a new version; changes apply to recommendations served from then on.",
+  "minFavouriteOrders": "Favourites Minimum Orders",
+  "minFavouriteOrdersHint": "A customer needs at least this many orders of an item before it counts as a favourite.",
+  "minPairSample": "Pair Share Minimum Sample Orders",
+  "minPairSampleHint": "A pairing's share is only shown when the item has at least this many orders to base it on.",
+  "strongPairingLift": "Strong Pairing Lift",
+  "strongPairingLiftHint": "Minimum lift for a pairing to count as strong. 1 means no association; decimals are allowed.",
+  "bestSellerMaxRank": "Best Seller Maximum Rank",
+  "bestSellerMaxRankHint": "Items ranked at or above this position are marked as best sellers.",
+  "bestSellerMinListSize": "Best Seller Minimum List Size",
+  "bestSellerMinListSizeHint": "Best sellers are only marked when the list has at least this many items.",
+  "save": "Save As New Version",
+  "history": {
+    "title": "Version History",
+    "current": "Current",
+    "by": "by {{name}}",
+    "restore": "Restore",
+    "restoreConfirmTitle": "Restore version {{version}}?",
+    "restoreConfirmDescription": "This creates a new version with these settings and makes it the current one."
+  }
+}

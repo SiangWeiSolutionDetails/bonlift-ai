@@ -1,0 +1,24 @@
+{
+  "title": "推荐服务",
+  "version": "v{{version}}",
+  "currentHint": "保存会创建新版本；更改将应用于此后提供的推荐。",
+  "minFavouriteOrders": "常点商品最少订单数",
+  "minFavouriteOrdersHint": "顾客至少点过某商品这么多次，才算作常点商品。",
+  "minPairSample": "搭配占比最少样本订单数",
+  "minPairSampleHint": "商品至少有这么多订单作为依据时，才会显示搭配占比。",
+  "strongPairingLift": "强搭配提升度",
+  "strongPairingLiftHint": "搭配被视为强搭配所需的最低提升度。1 表示无关联；可使用小数。",
+  "bestSellerMaxRank": "热销最大排名",
+  "bestSellerMaxRankHint": "排名在此位置及以内的商品会被标记为热销。",
+  "bestSellerMinListSize": "热销最少列表商品数",
+  "bestSellerMinListSizeHint": "仅当列表至少有这么多商品时，才会标记热销。",
+  "save": "保存为新版本",
+  "history": {
+    "title": "版本历史",
+    "current": "当前",
+    "by": "由 {{name}}",
+    "restore": "恢复",
+    "restoreConfirmTitle": "恢复版本 {{version}}？",
+    "restoreConfirmDescription": "将使用这些设置创建一个新版本，并设为当前版本。"
+  }
+}

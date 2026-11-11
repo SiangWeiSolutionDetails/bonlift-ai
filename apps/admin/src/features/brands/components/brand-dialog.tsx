@@ -28,6 +28,7 @@ import { BrandDataSourceSection } from "@/features/brand-data-source/components/
 import { OutletItemScoresConfigSection } from "@/features/outlet-item-scores-config/components/outlet-item-scores-config-section";
 import { CustomerItemScoresConfigSection } from "@/features/customer-item-scores-config/components/customer-item-scores-config-section";
 import { ItemAffinityConfigSection } from "@/features/item-affinity-config/components/item-affinity-config-section";
+import { ServingConfigSection } from "@/features/serving-config/components/serving-config-section";
 import { BrandCalculationScheduleSection } from "@/features/brand-calculation-schedule/components/brand-calculation-schedule-section";
 import { BrandChannelsSection } from "@/features/brand-channels/components/brand-channels-section";
 
@@ -46,6 +47,11 @@ const CALCULATIONS = [
     value: "itemAffinity",
     titleKey: "itemAffinityConfig.title",
     Section: ItemAffinityConfigSection,
+  },
+  {
+    value: "serving",
+    titleKey: "servingConfig:title",
+    Section: ServingConfigSection,
   },
 ] as const;
 
@@ -133,7 +139,7 @@ type BrandCalculationConfigsProps = {
 // which would also match the horizontal tabs this is nested in.
 // gap-6 absorbs the -mx-6 overhang of each section's scroll body so it can't cover the nav.
 function BrandCalculationConfigs({ brandId, readOnly }: BrandCalculationConfigsProps) {
-  const { t } = useTranslation("brands");
+  const { t } = useTranslation(["brands", "servingConfig"]);
 
   return (
     <TabsPrimitive.Root

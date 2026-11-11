@@ -45,6 +45,7 @@ export function ServingConfigVersions({
         minFavouriteOrders: version.minFavouriteOrders,
         bestSellerMaxRank: version.bestSellerMaxRank,
         bestSellerMinListSize: version.bestSellerMinListSize,
+        rejectionSuppressionDays: version.rejectionSuppressionDays,
       },
     });
   }
@@ -156,6 +157,8 @@ function VersionItem({
             <dd>{version.bestSellerMaxRank}</dd>
             <dt className="opacity-70">{t("bestSellerMinListSize")}</dt>
             <dd>{version.bestSellerMinListSize}</dd>
+            <dt className="opacity-70">{t("rejectionSuppressionDays")}</dt>
+            <dd>{version.rejectionSuppressionDays}</dd>
           </dl>
         </TooltipContent>
       </Tooltip>

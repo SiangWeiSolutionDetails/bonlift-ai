@@ -20,6 +20,7 @@ export * from "./itemAffinityCalculationConfigVersion.schema.js";
 export * from "./servingConfigVersion.schema.js";
 export * from "./itemAffinityResult.schema.js";
 export * from "./recommendation.schema.js";
+export * from "./recommendationFeedback.schema.js";
 export * from "./itemAffinityServing.schema.js";
 export * from "./brandApiKey.schema.js";
 export * from "./brandUsage.schema.js";

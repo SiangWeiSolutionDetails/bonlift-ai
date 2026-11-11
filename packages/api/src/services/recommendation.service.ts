@@ -7,9 +7,9 @@ import {
   RecommendationResponseSchemaType,
 } from "@bonlift-ai/contracts";
 import type { FastifyBaseLogger } from "fastify";
+import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
-import { ValidationError } from "../errors.js";
-import { toHashedCustomerId } from "../utils/customerIdHash.js";
+import { toStoredCustomerId } from "../utils/customerIdHash.js";
 import { assertValid } from "../utils/validate.js";
 
 // Callers word the reason from the first few cart items; a big cart would otherwise list every one.
@@ -25,6 +25,8 @@ const MAX_BASED_ON = 3;
 // them. Then the other favourites, each group in stored rank order; the limit applies after this ordering. With an
 // empty cart or no published affinity run no favourite is paired, so the stored order stands.
 // based_on is the cart items a paired favourite goes with, strongest pair first, NULL for every other row.
+// An identified customer is never served an item they rejected within the brand's rejection window, from either
+// source; a window of 0 days suppresses nothing. Anonymous requests are not filtered.
 // outlet_rank and outlet_list_size are the stored rank and the size of the outlet's daypart list before filtering,
 // for popular items only. min_favourite_orders is NULL only when the brand has no serving config.
 // Returns no rows for an unknown, inactive or deleted outlet; otherwise at least one row, with a NULL run or item
@@ -66,13 +68,22 @@ affinity_run AS (
   WHERE o.in_brand
 ),
 serving_config AS (
-  SELECT c.min_favourite_orders, c.best_seller_max_rank, c.best_seller_min_list_size
+  SELECT c.min_favourite_orders, c.best_seller_max_rank, c.best_seller_min_list_size, c.rejection_suppression_days
   FROM outlet o
   JOIN serving_config_versions c
     ON c.brand_id = o.brand_id
   WHERE o.in_brand
   ORDER BY c.version DESC
   LIMIT 1
+),
+rejected_items AS (
+  SELECT r.external_item_id
+  FROM outlet o
+  CROSS JOIN serving_config sc
+  JOIN customer_item_rejections r
+    ON r.brand_id = o.brand_id
+   AND r.customer_external_id = $7
+   AND r.rejected_at > now() - make_interval(days => sc.rejection_suppression_days)
 ),
 cart_pairs AS (
   SELECT a.item_b, array_agg(a.item_a ORDER BY a.confidence DESC, a.lift DESC, a.item_a) AS based_on
@@ -96,6 +107,7 @@ favourites AS (
   WHERE s.n_orders >= sc.min_favourite_orders
     AND s.external_item_id <> ALL($3)
     AND (cardinality($8::text[]) = 0 OR s.external_item_id = ANY($8))
+    AND NOT EXISTS (SELECT 1 FROM rejected_items ri WHERE ri.external_item_id = s.external_item_id)
 ),
 popular AS (
   SELECT 'outlet' AS source, l.rank, l.external_item_id, FALSE AS paired, NULL::text[] AS based_on,
@@ -112,6 +124,7 @@ popular AS (
   ) l
   WHERE l.external_item_id <> ALL($3)
     AND (cardinality($8::text[]) = 0 OR l.external_item_id = ANY($8))
+    AND NOT EXISTS (SELECT 1 FROM rejected_items ri WHERE ri.external_item_id = l.external_item_id)
 ),
 served AS (
   SELECT source, rank, external_item_id, paired, based_on, outlet_rank, outlet_list_size
@@ -141,6 +154,7 @@ ORDER BY r.paired DESC, r.rank;
 `;
 
 const NO_RECOMMENDATIONS: RecommendationResponseSchemaType = {
+  recommendationId: null,
   runId: null,
   customerRunId: null,
   affinityRunId: null,
@@ -207,14 +221,14 @@ function toResponse(rows: ServedRow[]): RecommendationResponseSchemaType {
     return NO_RECOMMENDATIONS;
   }
 
+  const items = rows.filter((row) => row.external_item_id !== null).map(toItem);
   return {
+    recommendationId: items.length > 0 ? randomUUID() : null,
     runId: first.run_id,
     customerRunId: first.customer_run_id,
     affinityRunId: first.affinity_run_id,
     daypart: first.daypart,
-    items: rows
-      .filter((row) => row.external_item_id !== null)
-      .map(toItem),
+    items,
   };
 }
 
@@ -226,31 +240,55 @@ function uniqueItemIds(itemIds: string[]): string[] {
   return [...new Set(itemIds)];
 }
 
-// Stored ids are hashed (CUS-02), so the request's id is hashed the same way before the lookup. A malformed id is the
-// caller's bug: a 400, never a silent anonymous request. The id itself is never put in the error or a log.
-function toStoredCustomerId(secret: string, customerId: string | null | undefined): string | null {
-  const customer = toHashedCustomerId(secret, customerId);
-  if (customer.status === "invalid") {
-    throw new ValidationError(
-      'customerId must be a mobile number with its country dial code and no "+" (8 to 15 digits), or an email address.',
-    );
-  }
-  return customer.status === "hashed" ? customer.id : null;
+// What the caller was served, kept for feedback (S6-04). isIdentified says whether a valid customerId was sent; the id
+// itself is not kept.
+export interface RecommendationServe {
+  id: string;
+  brandId: string;
+  outletId: string;
+  isIdentified: boolean;
+  daypart: string;
+  runId: string | null;
+  customerRunId: string | null;
+  affinityRunId: string | null;
+  itemIds: string[];
+  reasons: string[];
 }
 
-// A malformed request is the caller's bug and gets a 400. Anything else returns an empty list,
-// so a recommendation failure never blocks the order (NF-2).
-// The response does not say whether another brand's outlet exists, so a key never reveals other brands' outlets.
-export async function getRecommendations(
+export interface ServedRecommendations {
+  response: RecommendationResponseSchemaType;
+  // Null when no items were returned: there is nothing to give feedback on.
+  serve: RecommendationServe | null;
+}
+
+function toServe(
+  brandId: string,
+  outletId: string,
+  isIdentified: boolean,
+  response: RecommendationResponseSchemaType,
+): RecommendationServe | null {
+  if (response.recommendationId === null) return null;
+  return {
+    id: response.recommendationId,
+    brandId,
+    outletId,
+    isIdentified,
+    daypart: response.daypart as string,
+    runId: response.runId,
+    customerRunId: response.customerRunId,
+    affinityRunId: response.affinityRunId,
+    itemIds: response.items.map((item) => item.itemId),
+    reasons: response.items.map((item) => item.reason),
+  };
+}
+
+async function serveResponse(
   pool: Pool,
   log: Pick<FastifyBaseLogger, "error" | "warn">,
   brandId: string,
   request: RecommendationRequestSchemaType,
-  customerIdSecret: string,
+  customerId: string | null,
 ): Promise<RecommendationResponseSchemaType> {
-  assertValid(RecommendationRequestSchema, request);
-  const customerId = toStoredCustomerId(customerIdSecret, request.customerId);
-
   const cartItemIds = request.cart.map((item) => item.itemId);
 
   try {
@@ -277,4 +315,50 @@ export async function getRecommendations(
     log.error({ err: error, outletId: request.outletId }, "Recommendations failed");
     return NO_RECOMMENDATIONS;
   }
+}
+
+// A malformed request is the caller's bug and gets a 400. Anything else returns an empty list,
+// so a recommendation failure never blocks the order (NF-2).
+// The response does not say whether another brand's outlet exists, so a key never reveals other brands' outlets.
+export async function getRecommendations(
+  pool: Pool,
+  log: Pick<FastifyBaseLogger, "error" | "warn">,
+  brandId: string,
+  request: RecommendationRequestSchemaType,
+  customerIdSecret: string,
+): Promise<ServedRecommendations> {
+  assertValid(RecommendationRequestSchema, request);
+  const customerId = toStoredCustomerId(customerIdSecret, request.customerId);
+
+  const response = await serveResponse(pool, log, brandId, request, customerId);
+  return { response, serve: toServe(brandId, request.outletId, customerId !== null, response) };
+}
+
+export async function recordRecommendationServe(
+  pool: Pool,
+  serve: RecommendationServe,
+  channelId: string | null,
+): Promise<void> {
+  await pool.query(
+    `
+    INSERT INTO recommendation_serves (
+      id, brand_id, channel_id, outlet_id, is_identified, daypart, run_id, customer_run_id, affinity_run_id,
+      item_ids, reasons
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    `,
+    [
+      serve.id,
+      serve.brandId,
+      channelId,
+      serve.outletId,
+      serve.isIdentified,
+      serve.daypart,
+      serve.runId,
+      serve.customerRunId,
+      serve.affinityRunId,
+      serve.itemIds,
+      serve.reasons,
+    ],
+  );
 }

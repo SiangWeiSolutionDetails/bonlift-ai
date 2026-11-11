@@ -51,6 +51,7 @@ describe("servingConfigVersion.service (integration)", () => {
       minFavouriteOrders: 1,
       bestSellerMaxRank: 3,
       bestSellerMinListSize: 10,
+      rejectionSuppressionDays: 30,
     });
   });
 
@@ -81,7 +82,17 @@ describe("servingConfigVersion.service (integration)", () => {
       minFavouriteOrders: 2,
       bestSellerMaxRank: 5,
       bestSellerMinListSize: 10,
+      rejectionSuppressionDays: 30,
     });
+  });
+
+  it("carries a changed rejection window forward, including 0", async () => {
+    const pool = getTestPool();
+    await createServingConfigVersion(pool, brandId, { rejectionSuppressionDays: 0 }, "api");
+
+    const created = await createServingConfigVersion(pool, brandId, { minFavouriteOrders: 2 }, "api");
+
+    expect(created).toMatchObject({ version: 3, minFavouriteOrders: 2, rejectionSuppressionDays: 0 });
   });
 
   it("rejects a change that loses the version race with ConflictError", async () => {

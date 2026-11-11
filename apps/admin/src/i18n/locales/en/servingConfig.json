@@ -8,6 +8,8 @@
   "bestSellerMaxRankHint": "Items ranked at or above this position are marked as best sellers.",
   "bestSellerMinListSize": "Best Seller Minimum List Size",
   "bestSellerMinListSizeHint": "Best sellers are only marked when the list has at least this many items.",
+  "rejectionSuppressionDays": "Hide Rejected Items For (Days)",
+  "rejectionSuppressionDaysHint": "How long an item a customer rejected stays out of their recommendations. 0 turns this off.",
   "save": "Save As New Version",
   "history": {
     "title": "Version History",

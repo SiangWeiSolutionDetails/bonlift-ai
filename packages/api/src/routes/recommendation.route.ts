@@ -1,4 +1,9 @@
 import {
+  RecommendationFeedbackBodySchema,
+  RecommendationFeedbackBodySchemaType,
+  RecommendationFeedbackParamsSchema,
+  RecommendationFeedbackParamsSchemaType,
+  RecommendationFeedbackResponseSchema,
   RecommendationRequestSchema,
   RecommendationRequestSchemaType,
   RecommendationResponseSchema,
@@ -7,9 +12,28 @@ import {
 import { getPool } from "@bonlift-ai/db";
 import { FastifyInstance } from "fastify";
 import { readCustomerIdSecret } from "../config/env.js";
+import { createRecommendationServeHook } from "../plugins/recommendationServes.js";
 import { getRecommendations } from "../services/recommendation.service.js";
+import { recordRecommendationFeedback } from "../services/recommendationFeedback.service.js";
+
+const FEEDBACK_DESCRIPTION =
+  "Tells us what the customer did with an item from a recommendations response. Send `accepted` when the customer " +
+  "adds a suggested item to the cart and `rejected` when they dismiss it: one call per action, within 2 hours of the " +
+  "recommendation, using the response's `recommendationId`. Feedback sent later, or for an item that was not in " +
+  "that response, is ignored.\n\n" +
+  "Items you send no feedback for count as ignored by the customer. So request a `limit` equal to the number of " +
+  "items you display, and pass the items available right now in `include`, so that every returned item is one the " +
+  "customer could see.\n\n" +
+  "Send the same `customerId` as on the recommendations request. A rejected item is then not recommended to that " +
+  "customer again for a while, and accepting it later lifts that. Without it the feedback still counts, but nothing " +
+  "is remembered for the customer.\n\n" +
+  "A valid request always gets 202 with no body, whether or not the feedback matched a recommendation. Retries are " +
+  "safe: the same feedback is only counted once. Call this from your server, never from the customer's device, so " +
+  "your API key is never exposed.";
 
 export async function recommendationRoutes(app: FastifyInstance) {
+  app.decorateRequest("recommendationServe", null);
+
   app.post<{ Body: RecommendationRequestSchemaType }>(
     "/recommendations",
     {
@@ -20,7 +44,8 @@ export async function recommendationRoutes(app: FastifyInstance) {
           "that customer's favourites; for an anonymous customer, or one with no favourites to show, it is the items " +
           "popular at the outlet. Both are for the requested `daypart`, or the whole day when none is sent. Favourites " +
           "that go with an item in the cart come first, and the rest follow in the customer's usual order. Items in " +
-          "the cart or in `exclude` are never returned. Apply your own availability and dietary filters before " +
+          "the cart or in `exclude` are never returned, and neither are items an identified customer rejected " +
+          "recently (see the feedback endpoint). Apply your own availability and dietary filters before " +
           "display, and show the top items. Any failure on our side returns an empty list, so the order can always " +
           "continue.\n\n" +
           "Every item has one `reason`, which says why it was picked. Its optional `detail` adds facts for stronger " +
@@ -46,17 +71,46 @@ export async function recommendationRoutes(app: FastifyInstance) {
         body: RecommendationRequestSchema,
         response: { 200: RecommendationResponseSchema, ...ServingErrorResponseSchemas },
       },
+      onResponse: createRecommendationServeHook(getPool),
     },
-    (request) => {
+    async (request) => {
       const pool = getPool();
       // Set by the /v1 API key hook, which rejects the request before this handler without a brand.
-      return getRecommendations(
+      const { response, serve } = await getRecommendations(
         pool,
         request.log,
         request.servingBrandId as string,
         request.body,
         readCustomerIdSecret(),
       );
+      request.recommendationServe = serve;
+      return response;
+    },
+  );
+
+  app.post<{ Params: RecommendationFeedbackParamsSchemaType; Body: RecommendationFeedbackBodySchemaType }>(
+    "/recommendations/:recommendationId/feedback",
+    {
+      schema: {
+        summary: "Feedback on a recommended item",
+        description: FEEDBACK_DESCRIPTION,
+        tags: ["Recommendations"],
+        params: RecommendationFeedbackParamsSchema,
+        body: RecommendationFeedbackBodySchema,
+        response: { 202: RecommendationFeedbackResponseSchema, ...ServingErrorResponseSchemas },
+      },
+    },
+    async (request, reply) => {
+      const pool = getPool();
+      // A database error is not swallowed here, unlike recommendations: the caller retries, and the write is idempotent.
+      await recordRecommendationFeedback(
+        pool,
+        request.servingBrandId as string,
+        request.params.recommendationId,
+        request.body,
+        readCustomerIdSecret(),
+      );
+      return reply.status(202).send();
     },
   );
 }

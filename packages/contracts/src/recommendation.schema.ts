@@ -201,6 +201,12 @@ export type RecommendationItemSchemaType = Static<
 
 export const RecommendationResponseSchema = Type.Object(
   {
+    recommendationId: Type.Union([Type.String({ format: "uuid" }), Type.Null()], {
+      description:
+        "Identifies this response. Send it back with feedback on the items it returned. Null when no items are " +
+        "returned.",
+      examples: ["7b1f3c2a-5d4e-4f6a-8b9c-0d1e2f3a4b5c"],
+    }),
     // The outlet popularity run.
     runId: Type.Union([Type.String({ format: "uuid" }), Type.Null()], {
       description: "Opaque id of the outlet results served. Quote it when reporting an issue. Null when none exist.",

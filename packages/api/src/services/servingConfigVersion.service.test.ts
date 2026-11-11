@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ConflictError, NotFoundError } from "../errors.js";
+import { ConflictError, NotFoundError, ValidationError } from "../errors.js";
 import { pgResult } from "../utils/pg.test-helpers.js";
 import { UNIQUE_VIOLATION } from "../utils/pgErrors.js";
 import {
@@ -21,6 +21,7 @@ const VERSION_ROW = {
   min_favourite_orders: 2,
   best_seller_max_rank: 3,
   best_seller_min_list_size: 10,
+  rejection_suppression_days: 30,
 };
 
 const queryMock = vi.fn();
@@ -47,7 +48,7 @@ describe("getLatestServingConfigVersion", () => {
     ).rejects.not.toThrow(NotFoundError);
   });
 
-  it("maps the row with its five settings", async () => {
+  it("maps the row with its six settings", async () => {
     queryMock.mockResolvedValueOnce(pgResult([VERSION_ROW]));
 
     const result = await getLatestServingConfigVersion(fakePool, BRAND_ID);
@@ -61,6 +62,7 @@ describe("getLatestServingConfigVersion", () => {
       minFavouriteOrders: 2,
       bestSellerMaxRank: 3,
       bestSellerMinListSize: 10,
+      rejectionSuppressionDays: 30,
     });
   });
 });
@@ -104,7 +106,22 @@ describe("createServingConfigVersion", () => {
 
     expect(queryMock).toHaveBeenCalledWith(
       expect.stringContaining("serving_config_versions"),
-      [BRAND_ID, "api", null, 30, null],
+      [BRAND_ID, "api", null, 30, null, null],
     );
+  });
+
+  it("sends a rejection window of 0, which switches suppression off", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([VERSION_ROW]));
+
+    await createServingConfigVersion(fakePool, BRAND_ID, { rejectionSuppressionDays: 0 }, "api");
+
+    expect(queryMock).toHaveBeenCalledWith(expect.any(String), [BRAND_ID, "api", null, null, null, 0]);
+  });
+
+  it("throws ValidationError without querying for a rejection window above 365 days", async () => {
+    await expect(
+      createServingConfigVersion(fakePool, BRAND_ID, { rejectionSuppressionDays: 366 }, "api"),
+    ).rejects.toThrow(ValidationError);
+    expect(queryMock).not.toHaveBeenCalled();
   });
 });

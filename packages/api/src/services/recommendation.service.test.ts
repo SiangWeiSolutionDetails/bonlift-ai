@@ -12,6 +12,7 @@ const AFFINITY_RUN_ID = "55555555-5555-5555-5555-555555555555";
 const SECRET = "test-secret-0123456789abcdef0123456789abcdef";
 const REQUEST = { outletId: OUTLET_ID, cart: [] };
 const NO_RECOMMENDATIONS = {
+  recommendationId: null,
   runId: null,
   customerRunId: null,
   affinityRunId: null,
@@ -25,8 +26,12 @@ const fakePool = { query: queryMock } as any;
 const logWarnMock = vi.fn();
 const fakeLog = { error: logErrorMock, warn: logWarnMock } as any;
 
-function recommend(request: any = REQUEST) {
+async function serveFor(request: any = REQUEST) {
   return getRecommendations(fakePool, fakeLog, BRAND_ID, request, SECRET);
+}
+
+async function recommend(request: any = REQUEST) {
+  return (await serveFor(request)).response;
 }
 
 const NO_DETAIL_COLUMNS: Record<string, number | string[] | null> = {
@@ -108,6 +113,7 @@ describe("getRecommendations", () => {
     const result = await recommend();
 
     expect(result).toStrictEqual({
+      recommendationId: expect.any(String),
       runId: RUN_ID,
       customerRunId: null,
       affinityRunId: null,
@@ -126,6 +132,7 @@ describe("getRecommendations", () => {
     const result = await recommend({ ...REQUEST, customerId: "6591234567" });
 
     expect(result).toStrictEqual({
+      recommendationId: expect.any(String),
       runId: RUN_ID,
       customerRunId: CUSTOMER_RUN_ID,
       affinityRunId: null,
@@ -155,6 +162,7 @@ describe("getRecommendations", () => {
     queryMock.mockResolvedValueOnce(pgResult([favouriteRow("F1", null)]));
 
     expect(await recommend({ ...REQUEST, customerId: "6591234567" })).toStrictEqual({
+      recommendationId: expect.any(String),
       runId: null,
       customerRunId: CUSTOMER_RUN_ID,
       affinityRunId: null,
@@ -300,6 +308,7 @@ describe("getRecommendations", () => {
     queryMock.mockResolvedValueOnce(pgResult([itemRow(null, "Supper")]));
 
     expect(await recommend({ ...REQUEST, daypart: "Supper" })).toStrictEqual({
+      recommendationId: null,
       runId: RUN_ID,
       customerRunId: null,
       affinityRunId: null,
@@ -433,5 +442,66 @@ describe("getRecommendations", () => {
         ).toBeUndefined();
       });
     });
+  });
+});
+
+describe("getRecommendations serve", () => {
+  it("identifies a response with items and returns its serve, items in rank order", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([itemRow("A"), itemRow("B")]));
+
+    const { response, serve } = await serveFor({ ...REQUEST, daypart: "Lunch" });
+
+    expect(response.recommendationId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(serve).toStrictEqual({
+      id: response.recommendationId,
+      brandId: BRAND_ID,
+      outletId: OUTLET_ID,
+      isIdentified: false,
+      daypart: "Lunch",
+      runId: RUN_ID,
+      customerRunId: null,
+      affinityRunId: null,
+      itemIds: ["A", "B"],
+      reasons: ["popular_at_outlet", "popular_at_outlet"],
+    });
+  });
+
+  it("gives every response its own id", async () => {
+    queryMock.mockResolvedValue(pgResult([itemRow("A")]));
+
+    const first = await recommend();
+    const second = await recommend();
+
+    expect(first.recommendationId).not.toBe(second.recommendationId);
+  });
+
+  it("marks the serve identified when a valid customer id was sent, without keeping the id", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([favouriteRow("F1")]));
+
+    const { serve } = await serveFor({ ...REQUEST, customerId: "6591234567" });
+
+    expect(serve).toMatchObject({ isIdentified: true, customerRunId: CUSTOMER_RUN_ID, reasons: ["frequently_ordered"] });
+    expect(JSON.stringify(serve)).not.toContain("6591234567");
+  });
+
+  it("marks the serve identified even when popular items are served to the customer", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([itemRow("A")]));
+
+    const { serve } = await serveFor({ ...REQUEST, customerId: "6591234567" });
+
+    expect(serve?.isIdentified).toBe(true);
+  });
+
+  it.each([
+    ["the run has no items for the daypart", () => queryMock.mockResolvedValueOnce(pgResult([itemRow(null, "Supper")]))],
+    ["the outlet is unknown", () => queryMock.mockResolvedValueOnce(pgResult([]))],
+    ["the query fails", () => queryMock.mockRejectedValueOnce(new Error("connection refused"))],
+  ])("has no id and no serve when %s", async (_name, arrange) => {
+    arrange();
+
+    const { response, serve } = await serveFor();
+
+    expect(response.recommendationId).toBeNull();
+    expect(serve).toBeNull();
   });
 });

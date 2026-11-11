@@ -111,6 +111,7 @@ function ServingConfigForm({
     minFavouriteOrders: config.minFavouriteOrders,
     bestSellerMaxRank: config.bestSellerMaxRank,
     bestSellerMinListSize: config.bestSellerMinListSize,
+    rejectionSuppressionDays: config.rejectionSuppressionDays,
   };
   const {
     register,
@@ -183,6 +184,14 @@ function ServingConfigForm({
             readOnly={readOnly}
             error={errors.bestSellerMinListSize?.message}
             registration={register("bestSellerMinListSize", { valueAsNumber: true })}
+          />
+          <NumberField
+            id="serving-config-rejection-suppression-days"
+            label={t("rejectionSuppressionDays")}
+            hint={t("rejectionSuppressionDaysHint")}
+            readOnly={readOnly}
+            error={errors.rejectionSuppressionDays?.message}
+            registration={register("rejectionSuppressionDays", { valueAsNumber: true })}
           />
         </div>
 

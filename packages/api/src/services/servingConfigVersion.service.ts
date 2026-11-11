@@ -19,6 +19,7 @@ function mapVersionRow(row: any): ServingConfigVersionRecordSchemaType {
     minFavouriteOrders: row.min_favourite_orders,
     bestSellerMaxRank: row.best_seller_max_rank,
     bestSellerMinListSize: row.best_seller_min_list_size,
+    rejectionSuppressionDays: row.rejection_suppression_days,
   };
 }
 
@@ -43,12 +44,13 @@ export async function getLatestServingConfigVersion(
       v.created_at,
       v.min_favourite_orders,
       v.best_seller_max_rank,
-      v.best_seller_min_list_size
+      v.best_seller_min_list_size,
+      v.rejection_suppression_days
     FROM brands b
     LEFT JOIN LATERAL (
       SELECT s.id, s.version, s.created_by, s.created_at,
         s.min_favourite_orders,
-        s.best_seller_max_rank, s.best_seller_min_list_size
+        s.best_seller_max_rank, s.best_seller_min_list_size, s.rejection_suppression_days
       FROM serving_config_versions s
       WHERE s.brand_id = b.id
       ORDER BY s.version DESC
@@ -86,7 +88,8 @@ export async function getServingConfigVersions(
       v.created_at,
       v.min_favourite_orders,
       v.best_seller_max_rank,
-      v.best_seller_min_list_size
+      v.best_seller_min_list_size,
+      v.rejection_suppression_days
     FROM brands b
     LEFT JOIN serving_config_versions v ON v.brand_id = b.id
     WHERE b.id = $1
@@ -128,7 +131,7 @@ export async function createServingConfigVersion(
       ),
       latest AS (
         SELECT s.version, s.min_favourite_orders,
-          s.best_seller_max_rank, s.best_seller_min_list_size
+          s.best_seller_max_rank, s.best_seller_min_list_size, s.rejection_suppression_days
         FROM serving_config_versions s
         WHERE s.brand_id = $1
         ORDER BY s.version DESC
@@ -141,7 +144,8 @@ export async function createServingConfigVersion(
           created_by,
           min_favourite_orders,
           best_seller_max_rank,
-          best_seller_min_list_size
+          best_seller_min_list_size,
+          rejection_suppression_days
         )
         SELECT
           b.id,
@@ -149,12 +153,13 @@ export async function createServingConfigVersion(
           $2,
           COALESCE($3::int, l.min_favourite_orders),
           COALESCE($4::int, l.best_seller_max_rank),
-          COALESCE($5::int, l.best_seller_min_list_size)
+          COALESCE($5::int, l.best_seller_min_list_size),
+          COALESCE($6::int, l.rejection_suppression_days)
         FROM brand b
         CROSS JOIN latest l
         RETURNING id, brand_id, version, created_by, created_at,
           min_favourite_orders,
-          best_seller_max_rank, best_seller_min_list_size
+          best_seller_max_rank, best_seller_min_list_size, rejection_suppression_days
       )
       SELECT
         i.id,
@@ -164,7 +169,8 @@ export async function createServingConfigVersion(
         i.created_at,
         i.min_favourite_orders,
         i.best_seller_max_rank,
-        i.best_seller_min_list_size
+        i.best_seller_min_list_size,
+        i.rejection_suppression_days
       FROM brand b
       LEFT JOIN inserted i ON TRUE;
       `,
@@ -174,6 +180,7 @@ export async function createServingConfigVersion(
         data.minFavouriteOrders ?? null,
         data.bestSellerMaxRank ?? null,
         data.bestSellerMinListSize ?? null,
+        data.rejectionSuppressionDays ?? null,
       ],
     );
 

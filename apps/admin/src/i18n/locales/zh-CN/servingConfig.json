@@ -8,6 +8,8 @@
   "bestSellerMaxRankHint": "排名在此位置及以内的商品会被标记为热销。",
   "bestSellerMinListSize": "热销最少列表商品数",
   "bestSellerMinListSizeHint": "仅当列表至少有这么多商品时，才会标记热销。",
+  "rejectionSuppressionDays": "隐藏已拒绝商品（天）",
+  "rejectionSuppressionDaysHint": "顾客拒绝的商品在这么多天内不会再推荐给该顾客。设为 0 表示关闭。",
   "save": "保存为新版本",
   "history": {
     "title": "版本历史",

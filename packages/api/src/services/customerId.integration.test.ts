@@ -115,7 +115,7 @@ describe("customer ids (integration)", () => {
     expect(scoreIds.rows.every((row) => row.customer_external_id.startsWith("h1:"))).toBe(true);
 
     for (const customerId of ["6591234567", "tan@mail.com", " TAN@MAIL.COM "]) {
-      const response = await getRecommendations(pool, silentLog, brandId, { outletId, cart: [], customerId }, SECRET);
+      const { response } = await getRecommendations(pool, silentLog, brandId, { outletId, cart: [], customerId }, SECRET);
       expect(response.items).toStrictEqual([{ itemId: "KOPI", rank: 1, reason: "frequently_ordered" }]);
     }
 

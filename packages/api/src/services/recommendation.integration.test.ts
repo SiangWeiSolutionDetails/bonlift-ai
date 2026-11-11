@@ -5,7 +5,8 @@ import { hashCustomerId } from "../utils/customerIdHash.js";
 import { createBrand } from "./brand.service.js";
 import { createOutlet } from "./outlet.service.js";
 import { createOutletItemScoresCalculationConfigVersion } from "./outletItemScoresCalculationConfigVersion.service.js";
-import { getRecommendations } from "./recommendation.service.js";
+import { getRecommendations, recordRecommendationServe } from "./recommendation.service.js";
+import { recordRecommendationFeedback } from "./recommendationFeedback.service.js";
 import { createServingConfigVersion } from "./servingConfigVersion.service.js";
 import { createTenant } from "./tenant.service.js";
 
@@ -16,9 +17,9 @@ const SECRET = readCustomerIdSecret();
 const CUSTOMER_ID = "6591234567";
 const CUSTOMER_HASH = hashCustomerId(SECRET, CUSTOMER_ID);
 
-function recommend(pool: Parameters<typeof getRecommendations>[0], log: typeof silentLog, brand: string,
+async function recommend(pool: Parameters<typeof getRecommendations>[0], log: typeof silentLog, brand: string,
   request: Parameters<typeof getRecommendations>[3]) {
-  return getRecommendations(pool, log, brand, request, SECRET);
+  return (await getRecommendations(pool, log, brand, request, SECRET)).response;
 }
 
 let brandId: string;
@@ -226,6 +227,7 @@ describe("getRecommendations (integration)", () => {
       const response = await recommend(pool, silentLog, bareBrandId, { outletId: bareOutlet.id, cart: [] });
 
       expect(response).toStrictEqual({
+        recommendationId: null,
         runId: null,
         customerRunId: null,
         affinityRunId: null,
@@ -333,6 +335,7 @@ describe("getRecommendations (integration)", () => {
 
       it("moves a paired favourite above better-ranked unpaired ones, listing the cart item it goes with", async () => {
         expect(await recommendBreakfast()).toStrictEqual({
+          recommendationId: expect.any(String),
           runId: outletRunId,
           customerRunId,
           affinityRunId,
@@ -402,5 +405,92 @@ describe("getRecommendations (integration)", () => {
         ]);
       });
     });
+  });
+});
+
+describe("items the customer rejected (integration)", () => {
+  const OTHER_CUSTOMER_ID = "6599999999";
+
+  async function reject(itemId: string, daysAgo: number, customerId = CUSTOMER_ID) {
+    await getTestPool().query(
+      `
+      INSERT INTO customer_item_rejections (brand_id, customer_external_id, external_item_id, rejected_at)
+      VALUES ($1, $2, $3, now() - make_interval(days => $4))
+      `,
+      [brandId, hashCustomerId(SECRET, customerId), itemId, daysAgo],
+    );
+  }
+
+  it("does not serve a favourite the customer rejected within the window", async () => {
+    await reject("KAYA", 29);
+
+    expect(await recommendedItemIds("breakfast")).toEqual(["TOAST"]);
+  });
+
+  it("does not serve a popular item the customer rejected within the window", async () => {
+    await reject("TOAST", 1, OTHER_CUSTOMER_ID);
+
+    expect(await recommendedItemIds(undefined, { customerId: OTHER_CUSTOMER_ID })).toEqual(["RICE"]);
+  });
+
+  it("serves a rejected item again once the window has passed", async () => {
+    await reject("KAYA", 31);
+
+    expect(await recommendedItemIds("breakfast")).toEqual(["KAYA"]);
+  });
+
+  it("suppresses nothing with a window of 0 days", async () => {
+    await reject("KAYA", 0);
+    await createServingConfigVersion(getTestPool(), brandId, { rejectionSuppressionDays: 0 }, "test");
+
+    expect(await recommendedItemIds("breakfast")).toEqual(["KAYA"]);
+  });
+
+  it("suppresses an older rejection again after the window is lengthened", async () => {
+    await reject("KAYA", 40);
+    await createServingConfigVersion(getTestPool(), brandId, { rejectionSuppressionDays: 60 }, "test");
+
+    expect(await recommendedItemIds("breakfast")).toEqual(["TOAST"]);
+  });
+
+  it("leaves other customers and anonymous requests unaffected", async () => {
+    await reject("TOAST", 1);
+
+    expect(await recommendedItemIds(undefined, { customerId: OTHER_CUSTOMER_ID })).toEqual(["TOAST", "RICE"]);
+    expect(await recommendedItemIds(undefined, { customerId: undefined })).toEqual(["TOAST", "RICE"]);
+  });
+
+  it("stops serving an item once the customer rejects it from a recorded serve", async () => {
+    const pool = getTestPool();
+    const { response, serve } = await getRecommendations(
+      pool,
+      silentLog,
+      brandId,
+      { outletId, cart: [], customerId: CUSTOMER_ID, daypart: "breakfast" },
+      SECRET,
+    );
+    await recordRecommendationServe(pool, serve!, null);
+
+    await recordRecommendationFeedback(
+      pool,
+      brandId,
+      response.recommendationId!,
+      { itemId: "KAYA", type: "rejected", customerId: CUSTOMER_ID },
+      SECRET,
+    );
+
+    const stored = await pool.query(
+      "SELECT is_identified, item_ids, reasons, rejected_item_ids FROM recommendation_serves WHERE id = $1",
+      [response.recommendationId],
+    );
+    expect(stored.rows).toStrictEqual([
+      {
+        is_identified: true,
+        item_ids: ["KAYA"],
+        reasons: ["frequently_ordered"],
+        rejected_item_ids: ["KAYA"],
+      },
+    ]);
+    expect(await recommendedItemIds("breakfast")).toEqual(["TOAST"]);
   });
 });

@@ -16,7 +16,9 @@ export function registerApiDocs(app: FastifyInstance) {
       // only because no partner consumed /v1/item-affinity yet. Also documents every reason and detail field.
       // 1.6.0 /v1/recommendations serves one source: the customer's favourites, else the outlet's popular items.
       // goes_with_cart is no longer sent there and affinityRunId is always null; both stay in the schema for /v1.
-      info: { title: "BonLift AI Serving API", version: "1.6.0" },
+      // 1.7.0 favourites that go with an item in the cart come first (with `basedOn`); affinityRunId is the item
+      // affinity run used for that ordering, null when the brand has none.
+      info: { title: "BonLift AI Serving API", version: "1.7.0" },
       components: {
         securitySchemes: {
           apiKey: { type: "apiKey", in: "header", name: "x-api-key" },

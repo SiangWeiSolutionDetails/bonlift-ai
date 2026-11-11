@@ -133,8 +133,9 @@ export const RecommendationDetailSchema = Type.Object(
         minItems: 1,
         maxItems: 3,
         description:
-          "Up to 3 cart item ids this item is often ordered with, strongest first. Sent with `goes_with_cart` " +
-          "only, which is not sent at the moment. Use the first one for wording such as \"Goes with your Kopi\".",
+          "Up to 3 cart item ids this item is often ordered with, strongest first. Sent with `frequently_ordered` " +
+          "when the favourite goes with an item in the cart, and with `goes_with_cart`, which is not sent at the " +
+          "moment. Use the first one for wording such as \"Your usual, goes with your Kopi\".",
         examples: [["ITEM-1001", "ITEM-2002"]],
       }),
     ),
@@ -210,11 +211,11 @@ export const RecommendationResponseSchema = Type.Object(
         "Opaque id of the customer results served. Quote it when reporting an issue. Null for an anonymous customer " +
         "or when none exist.",
     }),
-    // The item affinity run behind goes_with_cart items; always null while affinity is not served.
+    // The item affinity run used to order favourites; null when the brand has none.
     affinityRunId: Type.Union([Type.String({ format: "uuid" }), Type.Null()], {
       description:
-        "Opaque id of the results used for items that go with the cart. Always null at the moment, as those items " +
-        "are not sent.",
+        "Opaque id of the item affinity results used to put favourites that go with the cart first. Null when " +
+        "none exist. Quote it when reporting an issue.",
     }),
     daypart: Type.Union([Type.String(), Type.Null()], {
       description:

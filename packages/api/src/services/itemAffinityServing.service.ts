@@ -62,7 +62,7 @@ function toResponse(rows: ServedRow[]): ItemAffinityResponseSchemaType {
       .map((row, index) => ({
         itemId: row.external_item_id as string,
         rank: index + 1,
-        reason: "goes_with_cart",
+        reason: "often_ordered_with",
       })),
   };
 }

@@ -41,8 +41,8 @@ describe("getItemAffinityRecommendations", () => {
     expect(await recommend()).toStrictEqual({
       runId: RUN_ID,
       items: [
-        { itemId: "B", rank: 1, reason: "goes_with_cart" },
-        { itemId: "C", rank: 2, reason: "goes_with_cart" },
+        { itemId: "B", rank: 1, reason: "often_ordered_with" },
+        { itemId: "C", rank: 2, reason: "often_ordered_with" },
       ],
     });
   });

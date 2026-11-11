@@ -57,9 +57,9 @@ export const ItemAffinityRequestSchema = Type.Object(
 );
 export type ItemAffinityRequestSchemaType = Static<typeof ItemAffinityRequestSchema>;
 
-export const ItemAffinityReasonSchema = Type.Union([Type.Literal("goes_with_cart")], {
+export const ItemAffinityReasonSchema = Type.Union([Type.Literal("often_ordered_with")], {
   description:
-    "Why the item is returned: `goes_with_cart` is often ordered together with an item in the cart. New reasons may " +
+    "Why the item is returned: `often_ordered_with` is what most people order with an item in the cart. New reasons may " +
     "be added: treat an unknown reason as a generic recommendation.",
 });
 export type ItemAffinityReasonSchemaType = Static<typeof ItemAffinityReasonSchema>;

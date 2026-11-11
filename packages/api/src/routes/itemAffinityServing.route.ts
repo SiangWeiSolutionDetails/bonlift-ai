@@ -15,10 +15,16 @@ export async function itemAffinityServingRoutes(app: FastifyInstance) {
       schema: {
         summary: "Items often ordered together",
         description:
-          "Returns items often ordered together with the item the customer is looking at (`itemId`), or with the whole " +
-          "cart when `itemId` is missing, best first. Use it for a \"goes well with\" section. Items in the cart or in " +
-          "`exclude` are never returned. Apply your own availability and dietary filters before display. Any failure " +
-          "on our side returns an empty list, so the order can always continue.",
+          "Returns what most people order with the item the customer is looking at (`itemId`), or with the whole " +
+          "cart when `itemId` is missing, best first. Use it for a \"what most people order with\" section. Items in " +
+          "the cart or in `exclude` are never returned. Apply your own availability and dietary filters before " +
+          "display. Any failure on our side returns an empty list, so the order can always continue.\n\n" +
+          "**Reasons**\n\n" +
+          "| Reason | When it is used |\n" +
+          "|---|---|\n" +
+          "| `often_ordered_with` | What most people order with `itemId`, or with an item in the cart when `itemId` " +
+          "is missing. |\n\n" +
+          "New reasons may be added: treat an unknown reason as a generic recommendation.",
         tags: ["Recommendations"],
         body: ItemAffinityRequestSchema,
         response: { 200: ItemAffinityResponseSchema, ...ServingErrorResponseSchemas },

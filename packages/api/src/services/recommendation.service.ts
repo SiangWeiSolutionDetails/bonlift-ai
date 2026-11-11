@@ -21,10 +21,10 @@ const MAX_BASED_ON = 3;
 // $5 = the API key's brand id, $6 = cart item ids, $7 = customer id or NULL, $8 = item ids allowed to be
 // returned, empty for any. The thresholds come from the brand's latest serving config.
 // Favourites and popular items are read for the requested daypart only, matched exactly: every run also stores an
-// all_day list. Favourites come first and must go with the cart (RE-4.3): some cart item has them as an affinity
-// partner. With an empty cart every favourite passes; with no published affinity run none does. Then items that go
-// with the cart (none for an empty cart or without an affinity run), then popular items. An item in several lists
-// keeps the earliest.
+// all_day list. Favourites that go with the cart come first (RE-4.3): some cart item has them as an affinity partner,
+// and with an empty cart every favourite counts. Then items that go with the cart (none for an empty cart or without
+// an affinity run), then the other favourites (all of them without a published affinity run), then popular items. An
+// item in several lists keeps the earliest.
 // Each row also carries the facts behind its reason, NULL where they do not apply: based_on (the cart items it pairs
 // with, for favourites and cart partners), top_pair_confidence, top_pair_lift and top_pair_sample (the first
 // based_on pair's confidence, lift and n_item_a, for cart partners), outlet_rank and outlet_list_size (the stored
@@ -137,7 +137,8 @@ cart_partners AS (
   CROSS JOIN known_daypart
 ),
 candidates AS (
-  SELECT 1 AS priority, 'customer' AS source, s.rank, s.external_item_id, i.based_on,
+  SELECT CASE WHEN cardinality($6::text[]) = 0 OR i.item_b IS NOT NULL THEN 1 ELSE 3 END AS priority,
+         'customer' AS source, s.rank, s.external_item_id, i.based_on,
          NULL::float8 AS top_pair_confidence, NULL::float8 AS top_pair_lift, NULL::int AS top_pair_sample,
          NULL::int AS outlet_rank, NULL::int AS outlet_list_size
   FROM customer_run cr
@@ -150,17 +151,13 @@ candidates AS (
     ON i.item_b = s.external_item_id
   WHERE s.n_orders >= sc.min_favourite_orders
     AND s.external_item_id <> ALL($3)
-    AND (
-      cardinality($6::text[]) = 0
-      OR i.item_b IS NOT NULL
-    )
   UNION ALL
   SELECT 2, 'cart', cp.rank, cp.external_item_id, cp.based_on,
          cp.top_pair_confidence, cp.top_pair_lift, cp.top_pair_sample,
          NULL, NULL
   FROM cart_partners cp
   UNION ALL
-  SELECT 3, 'outlet', l.rank, l.external_item_id, NULL,
+  SELECT 4, 'outlet', l.rank, l.external_item_id, NULL,
          NULL, NULL, NULL,
          l.rank, l.list_size
   FROM (

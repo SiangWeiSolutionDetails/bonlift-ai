@@ -330,7 +330,9 @@ export async function getRecommendations(
   assertValid(RecommendationRequestSchema, request);
   const customerId = toStoredCustomerId(customerIdSecret, request.customerId);
 
-  const response = await serveResponse(pool, log, brandId, request, customerId);
+  const served = await serveResponse(pool, log, brandId, request, customerId);
+  // Only identified customers can give feedback, so an anonymous response is neither identified nor recorded.
+  const response = customerId === null ? { ...served, recommendationId: null } : served;
   return { response, serve: toServe(brandId, request.outletId, customerId !== null, response) };
 }
 

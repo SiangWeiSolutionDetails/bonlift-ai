@@ -25,9 +25,10 @@ const FEEDBACK_DESCRIPTION =
   "Items you send no feedback for count as ignored by the customer. So request a `limit` equal to the number of " +
   "items you display, and pass the items available right now in `include`, so that every returned item is one the " +
   "customer could see.\n\n" +
-  "Send the same `customerId` as on the recommendations request. A rejected item is then not recommended to that " +
-  "customer again for a while, and accepting it later lifts that. Without it the feedback still counts, but nothing " +
-  "is remembered for the customer.\n\n" +
+  "Only identified customers can give feedback. Send the same `customerId` as on the recommendations request: " +
+  "without it the request is rejected with 400 and nothing is recorded. A response to an anonymous request has a " +
+  "null `recommendationId`, so there is nothing to send feedback on. A rejected item is not recommended to that " +
+  "customer again for a while, and accepting it later lifts that.\n\n" +
   "A valid request always gets 202 with no body, whether or not the feedback matched a recommendation. Retries are " +
   "safe: the same feedback is only counted once. Call this from your server, never from the customer's device, so " +
   "your API key is never exposed.";

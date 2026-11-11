@@ -34,17 +34,15 @@ export const RecommendationFeedbackBodySchema = Type.Object(
       examples: ["ITEM-3003"],
     }),
     type: RecommendationFeedbackTypeSchema,
-    // Same rules as the recommendation request's customerId: missing, null or blank is anonymous.
-    customerId: Type.Optional(
-      Type.Union([Type.String(), Type.Null()], {
-        description:
-          "The same `customerId` you sent with the recommendations request, in the same format: a mobile number " +
-          "with its country dial code and no \"+\", or an email address. Any other value is rejected with 400. " +
-          "Send it with both `accepted` and `rejected`: a rejected item is then not recommended to this customer " +
-          "again for a while, and accepting it later lifts that. Missing, null or blank means an anonymous customer.",
-        examples: ["6591234567"],
-      }),
-    ),
+    // Required: only identified customers give feedback. Blank is rejected by the service, after trimming.
+    customerId: Type.String({
+      description:
+        "Required. The same `customerId` you sent with the recommendations request, in the same format: a mobile " +
+        "number with its country dial code and no \"+\", or an email address. A missing, blank or malformed value " +
+        "is rejected with 400 and nothing is recorded: only identified customers can give feedback. A rejected " +
+        "item is not recommended to this customer again for a while, and accepting it later lifts that.",
+      examples: ["6591234567"],
+    }),
   },
   {
     description:

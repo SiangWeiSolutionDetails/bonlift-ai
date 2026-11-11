@@ -204,7 +204,7 @@ export const RecommendationResponseSchema = Type.Object(
     recommendationId: Type.Union([Type.String({ format: "uuid" }), Type.Null()], {
       description:
         "Identifies this response. Send it back with feedback on the items it returned. Null when no items are " +
-        "returned.",
+        "returned or no `customerId` was sent: only identified customers can give feedback.",
       examples: ["7b1f3c2a-5d4e-4f6a-8b9c-0d1e2f3a4b5c"],
     }),
     // The outlet popularity run.

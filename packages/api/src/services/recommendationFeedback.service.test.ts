@@ -7,6 +7,8 @@ import { recordRecommendationFeedback } from "./recommendationFeedback.service.j
 const BRAND_ID = "33333333-3333-3333-3333-333333333333";
 const RECOMMENDATION_ID = "66666666-6666-6666-6666-666666666666";
 const SECRET = "test-secret-0123456789abcdef0123456789abcdef";
+const CUSTOMER_ID = "6591234567";
+const CUSTOMER_HASH = hashCustomerId(SECRET, CUSTOMER_ID);
 
 const queryMock = vi.fn();
 const fakePool = { query: queryMock } as any;
@@ -23,14 +25,14 @@ describe("recordRecommendationFeedback", () => {
   it.each(["accepted", "rejected"])("records %s feedback for the key's brand", async (type) => {
     queryMock.mockResolvedValueOnce(pgResult([{ matched: 1 }]));
 
-    await feedback({ itemId: "A", type });
+    await feedback({ itemId: "A", type, customerId: CUSTOMER_ID });
 
     expect(queryMock).toHaveBeenCalledWith(expect.stringContaining("recommendation_serves"), [
       RECOMMENDATION_ID,
       BRAND_ID,
       "A",
       type,
-      null,
+      CUSTOMER_HASH,
     ]);
   });
 
@@ -49,28 +51,32 @@ describe("recordRecommendationFeedback", () => {
   });
 
   it.each([
+    ["missing", undefined],
     ["null", null],
     ["blank", "  "],
-  ])("treats a %s customer id as anonymous", async (_name, customerId) => {
-    queryMock.mockResolvedValueOnce(pgResult([{ matched: 0 }]));
-
-    await feedback({ itemId: "A", type: "accepted", customerId });
-
-    expect(queryMock.mock.calls[0][1][4]).toBeNull();
+  ])("throws ValidationError without querying when the customer id is %s", async (_name, customerId) => {
+    await expect(feedback({ itemId: "A", type: "accepted", customerId })).rejects.toThrow(ValidationError);
+    expect(queryMock).not.toHaveBeenCalled();
   });
 
   it("resolves the same way whether or not a serve matched", async () => {
     queryMock.mockResolvedValueOnce(pgResult([{ matched: 0 }]));
 
-    await expect(feedback({ itemId: "A", type: "accepted" })).resolves.toBeUndefined();
+    await expect(feedback({ itemId: "A", type: "accepted", customerId: CUSTOMER_ID })).resolves.toBeUndefined();
   });
 
   it("accepts and ignores fields it does not know", async () => {
     queryMock.mockResolvedValueOnce(pgResult([{ matched: 1 }]));
 
-    await feedback({ itemId: "A", type: "accepted", channel: "tqr", tableNo: "12" });
+    await feedback({ itemId: "A", type: "accepted", customerId: CUSTOMER_ID, channel: "tqr", tableNo: "12" });
 
-    expect(queryMock).toHaveBeenCalledWith(expect.any(String), [RECOMMENDATION_ID, BRAND_ID, "A", "accepted", null]);
+    expect(queryMock).toHaveBeenCalledWith(expect.any(String), [
+      RECOMMENDATION_ID,
+      BRAND_ID,
+      "A",
+      "accepted",
+      CUSTOMER_HASH,
+    ]);
   });
 
   it("throws ValidationError without querying for a malformed customer id, never echoing it", async () => {
@@ -95,6 +101,6 @@ describe("recordRecommendationFeedback", () => {
     const error = new Error("connection refused");
     queryMock.mockRejectedValueOnce(error);
 
-    await expect(feedback({ itemId: "A", type: "accepted" })).rejects.toBe(error);
+    await expect(feedback({ itemId: "A", type: "accepted", customerId: CUSTOMER_ID })).rejects.toBe(error);
   });
 });

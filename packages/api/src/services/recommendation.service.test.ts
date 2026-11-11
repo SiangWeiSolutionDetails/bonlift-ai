@@ -11,6 +11,7 @@ const CUSTOMER_RUN_ID = "44444444-4444-4444-4444-444444444444";
 const AFFINITY_RUN_ID = "55555555-5555-5555-5555-555555555555";
 const SECRET = "test-secret-0123456789abcdef0123456789abcdef";
 const REQUEST = { outletId: OUTLET_ID, cart: [] };
+const IDENTIFIED_REQUEST = { ...REQUEST, customerId: "6591234567" };
 const NO_RECOMMENDATIONS = {
   recommendationId: null,
   runId: null,
@@ -113,7 +114,7 @@ describe("getRecommendations", () => {
     const result = await recommend();
 
     expect(result).toStrictEqual({
-      recommendationId: expect.any(String),
+      recommendationId: null,
       runId: RUN_ID,
       customerRunId: null,
       affinityRunId: null,
@@ -449,14 +450,14 @@ describe("getRecommendations serve", () => {
   it("identifies a response with items and returns its serve, items in rank order", async () => {
     queryMock.mockResolvedValueOnce(pgResult([itemRow("A"), itemRow("B")]));
 
-    const { response, serve } = await serveFor({ ...REQUEST, daypart: "Lunch" });
+    const { response, serve } = await serveFor({ ...IDENTIFIED_REQUEST, daypart: "Lunch" });
 
     expect(response.recommendationId).toMatch(/^[0-9a-f-]{36}$/);
     expect(serve).toStrictEqual({
       id: response.recommendationId,
       brandId: BRAND_ID,
       outletId: OUTLET_ID,
-      isIdentified: false,
+      isIdentified: true,
       daypart: "Lunch",
       runId: RUN_ID,
       customerRunId: null,
@@ -469,10 +470,20 @@ describe("getRecommendations serve", () => {
   it("gives every response its own id", async () => {
     queryMock.mockResolvedValue(pgResult([itemRow("A")]));
 
-    const first = await recommend();
-    const second = await recommend();
+    const first = await recommend(IDENTIFIED_REQUEST);
+    const second = await recommend(IDENTIFIED_REQUEST);
 
     expect(first.recommendationId).not.toBe(second.recommendationId);
+  });
+
+  it("has no id and no serve for an anonymous customer, who cannot give feedback", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([itemRow("A")]));
+
+    const { response, serve } = await serveFor();
+
+    expect(response.items).toHaveLength(1);
+    expect(response.recommendationId).toBeNull();
+    expect(serve).toBeNull();
   });
 
   it("marks the serve identified when a valid customer id was sent, without keeping the id", async () => {
@@ -499,7 +510,7 @@ describe("getRecommendations serve", () => {
   ])("has no id and no serve when %s", async (_name, arrange) => {
     arrange();
 
-    const { response, serve } = await serveFor();
+    const { response, serve } = await serveFor(IDENTIFIED_REQUEST);
 
     expect(response.recommendationId).toBeNull();
     expect(serve).toBeNull();

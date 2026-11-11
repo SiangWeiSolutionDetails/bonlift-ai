@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { readCustomerIdSecret } from "../config/env.js";
+import { ValidationError } from "../errors.js";
 import { getTestPool } from "../testing/testDb.js";
 import { hashCustomerId } from "../utils/customerIdHash.js";
 import { createBrand } from "./brand.service.js";
@@ -77,10 +78,10 @@ describe("recordRecommendationFeedback (integration)", () => {
   it("records accepted and rejected items once each, a repeat changing nothing", async () => {
     const id = await storeServe();
 
-    await feedback(id, { itemId: "A", type: "accepted" });
-    await feedback(id, { itemId: "A", type: "accepted" });
-    await feedback(id, { itemId: "B", type: "rejected" });
-    await feedback(id, { itemId: "B", type: "rejected" });
+    await feedback(id, { itemId: "A", type: "accepted", customerId: CUSTOMER_ID });
+    await feedback(id, { itemId: "A", type: "accepted", customerId: CUSTOMER_ID });
+    await feedback(id, { itemId: "B", type: "rejected", customerId: CUSTOMER_ID });
+    await feedback(id, { itemId: "B", type: "rejected", customerId: CUSTOMER_ID });
 
     expect(await feedbackArrays(id)).toStrictEqual({ accepted: ["A"], rejected: ["B"] });
   });
@@ -106,7 +107,9 @@ describe("recordRecommendationFeedback (integration)", () => {
   });
 
   it("ignores an unknown recommendation id", async () => {
-    await expect(feedback(randomUUID(), { itemId: "A", type: "accepted" })).resolves.toBeUndefined();
+    await expect(
+      feedback(randomUUID(), { itemId: "A", type: "accepted", customerId: CUSTOMER_ID }),
+    ).resolves.toBeUndefined();
   });
 
   it("ignores feedback on a serve older than 2 hours", async () => {
@@ -122,21 +125,21 @@ describe("recordRecommendationFeedback (integration)", () => {
     expect(await rejectedItemIds()).toEqual([]);
   });
 
-  it("counts feedback on an anonymous serve without remembering a rejection, even with a customer id", async () => {
+  it("ignores feedback on an anonymous serve, even with a customer id", async () => {
     const id = await storeServe({ isIdentified: false });
 
     await feedback(id, { itemId: "A", type: "rejected", customerId: CUSTOMER_ID });
 
-    expect(await feedbackArrays(id)).toStrictEqual({ accepted: [], rejected: ["A"] });
+    expect(await feedbackArrays(id)).toStrictEqual({ accepted: [], rejected: [] });
     expect(await rejectedItemIds()).toEqual([]);
   });
 
-  it("counts a rejection on an identified serve sent without a customer id, remembering nothing", async () => {
+  it("rejects feedback without a customer id, recording nothing", async () => {
     const id = await storeServe();
 
-    await feedback(id, { itemId: "A", type: "rejected" });
+    await expect(feedback(id, { itemId: "A", type: "rejected" } as any)).rejects.toThrow(ValidationError);
 
-    expect(await feedbackArrays(id)).toStrictEqual({ accepted: [], rejected: ["A"] });
+    expect(await feedbackArrays(id)).toStrictEqual({ accepted: [], rejected: [] });
     const count = await getTestPool().query("SELECT count(*)::int AS n FROM customer_item_rejections");
     expect(count.rows[0].n).toBe(0);
   });

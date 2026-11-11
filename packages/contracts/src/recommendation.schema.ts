@@ -42,25 +42,23 @@ export const RecommendationRequestSchema = Type.Object(
         minLength: 1,
         description:
           "The time-of-day period of the order, such as breakfast or lunch, using the names configured for the brand. " +
-          "Both popular items and the customer's favourites are taken from this period; items that go with the cart " +
-          "do not depend on it. Missing means the whole day. A name the brand has not configured returns no items.",
+          "Both popular items and the customer's favourites are taken from this period. Missing means the whole " +
+          "day. A name the brand has not configured returns no items.",
         examples: ["lunch"],
       }),
     ),
-    // Removed from the results and used to find items that go with it.
+    // Removed from the results.
     cart: Type.Array(RecommendationCartItemSchema, {
       maxItems: 200,
       description:
-        "Items already in the cart. They are never recommended, and are used to find items that go with them. " +
-        "Send an empty array for an empty cart.",
+        "Items already in the cart. They are never recommended. Send an empty array for an empty cart.",
     }),
-    // Only removed from the results, e.g. items ordered in an earlier round or rejected.
+    // Removed from the results, e.g. items ordered in an earlier round or rejected.
     exclude: Type.Optional(
       Type.Array(Type.String({ minLength: 1 }), {
         maxItems: 200,
         description:
-          "Item ids that must not be recommended, such as items ordered in an earlier round or dismissed by the customer. " +
-          "Unlike cart items, they do not affect which items go with the cart.",
+          "Item ids that must not be recommended, such as items ordered in an earlier round or dismissed by the customer.",
         examples: [["ITEM-2002"]],
       }),
     ),
@@ -81,13 +79,14 @@ export const RecommendationRequestSchema = Type.Object(
         description: "Maximum number of items to return. Defaults to every recommended item.",
       }),
     ),
-    // Missing, null or blank is anonymous: no favourites.
+    // Missing, null or blank is anonymous: popular items only.
     customerId: Type.Optional(
       Type.Union([Type.String(), Type.Null()], {
         description:
           "The customer's mobile number with its country dial code and no \"+\" (e.g. 6591234567), or their email " +
           "address, exactly as in the order data you send us. Any other value is rejected with 400. Missing, null " +
-          "or blank means an anonymous customer, who gets no personal favourites.",
+          "or blank means an anonymous customer, who gets the items popular at the outlet. An identified customer " +
+          "with no favourites to show gets those too.",
         examples: ["6591234567"],
       }),
     ),
@@ -118,9 +117,8 @@ export const RecommendationReasonSchema = Type.Union(
   {
     description:
       "Why the item is recommended: `frequently_ordered` is one of this customer's favourites in the requested " +
-      "`daypart`, `goes_with_cart` is often ordered together with the items in the cart, `popular_at_outlet` is " +
-      "popular at this outlet in the requested `daypart`. New reasons may be added: treat an unknown reason as a " +
-      "generic recommendation.",
+      "`daypart`, `popular_at_outlet` is popular at this outlet in the requested `daypart`. `goes_with_cart` is " +
+      "not sent at the moment. New reasons may be added: treat an unknown reason as a generic recommendation.",
   },
 );
 export type RecommendationReasonSchemaType = Static<
@@ -135,9 +133,8 @@ export const RecommendationDetailSchema = Type.Object(
         minItems: 1,
         maxItems: 3,
         description:
-          "Up to 3 cart item ids this item is often ordered with, strongest first. Sent with `goes_with_cart` and " +
-          "`frequently_ordered` when the cart has such items. Use the first one for wording such as " +
-          "\"Goes with your Kopi\" (`goes_with_cart`) or \"Your usual with Kopi\" (`frequently_ordered`).",
+          "Up to 3 cart item ids this item is often ordered with, strongest first. Sent with `goes_with_cart` " +
+          "only, which is not sent at the moment. Use the first one for wording such as \"Goes with your Kopi\".",
         examples: [["ITEM-1001", "ITEM-2002"]],
       }),
     ),
@@ -147,7 +144,8 @@ export const RecommendationDetailSchema = Type.Object(
         maximum: 1,
         description:
           "Share of orders containing the first `basedOn` item that also contained this item, from 0 to 1 with " +
-          "two decimals. Sent with `goes_with_cart` only, and only when enough orders back it and it is at least 0.1. " +
+          "two decimals. Sent with `goes_with_cart` only (not sent at the moment), and only when enough orders back " +
+          "it and it is at least 0.1. " +
           "Example wording for 0.7: \"7 in 10 who order Kopi add this\".",
         examples: [0.7],
       }),
@@ -156,14 +154,15 @@ export const RecommendationDetailSchema = Type.Object(
       Type.Literal(true, {
         description:
           "This item is ordered with the first `basedOn` item notably more often than chance (the threshold is set per brand). Sent with `goes_with_cart` " +
-          "only, and only when true. Example wording: \"A classic pairing\".",
+          "only (not sent at the moment), and only when true. Example wording: \"A classic pairing\".",
       }),
     ),
     bestSeller: Type.Optional(
       Type.Literal(true, {
         description:
-          "One of the top sellers at this outlet in the served `daypart`. Sent with `popular_at_outlet` only, and " +
-          "only when true. Example wording: \"Best seller here\".",
+          "One of the top sellers at this outlet in the served `daypart`. Sent with `popular_at_outlet` only, only " +
+          "when true, and only when the outlet has enough ranked items for the claim to hold, so a missing flag does " +
+          "not mean the item is unpopular. Example wording: \"Best seller here\".",
       }),
     ),
   },
@@ -211,11 +210,11 @@ export const RecommendationResponseSchema = Type.Object(
         "Opaque id of the customer results served. Quote it when reporting an issue. Null for an anonymous customer " +
         "or when none exist.",
     }),
-    // The item affinity run behind goes_with_cart items.
+    // The item affinity run behind goes_with_cart items; always null while affinity is not served.
     affinityRunId: Type.Union([Type.String({ format: "uuid" }), Type.Null()], {
       description:
-        "Opaque id of the results used for items that go with the cart. Quote it when reporting an issue. " +
-        "Null when none exist.",
+        "Opaque id of the results used for items that go with the cart. Always null at the moment, as those items " +
+        "are not sent.",
     }),
     daypart: Type.Union([Type.String(), Type.Null()], {
       description:

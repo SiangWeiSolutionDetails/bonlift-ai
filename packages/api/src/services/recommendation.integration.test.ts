@@ -99,13 +99,17 @@ async function storeAffinity(
   }
 }
 
-async function recommendedItemIds(daypart?: string): Promise<string[]> {
+async function recommendedItemIds(
+  daypart?: string,
+  request: Partial<Parameters<typeof getRecommendations>[3]> = {},
+): Promise<string[]> {
   const response = await recommend(getTestPool(), silentLog, brandId, {
     outletId,
     cart: [],
     customerId: CUSTOMER_ID,
     daypart,
     limit: 10,
+    ...request,
   });
   return response.items.map((item) => item.itemId);
 }
@@ -156,21 +160,38 @@ beforeEach(async () => {
 });
 
 describe("getRecommendations (integration)", () => {
-  it("does not serve a breakfast favourite at dinner", async () => {
+  it("serves only the customer's favourites for the requested daypart", async () => {
+    expect(await recommendedItemIds("breakfast")).toEqual(["KAYA"]);
+  });
+
+  it("serves the customer's all_day favourites when no daypart is sent", async () => {
+    expect(await recommendedItemIds(undefined)).toEqual(["KAYA"]);
+  });
+
+  it("serves only popular items to an anonymous customer", async () => {
+    expect(await recommendedItemIds("breakfast", { customerId: undefined })).toEqual(["TOAST"]);
+    expect(await recommendedItemIds(undefined, { customerId: null })).toEqual(["TOAST", "RICE"]);
+  });
+
+  it("falls back to popular items when the customer has no favourites for the daypart", async () => {
     expect(await recommendedItemIds("dinner")).toEqual(["RICE"]);
   });
 
-  it("serves the requested daypart's favourites first", async () => {
-    expect(await recommendedItemIds("breakfast")).toEqual(["KAYA", "TOAST"]);
+  it("falls back to popular items for a customer with no scores", async () => {
+    expect(await recommendedItemIds("breakfast", { customerId: "6599999999" })).toEqual(["TOAST"]);
   });
 
-  it("serves the all_day lists when no daypart is sent", async () => {
-    expect(await recommendedItemIds(undefined)).toEqual(["KAYA", "TOAST", "RICE"]);
+  it.each([
+    ["in the cart", { cart: [{ itemId: "KAYA", qty: 1 }] }],
+    ["excluded", { exclude: ["KAYA"] }],
+    ["not included", { include: ["TOAST"] }],
+  ])("falls back to popular items when every favourite is %s", async (_name, request) => {
+    expect(await recommendedItemIds("breakfast", request)).toEqual(["TOAST"]);
   });
 
   describe("serving config", () => {
-    it("drops a favourite below a raised minimum of orders", async () => {
-      expect(await recommendedItemIds("breakfast")).toEqual(["KAYA", "TOAST"]);
+    it("falls back to popular items once a raised minimum of orders drops every favourite", async () => {
+      expect(await recommendedItemIds("breakfast")).toEqual(["KAYA"]);
 
       await createServingConfigVersion(getTestPool(), brandId, { minFavouriteOrders: 4 }, "test");
 
@@ -268,179 +289,22 @@ describe("getRecommendations (integration)", () => {
     });
   });
 
-  it("serves favourites ahead of popular items for a non-empty cart when no affinity results exist", async () => {
-    const items = await servedItemsById({ cart: cartOf("BURGER"), customerId: CUSTOMER_ID, daypart: "breakfast" });
-
-    expect(Object.values(items)).toStrictEqual([
-      { itemId: "KAYA", rank: 1, reason: "frequently_ordered" },
-      { itemId: "TOAST", rank: 2, reason: "popular_at_outlet" },
+  it("ignores item affinity results", async () => {
+    const affinityRunId = await publishRun("item_affinity");
+    await storeAffinity(affinityRunId, [
+      ["BURGER", "FRIES", 0.6],
+      ["BURGER", "KAYA", 0.9],
     ]);
-  });
 
-  describe("with items that go with the cart", () => {
-    let affinityRunId: string;
-
-    beforeEach(async () => {
-      affinityRunId = await publishRun("item_affinity");
-      await storeAffinity(affinityRunId, [
-        ["BURGER", "FRIES", 0.6],
-        ["BURGER", "COLA", 0.5],
-        ["BURGER", "KAYA", 0.9],
-        ["RICE", "COLA", 0.3],
-        ["RICE", "BURGER", 0.4],
-      ]);
+    const anonymous = await recommend(getTestPool(), silentLog, brandId, {
+      outletId,
+      cart: cartOf("BURGER"),
+      daypart: "dinner",
     });
+    const customer = await servedItemsById({ cart: cartOf("BURGER"), customerId: CUSTOMER_ID, daypart: "breakfast" });
 
-    function recommendWithCart(cart: string[], daypart: string, include?: string[]) {
-      return recommend(getTestPool(), silentLog, brandId, {
-        outletId,
-        cart: cart.map((itemId) => ({ itemId, qty: 1 })),
-        daypart,
-        include,
-        limit: 10,
-      });
-    }
-
-    it("ranks partners by their confidence summed over the whole cart, never returning cart items", async () => {
-      const response = await recommendWithCart(["BURGER", "RICE"], "dinner");
-
-      expect(response.affinityRunId).toBe(affinityRunId);
-      expect(response.items).toEqual([
-        { itemId: "KAYA", rank: 1, reason: "goes_with_cart", detail: { basedOn: ["BURGER"] } },
-        { itemId: "COLA", rank: 2, reason: "goes_with_cart", detail: { basedOn: ["BURGER", "RICE"] } },
-        { itemId: "FRIES", rank: 3, reason: "goes_with_cart", detail: { basedOn: ["BURGER"] } },
-      ]);
-    });
-
-    it("keeps a favourite that goes with the cart ahead of the other partners", async () => {
-      const response = await recommend(getTestPool(), silentLog, brandId, {
-        outletId,
-        cart: [{ itemId: "BURGER", qty: 1 }],
-        customerId: CUSTOMER_ID,
-        daypart: "breakfast",
-        limit: 10,
-      });
-
-      expect(response.items).toEqual([
-        { itemId: "KAYA", rank: 1, reason: "frequently_ordered", detail: { basedOn: ["BURGER"] } },
-        { itemId: "FRIES", rank: 2, reason: "goes_with_cart", detail: { basedOn: ["BURGER"] } },
-        { itemId: "COLA", rank: 3, reason: "goes_with_cart", detail: { basedOn: ["BURGER"] } },
-        { itemId: "TOAST", rank: 4, reason: "popular_at_outlet" },
-      ]);
-    });
-
-    it("lists the cart items a partner goes with, strongest pair first", async () => {
-      await storeAffinity(affinityRunId, [
-        ["TEA", "COLA", 0.8],
-        ["APPLE", "FRIES", 0.6, 1.5],
-        ["TEA", "FRIES", 0.6, 3],
-      ]);
-
-      const items = await servedItemsById({ cart: cartOf("BURGER", "TEA", "APPLE"), daypart: "dinner" });
-
-      expect(items.COLA.detail).toStrictEqual({ basedOn: ["TEA", "BURGER"] });
-      expect(items.FRIES.detail).toStrictEqual({ basedOn: ["TEA", "BURGER", "APPLE"] });
-    });
-
-    it("describes a partner by its top pair's share and lift once the pair has enough orders", async () => {
-      await storeAffinity(affinityRunId, [
-        ["TEA", "PIE", 0.666, 2, 50],
-        ["TEA", "BUN", 0.7, 1.5, 60],
-        ["BURGER", "BUN", 0.3, 4, 100],
-        ["TEA", "CAKE", 0.9, 5, 49],
-      ]);
-
-      const items = await servedItemsById({ cart: cartOf("TEA", "BURGER"), daypart: "dinner" });
-
-      expect(items.PIE).toStrictEqual({
-        itemId: "PIE",
-        rank: expect.any(Number),
-        reason: "goes_with_cart",
-        detail: { basedOn: ["TEA"], pairShare: 0.67, strongPairing: true },
-      });
-      expect(items.BUN.detail).toStrictEqual({ basedOn: ["TEA", "BURGER"], pairShare: 0.7 });
-      expect(items.CAKE.detail).toStrictEqual({ basedOn: ["TEA"] });
-    });
-
-    it("rounds the share on the stored value and omits a share below 1 in 10", async () => {
-      await storeAffinity(affinityRunId, [
-        ["TEA", "JAM", 0.285, 1.5, 200],
-        ["TEA", "MUG", 0.04, 2.5, 400],
-      ]);
-
-      const items = await servedItemsById({ cart: cartOf("TEA"), daypart: "dinner" });
-
-      expect(items.JAM.detail).toStrictEqual({ basedOn: ["TEA"], pairShare: 0.29 });
-      expect(items.MUG.detail).toStrictEqual({ basedOn: ["TEA"], strongPairing: true });
-    });
-
-    it("lists at most 3 cart items a partner goes with", async () => {
-      await storeAffinity(affinityRunId, [
-        ["TEA", "COLA", 0.8],
-        ["APPLE", "COLA", 0.7],
-        ["PEAR", "COLA", 0.2],
-      ]);
-
-      const items = await servedItemsById({ cart: cartOf("BURGER", "TEA", "APPLE", "PEAR"), daypart: "dinner" });
-
-      expect(items.COLA.detail).toStrictEqual({ basedOn: ["TEA", "APPLE", "BURGER"] });
-    });
-
-    it("ranks a favourite that does not go with the cart after the partners, ahead of popular items", async () => {
-      const items = await servedItemsById({ cart: cartOf("RICE"), customerId: CUSTOMER_ID, daypart: "breakfast" });
-
-      expect(Object.values(items).map(({ itemId, reason }) => [itemId, reason])).toStrictEqual([
-        ["BURGER", "goes_with_cart"],
-        ["COLA", "goes_with_cart"],
-        ["KAYA", "frequently_ordered"],
-        ["TOAST", "popular_at_outlet"],
-      ]);
-      expect(items.KAYA.detail).toBeUndefined();
-    });
-
-    it("lists only the cart items a favourite goes with", async () => {
-      const items = await servedItemsById({
-        cart: cartOf("BURGER", "RICE"),
-        customerId: CUSTOMER_ID,
-        daypart: "breakfast",
-      });
-
-      expect(items.KAYA.detail).toStrictEqual({ basedOn: ["BURGER"] });
-    });
-
-    it("gives a favourite no detail when the cart is empty", async () => {
-      const items = await servedItemsById({ customerId: CUSTOMER_ID, daypart: "breakfast" });
-
-      expect(items.KAYA).toStrictEqual({ itemId: "KAYA", rank: 1, reason: "frequently_ordered" });
-    });
-
-    it("keeps a favourite that is also a strong partner as a favourite, without a share", async () => {
-      await storeAffinity(affinityRunId, [["TEA", "KAYA", 0.8, 3, 100]]);
-
-      const items = await servedItemsById({
-        cart: cartOf("TEA"),
-        customerId: CUSTOMER_ID,
-        daypart: "breakfast",
-      });
-
-      expect(items.KAYA).toStrictEqual({
-        itemId: "KAYA",
-        rank: 1,
-        reason: "frequently_ordered",
-        detail: { basedOn: ["TEA"] },
-      });
-    });
-
-    it("only returns included partners", async () => {
-      const response = await recommendWithCart(["BURGER"], "dinner", ["FRIES", "RICE"]);
-
-      expect(response.items.map((item) => item.itemId)).toEqual(["FRIES", "RICE"]);
-    });
-
-    it("returns no partners for a daypart the brand has not configured", async () => {
-      const response = await recommendWithCart(["BURGER"], "supper");
-
-      expect(response.items).toEqual([]);
-    });
+    expect(anonymous.affinityRunId).toBeNull();
+    expect(anonymous.items).toStrictEqual([{ itemId: "RICE", rank: 1, reason: "popular_at_outlet" }]);
+    expect(Object.values(customer)).toStrictEqual([{ itemId: "KAYA", rank: 1, reason: "frequently_ordered" }]);
   });
 });

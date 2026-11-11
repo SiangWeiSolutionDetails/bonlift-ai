@@ -9,7 +9,7 @@ export const ServingConfigVersionRecordSchema = Type.Object(
     createdAt: Type.String({ format: "date-time" }),
     minFavouriteOrders: Type.Integer({ minimum: 1 }),
     minPairSample: Type.Integer({ minimum: 1 }),
-    strongPairingLift: Type.Number({ minimum: 1 }),
+    strongPairingLift: Type.Number({ minimum: 1, maximum: 9999.99 }),
     bestSellerMaxRank: Type.Integer({ minimum: 1 }),
     bestSellerMinListSize: Type.Integer({ minimum: 1 }),
   },
@@ -31,7 +31,7 @@ export const CreateServingConfigVersionBodySchema = Type.Object(
   {
     minFavouriteOrders: Type.Optional(Type.Integer({ minimum: 1 })),
     minPairSample: Type.Optional(Type.Integer({ minimum: 1 })),
-    strongPairingLift: Type.Optional(Type.Number({ minimum: 1 })),
+    strongPairingLift: Type.Optional(Type.Number({ minimum: 1, maximum: 9999.99 })),
     bestSellerMaxRank: Type.Optional(Type.Integer({ minimum: 1 })),
     bestSellerMinListSize: Type.Optional(Type.Integer({ minimum: 1 })),
   },

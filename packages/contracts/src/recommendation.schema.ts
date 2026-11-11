@@ -155,7 +155,7 @@ export const RecommendationDetailSchema = Type.Object(
     strongPairing: Type.Optional(
       Type.Literal(true, {
         description:
-          "This item is ordered with the first `basedOn` item at least twice as often as chance. Sent with `goes_with_cart` " +
+          "This item is ordered with the first `basedOn` item notably more often than chance (the threshold is set per brand). Sent with `goes_with_cart` " +
           "only, and only when true. Example wording: \"A classic pairing\".",
       }),
     ),

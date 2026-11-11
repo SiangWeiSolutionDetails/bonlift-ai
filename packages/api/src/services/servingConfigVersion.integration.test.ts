@@ -1,3 +1,4 @@
+import { Pool } from "pg";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ConflictError, NotFoundError, ValidationError } from "../errors.js";
 import { getTestPool } from "../testing/testDb.js";
@@ -12,6 +13,27 @@ import { createTenant } from "./tenant.service.js";
 const UNKNOWN_BRAND_ID = "00000000-0000-0000-0000-000000000000";
 
 let brandId: string;
+
+async function waitForLockWait(pool: Pool): Promise<void> {
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    const result = await pool.query(
+      `
+      SELECT 1
+      FROM pg_stat_activity
+      WHERE datname = current_database()
+        AND pid <> pg_backend_pid()
+        AND wait_event_type = 'Lock'
+        AND query LIKE '%serving_config_versions%';
+      `,
+    );
+    if (result.rows.length > 0) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  throw new Error("The losing change never blocked on the version lock.");
+}
 
 beforeEach(async () => {
   const pool = getTestPool();
@@ -66,23 +88,37 @@ describe("servingConfigVersion.service (integration)", () => {
     });
   });
 
-  it("rejects every concurrent change that loses the version race with ConflictError", async () => {
+  it("rejects a change that loses the version race with ConflictError", async () => {
     const pool = getTestPool();
+    const holder = await pool.connect();
+    try {
+      await holder.query("BEGIN");
+      await holder.query(
+        `
+        INSERT INTO serving_config_versions (
+          brand_id, version, created_by, min_favourite_orders, min_pair_sample,
+          strong_pairing_lift, best_seller_max_rank, best_seller_min_list_size
+        )
+        SELECT brand_id, 2, 'holder', min_favourite_orders, min_pair_sample,
+          strong_pairing_lift, best_seller_max_rank, best_seller_min_list_size
+        FROM serving_config_versions
+        WHERE brand_id = $1 AND version = 1;
+        `,
+        [brandId],
+      );
 
-    const results = await Promise.allSettled([
-      createServingConfigVersion(pool, brandId, { minPairSample: 10 }, "api"),
-      createServingConfigVersion(pool, brandId, { minPairSample: 20 }, "api"),
-      createServingConfigVersion(pool, brandId, { minPairSample: 30 }, "api"),
-    ]);
+      const outcome = createServingConfigVersion(pool, brandId, { minPairSample: 20 }, "api").then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+      await waitForLockWait(pool);
+      await holder.query("COMMIT");
 
-    const fulfilled = results.filter((r) => r.status === "fulfilled");
-    const rejected = results.filter((r) => r.status === "rejected");
-    expect(fulfilled.length).toBeGreaterThanOrEqual(1);
-    for (const r of rejected) {
-      expect(r.reason).toBeInstanceOf(ConflictError);
+      expect(await outcome).toBeInstanceOf(ConflictError);
+    } finally {
+      await holder.query("ROLLBACK").catch(() => undefined);
+      holder.release();
     }
-    const versions = await getServingConfigVersions(pool, brandId);
-    expect(versions).toHaveLength(1 + fulfilled.length);
   });
 
   it("returns 404 for an unknown or deleted brand", async () => {
@@ -96,6 +132,12 @@ describe("servingConfigVersion.service (integration)", () => {
         createServingConfigVersion(pool, id, { minPairSample: 20 }, "api"),
       ).rejects.toThrow(NotFoundError);
     }
+  });
+
+  it("rejects a strong pairing lift above the column range", async () => {
+    await expect(
+      createServingConfigVersion(getTestPool(), brandId, { strongPairingLift: 10000 }, "api"),
+    ).rejects.toThrow(ValidationError);
   });
 
   it("rejects an out-of-range value", async () => {

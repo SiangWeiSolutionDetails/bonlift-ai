@@ -178,6 +178,8 @@ describe("getRecommendations (integration)", () => {
     });
 
     it("marks best sellers from the latest config version", async () => {
+      expect((await servedItemsById({ daypart: "dinner" })).RICE.detail).toBeUndefined();
+
       await createServingConfigVersion(
         getTestPool(),
         brandId,
@@ -201,7 +203,13 @@ describe("getRecommendations (integration)", () => {
 
       const response = await recommend(pool, silentLog, bareBrandId, { outletId: bareOutlet.id, cart: [] });
 
-      expect(response.items).toEqual([]);
+      expect(response).toStrictEqual({
+        runId: null,
+        customerRunId: null,
+        affinityRunId: null,
+        daypart: null,
+        items: [],
+      });
     });
   });
 

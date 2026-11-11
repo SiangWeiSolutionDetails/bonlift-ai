@@ -15,6 +15,7 @@ import { outletItemScoresResultRoutes } from "./routes/outletItemScoresResult.ro
 import { customerItemScoresCalculationConfigVersionRoutes } from "./routes/customerItemScoresCalculationConfigVersion.route.js";
 import { customerItemScoresResultRoutes } from "./routes/customerItemScoresResult.route.js";
 import { itemAffinityCalculationConfigVersionRoutes } from "./routes/itemAffinityCalculationConfigVersion.route.js";
+import { servingConfigVersionRoutes } from "./routes/servingConfigVersion.route.js";
 import { itemAffinityResultRoutes } from "./routes/itemAffinityResult.route.js";
 import { recommendationRoutes } from "./routes/recommendation.route.js";
 import { itemAffinityServingRoutes } from "./routes/itemAffinityServing.route.js";
@@ -84,6 +85,7 @@ export function buildApp(): FastifyInstance {
     admin.register(customerItemScoresResultRoutes);
     admin.register(itemAffinityCalculationConfigVersionRoutes);
     admin.register(itemAffinityResultRoutes);
+    admin.register(servingConfigVersionRoutes);
     admin.register(brandUsageRoutes);
     admin.register(brandChannelRoutes);
     admin.register(brandApiKeyRoutes);

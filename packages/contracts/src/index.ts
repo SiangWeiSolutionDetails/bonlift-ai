@@ -17,6 +17,7 @@ export * from "./customerItemScoresCalculationConfigVersion.schema.js";
 export * from "./customerItemScoresResult.schema.js";
 export * from "./itemAffinityCalculation.schema.js";
 export * from "./itemAffinityCalculationConfigVersion.schema.js";
+export * from "./servingConfigVersion.schema.js";
 export * from "./itemAffinityResult.schema.js";
 export * from "./recommendation.schema.js";
 export * from "./itemAffinityServing.schema.js";

@@ -124,7 +124,7 @@ const recommendationFeedbackRoute = createRoute({
   validateSearch: validateRecommendationFeedbackSearch,
   staticData: {
     titleKey: "nav.recommendationFeedback",
-    groupKey: "nav.integration",
+    groupKey: "nav.reports",
     icon: <ThumbsUpIcon />,
   },
 });

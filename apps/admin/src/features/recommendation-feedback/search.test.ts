@@ -14,7 +14,6 @@ describe("validateRecommendationFeedbackSearch", () => {
         daypart: "lunch",
         reason: "frequently_ordered",
         channelId: outletId,
-        runId: outletId,
       }),
     ).toEqual({
       brandId: "brand",
@@ -24,7 +23,6 @@ describe("validateRecommendationFeedbackSearch", () => {
       daypart: "lunch",
       reason: "frequently_ordered",
       channelId: outletId,
-      runId: outletId,
     });
   });
 
@@ -35,14 +33,12 @@ describe("validateRecommendationFeedbackSearch", () => {
         daypart: "x".repeat(65),
         reason: "goes_with_cart",
         channelId: 42,
-        runId: "not-a-uuid",
       }),
     ).toMatchObject({
       outletId: undefined,
       daypart: undefined,
       reason: undefined,
       channelId: undefined,
-      runId: undefined,
     });
   });
 });

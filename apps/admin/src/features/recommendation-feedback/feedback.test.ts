@@ -4,8 +4,6 @@ import {
   isKnownReason,
   isRangeTooLong,
   outcomeBadgeVariant,
-  runOptions,
-  shortRunId,
   sortByRank,
   topOutcome,
 } from "./feedback";
@@ -82,37 +80,5 @@ describe("daypartOptions", () => {
 
   it("lists each daypart once", () => {
     expect(daypartOptions(["lunch", "dinner"], "lunch")).toEqual(["lunch", "dinner"]);
-  });
-});
-
-const run = (key: string) => ({
-  key,
-  label: key,
-  jobType: "outlet_item_scores" as const,
-  runAt: "2026-11-01T10:00:00.000Z",
-  runAvailable: true,
-  accepted: 1,
-  rejected: 0,
-});
-
-describe("shortRunId", () => {
-  it("keeps the first 8 characters of the run id", () => {
-    expect(shortRunId("0b5f2d8e-6f1a-4c3b-9a7e-2d4c6b8a0f13")).toBe("0b5f2d8e");
-  });
-});
-
-describe("runOptions", () => {
-  const listed = "0b5f2d8e-6f1a-4c3b-9a7e-2d4c6b8a0f13";
-  const selected = "9c1e4a7b-2d3f-4e5a-8b6c-7d8e9f0a1b2c";
-
-  it("lists the report's runs with their details", () => {
-    expect(runOptions([run(listed)], listed)).toEqual([{ runId: listed, run: run(listed) }]);
-  });
-
-  it("keeps the selected run without details when the report no longer lists it", () => {
-    expect(runOptions([run(listed)], selected)).toEqual([
-      { runId: listed, run: run(listed) },
-      { runId: selected },
-    ]);
   });
 });

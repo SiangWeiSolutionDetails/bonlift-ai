@@ -11,14 +11,9 @@ import { RecommendationServesLog } from "./recommendation-serves-log";
 type RecommendationFeedbackReportProps = {
   brandId: string;
   filters: FeedbackFilters;
-  onSelectRun: (runId: string) => void;
 };
 
-export function RecommendationFeedbackReport({
-  brandId,
-  filters,
-  onSelectRun,
-}: RecommendationFeedbackReportProps) {
+export function RecommendationFeedbackReport({ brandId, filters }: RecommendationFeedbackReportProps) {
   const { t } = useTranslation("recommendationFeedback");
   const { t: tCommon } = useTranslation();
   const { data: report, error, isPending } = useRecommendationFeedbackReport(brandId, filters);
@@ -42,7 +37,7 @@ export function RecommendationFeedbackReport({
         <FeedbackOutcomesChart days={report.days} />
       </div>
 
-      <FeedbackBreakdownTable report={report} onSelectRun={onSelectRun} />
+      <FeedbackBreakdownTable report={report} />
 
       <RecommendationServesLog brandId={brandId} filters={filters} />
     </div>

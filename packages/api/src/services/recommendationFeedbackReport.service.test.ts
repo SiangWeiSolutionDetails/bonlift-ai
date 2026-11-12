@@ -10,8 +10,6 @@ const BRAND_ID = "11111111-1111-1111-1111-111111111111";
 const OUTLET_ID = "22222222-2222-2222-2222-222222222222";
 const CHANNEL_ID = "33333333-3333-3333-3333-333333333333";
 const SERVE_ID = "44444444-4444-4444-4444-444444444444";
-const RUN_ID = "66666666-6666-6666-6666-666666666666";
-const MISSING_RUN_ID = "77777777-7777-7777-7777-777777777777";
 const QUERY = { from: "2026-11-01", to: "2026-11-03", tz: "Asia/Singapore" };
 
 const queryMock = vi.fn();
@@ -22,9 +20,6 @@ function groupedRow(groupingSet: number, key: string | null, overrides: Record<s
     grouping_set: groupingSet,
     key,
     outlet_name: null,
-    run_job_type: null,
-    run_at: null,
-    run_available: false,
     accepted: 3,
     rejected: 1,
     ...overrides,
@@ -33,18 +28,12 @@ function groupedRow(groupingSet: number, key: string | null, overrides: Record<s
 
 function reportRows() {
   return [
-    groupedRow(0b011111, "2026-11-02"),
-    groupedRow(0b101111, "ITEM-1"),
-    groupedRow(0b110111, OUTLET_ID, { outlet_name: "Boat Quay" }),
-    groupedRow(0b111011, "popular_at_outlet"),
-    groupedRow(0b111101, "lunch"),
-    groupedRow(0b111110, RUN_ID, {
-      run_job_type: "outlet_item_scores",
-      run_at: new Date("2026-10-31T18:00:00.000Z"),
-      run_available: true,
-    }),
-    groupedRow(0b111110, MISSING_RUN_ID, { run_job_type: "customer_item_scores" }),
-    groupedRow(0b111111, null),
+    groupedRow(0b01111, "2026-11-02"),
+    groupedRow(0b10111, "ITEM-1"),
+    groupedRow(0b11011, OUTLET_ID, { outlet_name: "Boat Quay" }),
+    groupedRow(0b11101, "popular_at_outlet"),
+    groupedRow(0b11110, "lunch"),
+    groupedRow(0b11111, null),
   ];
 }
 
@@ -106,13 +95,6 @@ describe("getRecommendationFeedbackReport", () => {
       ).rejects.toThrow(ValidationError);
       expect(queryMock).not.toHaveBeenCalled();
     });
-
-    it("throws ValidationError for an invalid run filter", async () => {
-      await expect(
-        getRecommendationFeedbackReport(fakePool, BRAND_ID, { ...QUERY, runId: "nope" }),
-      ).rejects.toThrow(ValidationError);
-      expect(queryMock).not.toHaveBeenCalled();
-    });
   });
 
   it("passes the brand, range, time zone and NULL for every missing filter", async () => {
@@ -129,11 +111,10 @@ describe("getRecommendationFeedbackReport", () => {
       null,
       null,
       null,
-      null,
     ]);
   });
 
-  it("passes the outlet, daypart, reason, channel and run filters", async () => {
+  it("passes the outlet, daypart, reason and channel filters", async () => {
     queryMock.mockResolvedValueOnce(pgResult(reportRows()));
 
     await getRecommendationFeedbackReport(fakePool, BRAND_ID, {
@@ -142,16 +123,9 @@ describe("getRecommendationFeedbackReport", () => {
       daypart: "lunch",
       reason: "popular_at_outlet",
       channelId: CHANNEL_ID,
-      runId: RUN_ID,
     });
 
-    expect(queryMock.mock.calls[0][1].slice(4)).toEqual([
-      OUTLET_ID,
-      "lunch",
-      "popular_at_outlet",
-      CHANNEL_ID,
-      RUN_ID,
-    ]);
+    expect(queryMock.mock.calls[0][1].slice(4)).toEqual([OUTLET_ID, "lunch", "popular_at_outlet", CHANNEL_ID]);
   });
 
   it("aggregates once with grouping sets, scoped to the brand", async () => {
@@ -160,7 +134,7 @@ describe("getRecommendationFeedbackReport", () => {
     await getRecommendationFeedbackReport(fakePool, BRAND_ID, QUERY);
 
     const sql: string = queryMock.mock.calls[0][0];
-    expect(sql).toContain("GROUPING SETS ((), (day), (item_id), (outlet_id), (reason), (daypart), (run_source_id))");
+    expect(sql).toContain("GROUPING SETS ((), (day), (item_id), (outlet_id), (reason), (daypart))");
     expect(sql).toContain("s.brand_id = bounds.brand_id");
   });
 
@@ -182,24 +156,6 @@ describe("getRecommendationFeedbackReport", () => {
       byOutlet: [{ key: OUTLET_ID, label: "Boat Quay", ...counts }],
       byReason: [{ key: "popular_at_outlet", label: "popular_at_outlet", ...counts }],
       byDaypart: [{ key: "lunch", label: "lunch", ...counts }],
-      byRun: [
-        {
-          key: RUN_ID,
-          label: RUN_ID,
-          jobType: "outlet_item_scores",
-          runAt: "2026-10-31T18:00:00.000Z",
-          runAvailable: true,
-          ...counts,
-        },
-        {
-          key: MISSING_RUN_ID,
-          label: MISSING_RUN_ID,
-          jobType: "customer_item_scores",
-          runAt: null,
-          runAvailable: false,
-          ...counts,
-        },
-      ],
     });
   });
 
@@ -249,24 +205,8 @@ describe("listRecommendationServes", () => {
       null,
       null,
       null,
-      null,
       51,
     ]);
-  });
-
-  it("passes the run filter", async () => {
-    queryMock.mockResolvedValueOnce(pgResult([serveRow()]));
-
-    await listRecommendationServes(fakePool, BRAND_ID, { ...QUERY, runId: RUN_ID });
-
-    expect(queryMock.mock.calls[0][1][8]).toBe(RUN_ID);
-  });
-
-  it("throws ValidationError for an invalid run filter", async () => {
-    await expect(listRecommendationServes(fakePool, BRAND_ID, { ...QUERY, runId: "nope" })).rejects.toThrow(
-      ValidationError,
-    );
-    expect(queryMock).not.toHaveBeenCalled();
   });
 
   it("passes the decoded cursor", async () => {
@@ -275,7 +215,7 @@ describe("listRecommendationServes", () => {
 
     await listRecommendationServes(fakePool, BRAND_ID, { ...QUERY, limit: 10, before });
 
-    expect(queryMock.mock.calls[0][1].slice(9)).toEqual(["2026-11-02T03:04:05.123456Z", SERVE_ID, 11]);
+    expect(queryMock.mock.calls[0][1].slice(8)).toEqual(["2026-11-02T03:04:05.123456Z", SERVE_ID, 11]);
   });
 
   it("maps a serve and returns no cursor when nothing is left", async () => {

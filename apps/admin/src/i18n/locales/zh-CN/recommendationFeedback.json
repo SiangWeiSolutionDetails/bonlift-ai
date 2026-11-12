@@ -13,7 +13,6 @@
     "daypart": "时段",
     "reason": "推荐原因",
     "channel": "渠道",
-    "run": "运行",
     "all": "全部",
     "rangeTooLong": "所选范围不能超过 {{max}} 天。"
   },
@@ -41,17 +40,8 @@
     "byOutlet": "按门店",
     "byReason": "按原因",
     "byDaypart": "按时段",
-    "byRun": "按运行",
     "name": "名称",
-    "run": "运行",
     "empty": "此期间没有反馈。"
-  },
-  "runs": {
-    "jobTypes": {
-      "outlet_item_scores": "门店评分",
-      "customer_item_scores": "顾客评分"
-    },
-    "unavailable": "运行已不可用"
   },
   "serves": {
     "title": "最近的推荐",

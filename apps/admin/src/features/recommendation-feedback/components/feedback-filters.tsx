@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Label } from "@/components/ui/label";
 import {
@@ -10,9 +9,8 @@ import {
 } from "@/components/ui/select";
 import { useBrandChannels } from "@/features/brand-channels/queries";
 import { useOutlets } from "@/features/outlets/queries";
-import { FEEDBACK_REASONS, type RunOption } from "../feedback";
+import { FEEDBACK_REASONS } from "../feedback";
 import { useFeedbackLabels } from "../use-feedback-labels";
-import { RunName } from "./run-name";
 
 // Radix Select has no empty item value, so "All" needs a value no outlet id, daypart or reason can take.
 const ALL = "__all__";
@@ -22,10 +20,9 @@ export type FeedbackFilterValues = {
   daypart?: string;
   reason?: string;
   channelId?: string;
-  runId?: string;
 };
 
-type FilterOption = { value: string; label: ReactNode };
+type FilterOption = { value: string; label: string };
 
 type FilterSelectProps = {
   id: string;
@@ -33,17 +30,9 @@ type FilterSelectProps = {
   value: string | undefined;
   options: FilterOption[];
   onChange: (value: string | undefined) => void;
-  triggerClassName?: string;
 };
 
-function FilterSelect({
-  id,
-  label,
-  value,
-  options,
-  onChange,
-  triggerClassName = "w-44",
-}: FilterSelectProps) {
+function FilterSelect({ id, label, value, options, onChange }: FilterSelectProps) {
   const { t } = useTranslation("recommendationFeedback");
 
   return (
@@ -55,7 +44,7 @@ function FilterSelect({
         value={value ?? ALL}
         onValueChange={(next) => onChange(next === ALL ? undefined : next)}
       >
-        <SelectTrigger id={id} className={triggerClassName}>
+        <SelectTrigger id={id} className="w-44">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -75,11 +64,10 @@ type FeedbackFiltersProps = {
   brandId: string;
   values: FeedbackFilterValues;
   dayparts: string[];
-  runs: RunOption[];
   onChange: (next: FeedbackFilterValues) => void;
 };
 
-export function FeedbackFilters({ brandId, values, dayparts, runs, onChange }: FeedbackFiltersProps) {
+export function FeedbackFilters({ brandId, values, dayparts, onChange }: FeedbackFiltersProps) {
   const { t } = useTranslation("recommendationFeedback");
   const { reasonLabel, daypartLabel } = useFeedbackLabels();
   // Both share their cache entries with the outlets page and the brand's Channels tab
@@ -118,17 +106,6 @@ export function FeedbackFilters({ brandId, values, dayparts, runs, onChange }: F
           label: `${channel.name} (${channel.code})`,
         }))}
         onChange={(channelId) => onChange({ channelId })}
-      />
-      <FilterSelect
-        id="feedback-run"
-        label={t("picker.run")}
-        value={values.runId}
-        options={runs.map(({ runId, run }) => ({
-          value: runId,
-          label: <RunName runId={runId} run={run} />,
-        }))}
-        onChange={(runId) => onChange({ runId })}
-        triggerClassName="w-80"
       />
     </div>
   );

@@ -1,7 +1,7 @@
 import { differenceInCalendarDays } from "date-fns";
 // Relative, not "@/": the root vitest config has no alias, and this file is unit-tested.
 import { parseIsoDate } from "../../lib/date-format";
-import type { FeedbackDay, FeedbackRunRow, ServedItem, ServedItemOutcome } from "./type";
+import type { FeedbackDay, ServedItem, ServedItemOutcome } from "./type";
 
 export const FEEDBACK_REASONS = ["frequently_ordered", "popular_at_outlet"] as const;
 export type FeedbackReason = (typeof FEEDBACK_REASONS)[number];
@@ -44,20 +44,4 @@ export function daypartOptions(reportDayparts: string[], selected: string | unde
   const options = new Set(reportDayparts);
   if (selected) options.add(selected);
   return [...options];
-}
-
-const SHORT_RUN_ID_LENGTH = 8;
-
-export function shortRunId(runId: string) {
-  return runId.slice(0, SHORT_RUN_ID_LENGTH);
-}
-
-// run is missing for a selected run the report does not list (it has no feedback under the other filters).
-export type RunOption = { runId: string; run?: FeedbackRunRow };
-
-// Same as daypartOptions: the selected run stays an option even when the report no longer lists it.
-export function runOptions(reportRuns: FeedbackRunRow[], selected: string | undefined): RunOption[] {
-  const options: RunOption[] = reportRuns.map((run) => ({ runId: run.key, run }));
-  if (selected && !reportRuns.some((run) => run.key === selected)) options.push({ runId: selected });
-  return options;
 }

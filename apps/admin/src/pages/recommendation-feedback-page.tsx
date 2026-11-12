@@ -18,7 +18,6 @@ import {
   MAX_RANGE_DAYS,
   daypartOptions,
   isRangeTooLong,
-  runOptions,
 } from "@/features/recommendation-feedback/feedback";
 import { useRecommendationFeedbackReport } from "@/features/recommendation-feedback/queries";
 import type { RecommendationFeedbackSearch } from "@/features/recommendation-feedback/search";
@@ -45,32 +44,24 @@ export function RecommendationFeedbackPage() {
     daypart: search.daypart,
     reason: search.reason,
     channelId: search.channelId,
-    runId: search.runId,
   };
   const tooLong = isRangeTooLong(range.from, range.to);
-  // Same query key as the report below, so the daypart and run options cost no extra request
+  // Same query key as the report below, so the daypart options cost no extra request
   const { data: report } = useRecommendationFeedbackReport(
     search.brandId ?? "",
     filters,
     !!search.brandId && !tooLong,
   );
   const dayparts = daypartOptions(report?.byDaypart.map((row) => row.key) ?? [], search.daypart);
-  const runs = runOptions(report?.byRun ?? [], search.runId);
 
   // replace: picking filters should not fill the back button history
   function setSearch(next: RecommendationFeedbackSearch) {
     navigate({ search: { ...search, ...range, ...next }, replace: true });
   }
 
-  // Outlets, channels, dayparts and runs belong to the brand, so they reset with it
+  // Outlets, channels and dayparts belong to the brand, so they reset with it
   function setBrand(brandId: string) {
-    setSearch({
-      brandId,
-      outletId: undefined,
-      channelId: undefined,
-      daypart: undefined,
-      runId: undefined,
-    });
+    setSearch({ brandId, outletId: undefined, channelId: undefined, daypart: undefined });
   }
 
   return (
@@ -127,7 +118,6 @@ export function RecommendationFeedbackPage() {
           brandId={search.brandId}
           values={filters}
           dayparts={dayparts}
-          runs={runs}
           onChange={setSearch}
         />
       )}
@@ -139,11 +129,7 @@ export function RecommendationFeedbackPage() {
       ) : tooLong ? (
         <p className="text-sm text-destructive">{t("picker.rangeTooLong", { max: MAX_RANGE_DAYS })}</p>
       ) : (
-        <RecommendationFeedbackReport
-          brandId={search.brandId}
-          filters={filters}
-          onSelectRun={(runId) => setSearch({ runId })}
-        />
+        <RecommendationFeedbackReport brandId={search.brandId} filters={filters} />
       )}
     </div>
   );

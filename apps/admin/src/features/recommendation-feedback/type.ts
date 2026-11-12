@@ -1,9 +1,7 @@
 import type {
-  FeedbackRunJobTypeSchemaType,
   RecommendationFeedbackBreakdownRowSchemaType,
   RecommendationFeedbackDaySchemaType,
   RecommendationFeedbackReportSchemaType,
-  RecommendationFeedbackRunRowSchemaType,
   RecommendationFeedbackSummarySchemaType,
   RecommendationServeLogEntrySchemaType,
   RecommendationServesSchemaType,
@@ -15,8 +13,6 @@ export type FeedbackReport = RecommendationFeedbackReportSchemaType;
 export type FeedbackSummary = RecommendationFeedbackSummarySchemaType;
 export type FeedbackDay = RecommendationFeedbackDaySchemaType;
 export type FeedbackBreakdownRow = RecommendationFeedbackBreakdownRowSchemaType;
-export type FeedbackRunRow = RecommendationFeedbackRunRowSchemaType;
-export type FeedbackRunJobType = FeedbackRunJobTypeSchemaType;
 export type ServesPage = RecommendationServesSchemaType;
 export type ServeLogEntry = RecommendationServeLogEntrySchemaType;
 export type ServedItem = ServedItemSchemaType;
@@ -30,5 +26,4 @@ export type FeedbackFilters = {
   daypart?: string;
   reason?: string;
   channelId?: string;
-  runId?: string;
 };

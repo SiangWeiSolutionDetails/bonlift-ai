@@ -87,6 +87,12 @@ async function storeServe(serve: StoredServe): Promise<string> {
   return id;
 }
 
+// The serves log lists only serves with feedback, so its tests store the first item as rejected unless they say otherwise.
+function storeRatedServe(serve: StoredServe): Promise<string> {
+  const itemIds = serve.itemIds ?? ["A"];
+  return storeServe({ rejected: serve.accepted ? [] : [itemIds[0]], ...serve });
+}
+
 function at(timestamp: string): string {
   return `'${timestamp}'::timestamptz`;
 }
@@ -300,7 +306,7 @@ describe("getRecommendationFeedbackReport (integration)", () => {
 
 describe("listRecommendationServes (integration)", () => {
   it("returns a serve with its outlet, channel and per-item feedback in rank order", async () => {
-    const id = await storeServe({
+    const id = await storeRatedServe({
       servedAt: at("2026-01-02T01:00:00Z"),
       channelId: tqrChannelId,
       itemIds: ["A", "B", "C"],
@@ -333,7 +339,7 @@ describe("listRecommendationServes (integration)", () => {
   it("links the runs that produced a serve, null for a source it did not use", async () => {
     const runId = await storeRun("outlet_item_scores");
     const affinityRunId = await storeRun("item_affinity");
-    await storeServe({ servedAt: at("2026-01-02T01:00:00Z"), runId, affinityRunId });
+    await storeRatedServe({ servedAt: at("2026-01-02T01:00:00Z"), runId, affinityRunId });
 
     const page = await serves();
 
@@ -347,7 +353,7 @@ describe("listRecommendationServes (integration)", () => {
   it("reports a run that no longer exists as unavailable", async () => {
     const deletedRunId = randomUUID();
     const customerRunId = await storeRun("customer_item_scores");
-    await storeServe({ servedAt: at("2026-01-02T01:00:00Z"), runId: deletedRunId, customerRunId });
+    await storeRatedServe({ servedAt: at("2026-01-02T01:00:00Z"), runId: deletedRunId, customerRunId });
 
     const page = await serves();
 
@@ -363,7 +369,7 @@ describe("listRecommendationServes (integration)", () => {
     const runId = await storeRun("outlet_item_scores", otherBrandId, otherOutletId);
     const customerRunId = await storeRun("customer_item_scores", otherBrandId);
     const affinityRunId = await storeRun("item_affinity", otherBrandId);
-    await storeServe({ servedAt: at("2026-01-02T01:00:00Z"), runId, customerRunId, affinityRunId });
+    await storeRatedServe({ servedAt: at("2026-01-02T01:00:00Z"), runId, customerRunId, affinityRunId });
 
     const page = await serves();
 
@@ -374,22 +380,29 @@ describe("listRecommendationServes (integration)", () => {
     });
   });
 
+  it("leaves out serves without feedback", async () => {
+    await storeServe({ servedAt: at("2026-01-02T01:00:00Z") });
+    const rated = await storeRatedServe({ servedAt: at("2026-01-02T02:00:00Z") });
+
+    expect((await serves()).serves.map((serve) => serve.id)).toEqual([rated]);
+  });
+
   it("returns a null outcome for an item without feedback, however recent", async () => {
-    await storeServe({ servedAt: "now()" });
+    await storeRatedServe({ servedAt: "now()", itemIds: ["A", "B"] });
 
     const page = await serves({ from: utcDate(-1), to: utcDate(1), tz: "UTC" });
 
-    expect(page.serves[0].items[0].outcome).toBeNull();
+    expect(page.serves[0].items[1].outcome).toBeNull();
     expect(page.serves[0].channelCode).toBeNull();
   });
 
   it("pages newest first with no overlap, down to microseconds and equal times", async () => {
     const ids = [
-      await storeServe({ servedAt: at("2026-01-02T01:00:00.000001Z") }),
-      await storeServe({ servedAt: at("2026-01-02T01:00:00.000002Z") }),
-      await storeServe({ servedAt: at("2026-01-02T01:00:00.000003Z") }),
-      await storeServe({ servedAt: at("2026-01-02T01:00:00.000003Z") }),
-      await storeServe({ servedAt: at("2026-01-02T02:00:00Z") }),
+      await storeRatedServe({ servedAt: at("2026-01-02T01:00:00.000001Z") }),
+      await storeRatedServe({ servedAt: at("2026-01-02T01:00:00.000002Z") }),
+      await storeRatedServe({ servedAt: at("2026-01-02T01:00:00.000003Z") }),
+      await storeRatedServe({ servedAt: at("2026-01-02T01:00:00.000003Z") }),
+      await storeRatedServe({ servedAt: at("2026-01-02T02:00:00Z") }),
     ];
     const tied = [ids[2], ids[3]].sort().reverse();
     const expected = [ids[4], ...tied, ids[1], ids[0]];
@@ -404,20 +417,20 @@ describe("listRecommendationServes (integration)", () => {
   });
 
   it("returns no cursor when the page is exactly full", async () => {
-    await storeServe({ servedAt: at("2026-01-02T01:00:00Z") });
-    await storeServe({ servedAt: at("2026-01-02T02:00:00Z") });
+    await storeRatedServe({ servedAt: at("2026-01-02T01:00:00Z") });
+    await storeRatedServe({ servedAt: at("2026-01-02T02:00:00Z") });
 
     expect((await serves({ limit: 2 })).nextCursor).toBeNull();
   });
 
   it("applies the filters, keeping a serve with any item of the reason and all its items", async () => {
-    const kept = await storeServe({
+    const kept = await storeRatedServe({
       servedAt: at("2026-01-02T01:00:00Z"),
       channelId: tqrChannelId,
       itemIds: ["A", "B"],
       reasons: ["popular_at_outlet", "frequently_ordered"],
     });
-    const dinner = await storeServe({
+    const dinner = await storeRatedServe({
       servedAt: at("2026-01-02T02:00:00Z"),
       outlet: secondOutletId,
       daypart: "dinner",

@@ -101,8 +101,9 @@ const FEEDBACK_REPORT_SQL = `
   ORDER BY g.grouping_set, g.accepted + g.rejected DESC, g.accepted DESC, g.key
 `;
 
-// $7 = reason: keeps serves with any item of that reason. $9 and $10 = the cursor's served_at and id, or NULL for the
-// first page; the plain served_at bound lets the (brand_id, served_at) index stop at the cursor. $11 = page size + 1.
+// Only serves with feedback are listed; the feedback predicate matches the partial index's exactly so the planner
+// can use it. $7 = reason: keeps serves with any item of that reason. $9 and $10 = the cursor's served_at and id, or
+// NULL for the first page; the plain served_at bound lets the index stop at the cursor. $11 = page size + 1.
 // LEFT JOIN page keeps one all-NULL row for a brand with no serves on the page. The run joins run on the page rows
 // only, by primary key; a run counts as available only if it still exists for the serve's brand (and outlet) and job.
 const SERVES_LOG_SQL = `
@@ -113,6 +114,7 @@ const SERVES_LOG_SQL = `
     ${SERVES_IN_RANGE_SQL}
     ${SERVE_FILTERS_SQL}
       AND ($7::text IS NULL OR $7 = ANY(s.reasons))
+      AND (s.accepted_item_ids <> '{}' OR s.rejected_item_ids <> '{}')
       AND ($9::timestamptz IS NULL OR (s.served_at <= $9 AND (s.served_at, s.id) < ($9, $10::uuid)))
     ORDER BY s.served_at DESC, s.id DESC
     LIMIT $11

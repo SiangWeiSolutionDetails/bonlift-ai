@@ -59,7 +59,7 @@
     "items": "Items",
     "noChannel": "None",
     "rank": "#{{rank}}",
-    "empty": "No recommendations in this period.",
+    "empty": "No recommendations with feedback in this period.",
     "loadMore": "Load More"
   }
 }

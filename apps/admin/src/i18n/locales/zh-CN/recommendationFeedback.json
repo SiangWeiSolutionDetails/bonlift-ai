@@ -59,7 +59,7 @@
     "items": "商品",
     "noChannel": "无",
     "rank": "#{{rank}}",
-    "empty": "此期间没有推荐。",
+    "empty": "此期间没有收到反馈的推荐。",
     "loadMore": "加载更多"
   }
 }

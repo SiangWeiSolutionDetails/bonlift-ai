@@ -4,7 +4,8 @@ const Count = Type.Integer({ minimum: 0 });
 const FilterText = Type.String({ minLength: 1, maxLength: 64 });
 
 // from and to are inclusive business dates, read in tz, as in the usage report. Every filter is optional and applies
-// to the whole report; reason matches each served item's own reason.
+// to the whole report; reason matches each served item's own reason, and runId the run each item came from (see
+// RecommendationFeedbackRunRowSchema).
 const reportQueryProperties = {
   from: Type.String({ format: "date" }),
   to: Type.String({ format: "date" }),
@@ -13,6 +14,7 @@ const reportQueryProperties = {
   daypart: Type.Optional(FilterText),
   reason: Type.Optional(FilterText),
   channelId: Type.Optional(Type.String({ format: "uuid" })),
+  runId: Type.Optional(Type.String({ format: "uuid" })),
 };
 
 export const RecommendationFeedbackReportQuerySchema = Type.Object(reportQueryProperties, {
@@ -22,8 +24,8 @@ export type RecommendationFeedbackReportQuerySchemaType = Static<
   typeof RecommendationFeedbackReportQuerySchema
 >;
 
-// before is the nextCursor of the previous page. On the serves log, reason keeps serves with at least one item of
-// that reason, and each kept serve lists all its items.
+// before is the nextCursor of the previous page. On the serves log, reason and runId keep serves with at least one
+// item of that reason or from that run, and each kept serve lists all its items.
 export const RecommendationServesQuerySchema = Type.Object(
   {
     ...reportQueryProperties,
@@ -77,6 +79,29 @@ export type RecommendationFeedbackBreakdownRowSchemaType = Static<
   typeof RecommendationFeedbackBreakdownRowSchema
 >;
 
+// The scoring run an item came from: popular_at_outlet items from the serve's outlet_item_scores run,
+// frequently_ordered items from its customer_item_scores run; items of other reasons have no run and no row. key: run
+// id; label: the run id too. runAt: when the run finished (its start for a run that never finished). Retention deletes
+// old runs while their serves stay: runAvailable is then false and runAt null.
+export const FeedbackRunJobTypeSchema = Type.Union([
+  Type.Literal("outlet_item_scores"),
+  Type.Literal("customer_item_scores"),
+]);
+export type FeedbackRunJobTypeSchemaType = Static<typeof FeedbackRunJobTypeSchema>;
+
+export const RecommendationFeedbackRunRowSchema = Type.Object(
+  {
+    key: Type.String({ format: "uuid" }),
+    label: Type.String(),
+    jobType: FeedbackRunJobTypeSchema,
+    runAt: Type.Union([Type.String({ format: "date-time" }), Type.Null()]),
+    runAvailable: Type.Boolean(),
+    ...FeedbackCountsSchema.properties,
+  },
+  { additionalProperties: false },
+);
+export type RecommendationFeedbackRunRowSchemaType = Static<typeof RecommendationFeedbackRunRowSchema>;
+
 // days has one row per date from from to to, zeros included. Breakdowns list only rows with feedback, sorted by
 // accepted + rejected descending, then accepted descending, then key.
 export const RecommendationFeedbackReportSchema = Type.Object(
@@ -91,6 +116,7 @@ export const RecommendationFeedbackReportSchema = Type.Object(
     byOutlet: Type.Array(RecommendationFeedbackBreakdownRowSchema),
     byReason: Type.Array(RecommendationFeedbackBreakdownRowSchema),
     byDaypart: Type.Array(RecommendationFeedbackBreakdownRowSchema),
+    byRun: Type.Array(RecommendationFeedbackRunRowSchema),
   },
   { additionalProperties: false },
 );

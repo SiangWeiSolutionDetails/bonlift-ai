@@ -24,6 +24,8 @@ interface StoredServe {
   outlet?: string;
   channelId?: string | null;
   daypart?: string;
+  runId?: string | null;
+  customerRunId?: string | null;
   itemIds?: string[];
   reasons?: string[];
   accepted?: string[];
@@ -37,10 +39,10 @@ async function storeServe(serve: StoredServe): Promise<string> {
   await getTestPool().query(
     `
     INSERT INTO recommendation_serves (
-      id, brand_id, channel_id, outlet_id, daypart, item_ids, reasons, accepted_item_ids,
+      id, brand_id, channel_id, outlet_id, daypart, run_id, customer_run_id, item_ids, reasons, accepted_item_ids,
       rejected_item_ids, served_at
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, ${serve.servedAt})
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, ${serve.servedAt})
     `,
     [
       id,
@@ -48,6 +50,8 @@ async function storeServe(serve: StoredServe): Promise<string> {
       serve.channelId ?? null,
       serve.outlet ?? outletId,
       serve.daypart ?? "lunch",
+      serve.runId ?? null,
+      serve.customerRunId ?? null,
       itemIds,
       serve.reasons ?? itemIds.map(() => "popular_at_outlet"),
       serve.accepted ?? [],
@@ -55,6 +59,30 @@ async function storeServe(serve: StoredServe): Promise<string> {
     ],
   );
   return id;
+}
+
+type ScoringJobType = "outlet_item_scores" | "customer_item_scores";
+
+// Outlet scoring runs belong to an outlet, customer scoring runs to the brand.
+async function storeRun(jobType: ScoringJobType, finishedAt: string): Promise<string> {
+  const result = await getTestPool().query(
+    `
+    INSERT INTO computation_runs (
+      brand_id, outlet_id, job_type, run_date, algorithm_version, calculation_config_version_id,
+      input_window_from, input_window_to, trigger_type, status, row_count, started_at, finished_at
+    )
+    SELECT $1, $2, $3, current_date, 'test', v.id, '2026-01-01', '2026-01-01', 'manual', 'succeeded', 1,
+           $4::timestamptz - interval '1 minute', $4
+    FROM calculation_config_versions v
+    WHERE v.brand_id = $1
+      AND v.job_type = $3
+    ORDER BY v.version DESC
+    LIMIT 1
+    RETURNING id
+    `,
+    [brandId, jobType === "outlet_item_scores" ? outletId : null, jobType, finishedAt],
+  );
+  return result.rows[0].id;
 }
 
 function at(timestamp: string): string {
@@ -144,6 +172,7 @@ describe("getRecommendationFeedbackReport (integration)", () => {
       byOutlet: [],
       byReason: [],
       byDaypart: [],
+      byRun: [],
     });
   });
 
@@ -198,6 +227,102 @@ describe("getRecommendationFeedbackReport (integration)", () => {
 
     // C has 2; then 1 each: accepted D and E before rejected A and B, each pair by key.
     expect(result.byItem.map((row) => row.key)).toEqual(["C", "D", "E", "A", "B"]);
+  });
+
+  describe("by run", () => {
+    let outletRunId: string;
+    let customerRunId: string;
+    let missingRunId: string;
+
+    beforeEach(async () => {
+      outletRunId = await storeRun("outlet_item_scores", "2026-01-01T18:00:00Z");
+      customerRunId = await storeRun("customer_item_scores", "2026-01-01T19:00:00Z");
+      // Runs are deleted by retention while their serves stay; serves have no foreign key to runs.
+      missingRunId = randomUUID();
+      await storeServe({
+        servedAt: at("2026-01-02T01:00:00Z"),
+        runId: outletRunId,
+        customerRunId,
+        itemIds: ["A", "B", "C", "D"],
+        reasons: ["popular_at_outlet", "frequently_ordered", "frequently_ordered", "goes_with_cart"],
+        accepted: ["A", "B", "D"],
+        rejected: ["C"],
+      });
+      await storeServe({
+        servedAt: at("2026-01-02T02:00:00Z"),
+        runId: missingRunId,
+        customerRunId,
+        itemIds: ["E", "F"],
+        reasons: ["popular_at_outlet", "frequently_ordered"],
+        accepted: ["E"],
+        rejected: ["F"],
+      });
+    });
+
+    it("attributes each item to its reason's run, sorted like the other breakdowns", async () => {
+      const result = await report();
+      const outletRun = {
+        key: outletRunId,
+        label: outletRunId,
+        jobType: "outlet_item_scores",
+        runAt: "2026-01-01T18:00:00.000Z",
+        runAvailable: true,
+        ...counts(1, 0),
+      };
+      const missingRun = {
+        key: missingRunId,
+        label: missingRunId,
+        jobType: "outlet_item_scores",
+        runAt: null,
+        runAvailable: false,
+        ...counts(1, 0),
+      };
+      // The two outlet runs tie on counts, so they are ordered by key.
+      const tied = outletRunId < missingRunId ? [outletRun, missingRun] : [missingRun, outletRun];
+
+      expect(result.byRun).toStrictEqual([
+        {
+          key: customerRunId,
+          label: customerRunId,
+          jobType: "customer_item_scores",
+          runAt: "2026-01-01T19:00:00.000Z",
+          runAvailable: true,
+          ...counts(1, 2),
+        },
+        ...tied,
+      ]);
+    });
+
+    it("leaves items of a reason without a run out of byRun only", async () => {
+      const result = await report();
+
+      expect(result.summary).toStrictEqual(counts(4, 2));
+      expect(result.byItem.map((row) => row.key)).toContain("D");
+      expect(result.byReason.map((row) => row.key)).toContain("goes_with_cart");
+      const byRunTotal = result.byRun.reduce((sum, row) => sum + row.accepted + row.rejected, 0);
+      expect(byRunTotal).toBe(5);
+    });
+
+    it("filters the report to the items from one run", async () => {
+      const result = await report({ runId: customerRunId });
+
+      expect(result.summary).toStrictEqual(counts(1, 2));
+      expect(result.byItem.map((row) => row.key)).toEqual(["B", "C", "F"]);
+      expect(result.byRun.map((row) => row.key)).toEqual([customerRunId]);
+    });
+
+    it("filters the report to a run that no longer exists", async () => {
+      const result = await report({ runId: missingRunId });
+
+      expect(result.summary).toStrictEqual(counts(1, 0));
+      expect(result.byItem.map((row) => row.key)).toEqual(["E"]);
+    });
+
+    it("filters the report to an outlet run's popular_at_outlet items", async () => {
+      const result = await report({ runId: outletRunId });
+
+      expect(result.byItem.map((row) => row.key)).toEqual(["A"]);
+    });
   });
 
   it("leaves out other brands' serves", async () => {
@@ -354,6 +479,29 @@ describe("listRecommendationServes (integration)", () => {
     expect((await serves({ outletId: secondOutletId })).serves.map((s) => s.id)).toEqual([dinner]);
     expect((await serves({ daypart: "dinner" })).serves.map((s) => s.id)).toEqual([dinner]);
     expect((await serves({ channelId: tqrChannelId })).serves.map((s) => s.id)).toEqual([kept]);
+  });
+
+  it("filters by run, keeping a serve with any item from that run and all its items", async () => {
+    const runId = randomUUID();
+    const kept = await storeServe({
+      servedAt: at("2026-01-02T01:00:00Z"),
+      customerRunId: runId,
+      itemIds: ["A", "B"],
+      reasons: ["popular_at_outlet", "frequently_ordered"],
+    });
+    // The run is the serve's customer run, but no item has the reason it feeds.
+    await storeServe({
+      servedAt: at("2026-01-02T02:00:00Z"),
+      customerRunId: runId,
+      itemIds: ["C"],
+      reasons: ["popular_at_outlet"],
+    });
+    const byOutletRun = await storeServe({ servedAt: at("2026-01-02T03:00:00Z"), runId, itemIds: ["D"] });
+
+    expect((await serves({ runId })).serves.map((s) => [s.id, s.items.length])).toEqual([
+      [byOutletRun, 1],
+      [kept, 2],
+    ]);
   });
 
   it("returns an empty page for a brand without serves", async () => {

@@ -13,6 +13,7 @@
     "daypart": "Daypart",
     "reason": "Reason",
     "channel": "Channel",
+    "run": "Run",
     "all": "All",
     "rangeTooLong": "Choose a range of at most {{max}} days."
   },
@@ -40,8 +41,17 @@
     "byOutlet": "By Outlet",
     "byReason": "By Reason",
     "byDaypart": "By Daypart",
+    "byRun": "By Run",
     "name": "Name",
+    "run": "Run",
     "empty": "No feedback in this period."
+  },
+  "runs": {
+    "jobTypes": {
+      "outlet_item_scores": "Outlet scoring",
+      "customer_item_scores": "Customer scoring"
+    },
+    "unavailable": "Run no longer available"
   },
   "serves": {
     "title": "Recent Recommendations",

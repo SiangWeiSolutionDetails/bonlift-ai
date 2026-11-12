@@ -6,6 +6,8 @@ import {
   RecommendationFeedbackReportQuerySchema,
   RecommendationFeedbackReportQuerySchemaType,
   RecommendationFeedbackReportSchemaType,
+  RecommendationFeedbackRunRowSchemaType,
+  FeedbackRunJobTypeSchemaType,
   RecommendationServeLogEntrySchemaType,
   RecommendationServesQuerySchema,
   RecommendationServesQuerySchemaType,
@@ -41,7 +43,8 @@ const SERVES_IN_RANGE_SQL = `
    AND s.served_at >= bounds.from_at
    AND s.served_at < bounds.to_at`;
 
-// $5 = outlet id, $6 = daypart, $8 = channel id; NULL means no filter. The reason filter ($7) differs per query.
+// $5 = outlet id, $6 = daypart, $8 = channel id; NULL means no filter. The reason ($7) and run ($9) filters differ
+// per query.
 const SERVE_FILTERS_SQL = `
   WHERE ($5::uuid IS NULL OR s.outlet_id = $5)
     AND ($6::text IS NULL OR s.daypart = $6)
@@ -54,11 +57,30 @@ const ITEM_OUTCOME_SQL = `
     WHEN i.item_id = ANY(s.rejected_item_ids) THEN 'rejected'
   END`;
 
+// The run a served item of the given reason came from, NULL for a reason no scoring run feeds. Affinity runs only
+// order favourites, so no item comes from them.
+function runSourceSql(reason: string) {
+  return `CASE ${reason}
+    WHEN 'popular_at_outlet' THEN s.run_id
+    WHEN 'frequently_ordered' THEN s.customer_run_id
+  END`;
+}
+
+function runJobTypeSql(reason: string) {
+  return `CASE ${reason}
+    WHEN 'popular_at_outlet' THEN 'outlet_item_scores'
+    WHEN 'frequently_ordered' THEN 'customer_item_scores'
+  END`;
+}
+
 // One aggregation over the stored feedback yields the summary, days and every breakdown. Only the feedback arrays are
 // unnested, so serves and items without feedback add no rows and every breakdown row has feedback. A rejected item that
 // was later accepted is skipped in the rejected branch. Each item's reason is read from reasons at the item's position
 // in item_ids (feedback is only stored for served items). GROUPING(...) is a bitmask with a bit set for each listed
-// column the row is NOT grouped by (day is the highest bit), so it names the row's set.
+// column the row is NOT grouped by (day is the highest bit), so it names the row's set. Items without a source run
+// form a NULL run group, dropped by HAVING. Runs are joined after grouping, once per run row; serves have no foreign
+// key to runs, so a run deleted by retention joins nothing. runAt is the run's finish (its start if it never
+// finished): publishing keeps only the current run per scope, so no publish time survives for older runs.
 const FEEDBACK_REPORT_SQL = `
   WITH ${BOUNDS_SQL},
   feedback AS (
@@ -67,7 +89,9 @@ const FEEDBACK_REPORT_SQL = `
            s.daypart,
            f.item_id,
            f.reason,
-           f.outcome
+           f.outcome,
+           src.run_source_id,
+           src.run_job_type
     ${SERVES_IN_RANGE_SQL}
     CROSS JOIN LATERAL (
       SELECT given.item_id, given.outcome, s.reasons[array_position(s.item_ids, given.item_id)] AS reason
@@ -80,28 +104,43 @@ const FEEDBACK_REPORT_SQL = `
         WHERE r.item_id <> ALL(s.accepted_item_ids)
       ) given
     ) f
+    CROSS JOIN LATERAL (
+      SELECT ${runSourceSql("f.reason")} AS run_source_id,
+             ${runJobTypeSql("f.reason")} AS run_job_type
+    ) src
     ${SERVE_FILTERS_SQL}
       AND ($7::text IS NULL OR f.reason = $7)
+      AND ($9::uuid IS NULL OR src.run_source_id = $9)
   ),
   grouped AS (
-    SELECT GROUPING(day, item_id, outlet_id, reason, daypart) AS grouping_set,
-           coalesce(day, item_id, outlet_id::text, reason, daypart) AS key,
+    SELECT GROUPING(day, item_id, outlet_id, reason, daypart, run_source_id) AS grouping_set,
+           coalesce(day, item_id, outlet_id::text, reason, daypart, run_source_id::text) AS key,
            outlet_id,
+           run_source_id,
+           min(run_job_type) AS run_job_type,
            (count(*) FILTER (WHERE outcome = 'accepted'))::int AS accepted,
            (count(*) FILTER (WHERE outcome = 'rejected'))::int AS rejected
     FROM feedback
-    GROUP BY GROUPING SETS ((), (day), (item_id), (outlet_id), (reason), (daypart))
+    GROUP BY GROUPING SETS ((), (day), (item_id), (outlet_id), (reason), (daypart), (run_source_id))
+    HAVING GROUPING(run_source_id) = 1 OR run_source_id IS NOT NULL
   )
-  SELECT g.grouping_set, g.key, o.name AS outlet_name, g.accepted, g.rejected
+  SELECT g.grouping_set, g.key, o.name AS outlet_name, g.run_job_type,
+         coalesce(r.finished_at, r.started_at) AS run_at,
+         r.id IS NOT NULL AS run_available,
+         g.accepted, g.rejected
   FROM bounds
   CROSS JOIN grouped g
   LEFT JOIN outlets o
     ON o.id = g.outlet_id
+  LEFT JOIN computation_runs r
+    ON r.id = g.run_source_id
+   AND r.brand_id = bounds.brand_id
   ORDER BY g.grouping_set, g.accepted + g.rejected DESC, g.accepted DESC, g.key
 `;
 
-// $7 = reason: keeps serves with any item of that reason. $9 and $10 = the cursor's served_at and id, or NULL for the
-// first page; the plain served_at bound lets the (brand_id, served_at) index stop at the cursor. $11 = page size + 1.
+// $7 = reason: keeps serves with any item of that reason. $9 = run id: keeps serves with any item from that run.
+// $10 and $11 = the cursor's served_at and id, or NULL for the first page; the plain served_at bound lets the
+// (brand_id, served_at) index stop at the cursor. $12 = page size + 1.
 // LEFT JOIN page keeps one all-NULL row for a brand with no serves on the page.
 const SERVES_LOG_SQL = `
   WITH ${BOUNDS_SQL},
@@ -111,9 +150,12 @@ const SERVES_LOG_SQL = `
     ${SERVES_IN_RANGE_SQL}
     ${SERVE_FILTERS_SQL}
       AND ($7::text IS NULL OR $7 = ANY(s.reasons))
-      AND ($9::timestamptz IS NULL OR (s.served_at <= $9 AND (s.served_at, s.id) < ($9, $10::uuid)))
+      AND ($9::uuid IS NULL OR EXISTS (
+        SELECT 1 FROM unnest(s.reasons) AS item(reason) WHERE ${runSourceSql("item.reason")} = $9
+      ))
+      AND ($10::timestamptz IS NULL OR (s.served_at <= $10 AND (s.served_at, s.id) < ($10, $11::uuid)))
     ORDER BY s.served_at DESC, s.id DESC
-    LIMIT $11
+    LIMIT $12
   )
   SELECT s.id, s.served_at,
          to_char(s.served_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_at,
@@ -135,14 +177,15 @@ const SERVES_LOG_SQL = `
   ORDER BY s.served_at DESC, s.id DESC
 `;
 
-// GROUPING(day, item_id, outlet_id, reason, daypart) of each grouping set.
+// GROUPING(day, item_id, outlet_id, reason, daypart, run_source_id) of each grouping set.
 const GROUPING_SET = {
-  summary: 0b11111,
-  day: 0b01111,
-  item: 0b10111,
-  outlet: 0b11011,
-  reason: 0b11101,
-  daypart: 0b11110,
+  summary: 0b111111,
+  day: 0b011111,
+  item: 0b101111,
+  outlet: 0b110111,
+  reason: 0b111011,
+  daypart: 0b111101,
+  run: 0b111110,
 } as const;
 
 const CURSOR_AT_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/;
@@ -152,6 +195,9 @@ interface GroupedRow {
   grouping_set: number;
   key: string | null;
   outlet_name: string | null;
+  run_job_type: FeedbackRunJobTypeSchemaType | null;
+  run_at: Date | null;
+  run_available: boolean;
   accepted: number;
   rejected: number;
 }
@@ -200,6 +246,7 @@ function filterParams(query: RecommendationFeedbackReportQuerySchemaType) {
     query.daypart ?? null,
     query.reason ?? null,
     query.channelId ?? null,
+    query.runId ?? null,
   ];
 }
 
@@ -210,6 +257,18 @@ function toCounts(row: GroupedRow | undefined): FeedbackCountsSchemaType {
 function toBreakdownRow(row: GroupedRow): RecommendationFeedbackBreakdownRowSchemaType {
   const key = row.key as string;
   return { key, label: row.outlet_name ?? key, ...toCounts(row) };
+}
+
+function toRunRow(row: GroupedRow): RecommendationFeedbackRunRowSchemaType {
+  const key = row.key as string;
+  return {
+    key,
+    label: key,
+    jobType: row.run_job_type as FeedbackRunJobTypeSchemaType,
+    runAt: row.run_at?.toISOString() ?? null,
+    runAvailable: row.run_available,
+    ...toCounts(row),
+  };
 }
 
 function toDays(
@@ -258,6 +317,7 @@ export async function getRecommendationFeedbackReport(
     byOutlet: rowsOfSet(rows, GROUPING_SET.outlet).map(toBreakdownRow),
     byReason: rowsOfSet(rows, GROUPING_SET.reason).map(toBreakdownRow),
     byDaypart: rowsOfSet(rows, GROUPING_SET.daypart).map(toBreakdownRow),
+    byRun: rowsOfSet(rows, GROUPING_SET.run).map(toRunRow),
   };
 }
 

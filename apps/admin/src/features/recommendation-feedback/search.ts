@@ -7,6 +7,7 @@ export type RecommendationFeedbackSearch = UsageSearch & {
   daypart?: string;
   reason?: string;
   channelId?: string;
+  runId?: string;
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -37,5 +38,6 @@ export function validateRecommendationFeedbackSearch(
     daypart: optionalFilterText(search.daypart),
     reason: optionalReason(search.reason),
     channelId: optionalUuid(search.channelId),
+    runId: optionalUuid(search.runId),
   };
 }

@@ -112,13 +112,15 @@ export const RecommendationReasonSchema = Type.Union(
   [
     Type.Literal("popular_at_outlet"),
     Type.Literal("frequently_ordered"),
+    Type.Literal("related_to_favourite"),
     Type.Literal("goes_with_cart"),
   ],
   {
     description:
       "Why the item is recommended: `frequently_ordered` is one of this customer's favourites in the requested " +
-      "`daypart`, `popular_at_outlet` is popular at this outlet in the requested `daypart`. `goes_with_cart` is " +
-      "not sent at the moment. New reasons may be added: treat an unknown reason as a generic recommendation.",
+      "`daypart`, `related_to_favourite` is often ordered with this customer's favourites but is not one of them, " +
+      "`popular_at_outlet` is popular at this outlet in the requested `daypart`. `goes_with_cart` is not sent at " +
+      "the moment. New reasons may be added: treat an unknown reason as a generic recommendation.",
   },
 );
 export type RecommendationReasonSchemaType = Static<
@@ -133,9 +135,11 @@ export const RecommendationDetailSchema = Type.Object(
         minItems: 1,
         maxItems: 3,
         description:
-          "Up to 3 cart item ids this item is often ordered with, strongest first. Sent with `frequently_ordered` " +
-          "when the favourite goes with an item in the cart, and with `goes_with_cart`, which is not sent at the " +
-          "moment. Use the first one for wording such as \"Your usual, goes with your Kopi\".",
+          "Up to 3 item ids this item is often ordered with, strongest first. With `frequently_ordered` they are " +
+          "cart items, sent when the favourite goes with an item in the cart; use the first one for wording such as " +
+          "\"Your usual, goes with your Kopi\". With `related_to_favourite` they are the customer's favourites, " +
+          "always sent; use the first one for wording such as \"Goes with your usual Kopi\". Also sent with " +
+          "`goes_with_cart`, which is not sent at the moment.",
         examples: [["ITEM-1001", "ITEM-2002"]],
       }),
     ),
@@ -217,11 +221,11 @@ export const RecommendationResponseSchema = Type.Object(
         "Opaque id of the customer results served. Quote it when reporting an issue. Null for an anonymous customer " +
         "or when none exist.",
     }),
-    // The item affinity run used to order favourites; null when the brand has none.
+    // The item affinity run used to order favourites and find related items; null when the brand has none.
     affinityRunId: Type.Union([Type.String({ format: "uuid" }), Type.Null()], {
       description:
-        "Opaque id of the item affinity results used to put favourites that go with the cart first. Null when " +
-        "none exist. Quote it when reporting an issue.",
+        "Opaque id of the item affinity results used to put favourites that go with the cart first and to find " +
+        "items related to the customer's favourites. Null when none exist. Quote it when reporting an issue.",
     }),
     daypart: Type.Union([Type.String(), Type.Null()], {
       description:
@@ -232,7 +236,8 @@ export const RecommendationResponseSchema = Type.Object(
     items: Type.Array(RecommendationItemSchema, {
       description:
         "Recommended items, best first. May be empty, e.g. for an unknown outlet or when no results are available yet: " +
-        "continue the order without recommendations.",
+        "continue the order without recommendations. For an identified customer, an item shown and not accepted " +
+        "moves below the items not shown recently for a while (set per brand), so repeat requests vary.",
     }),
   },
   {

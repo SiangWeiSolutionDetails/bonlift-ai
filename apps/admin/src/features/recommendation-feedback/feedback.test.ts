@@ -37,6 +37,7 @@ describe("isKnownReason", () => {
   it("knows the reasons the API serves and nothing else", () => {
     expect(isKnownReason("frequently_ordered")).toBe(true);
     expect(isKnownReason("popular_at_outlet")).toBe(true);
+    expect(isKnownReason("related_to_favourite")).toBe(true);
     expect(isKnownReason("goes_with_cart")).toBe(false);
   });
 });

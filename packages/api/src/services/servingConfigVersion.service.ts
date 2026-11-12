@@ -5,8 +5,8 @@ import {
   ServingConfigVersionRecordSchemaType,
 } from "@bonlift-ai/contracts";
 import { Pool } from "pg";
-import { ConflictError, NotFoundError } from "../errors.js";
-import { isUniqueViolationOf } from "../utils/pgErrors.js";
+import { ConflictError, NotFoundError, ValidationError } from "../errors.js";
+import { isCheckViolationOf, isUniqueViolationOf } from "../utils/pgErrors.js";
 import { assertValid } from "../utils/validate.js";
 
 function mapVersionRow(row: any): ServingConfigVersionRecordSchemaType {
@@ -20,6 +20,8 @@ function mapVersionRow(row: any): ServingConfigVersionRecordSchemaType {
     bestSellerMaxRank: row.best_seller_max_rank,
     bestSellerMinListSize: row.best_seller_min_list_size,
     rejectionSuppressionDays: row.rejection_suppression_days,
+    repeatCooldownHours: row.repeat_cooldown_hours,
+    feedbackWindowMinutes: row.feedback_window_minutes,
   };
 }
 
@@ -45,12 +47,15 @@ export async function getLatestServingConfigVersion(
       v.min_favourite_orders,
       v.best_seller_max_rank,
       v.best_seller_min_list_size,
-      v.rejection_suppression_days
+      v.rejection_suppression_days,
+      v.repeat_cooldown_hours,
+      v.feedback_window_minutes
     FROM brands b
     LEFT JOIN LATERAL (
       SELECT s.id, s.version, s.created_by, s.created_at,
         s.min_favourite_orders,
-        s.best_seller_max_rank, s.best_seller_min_list_size, s.rejection_suppression_days
+        s.best_seller_max_rank, s.best_seller_min_list_size, s.rejection_suppression_days,
+        s.repeat_cooldown_hours, s.feedback_window_minutes
       FROM serving_config_versions s
       WHERE s.brand_id = b.id
       ORDER BY s.version DESC
@@ -89,7 +94,9 @@ export async function getServingConfigVersions(
       v.min_favourite_orders,
       v.best_seller_max_rank,
       v.best_seller_min_list_size,
-      v.rejection_suppression_days
+      v.rejection_suppression_days,
+      v.repeat_cooldown_hours,
+      v.feedback_window_minutes
     FROM brands b
     LEFT JOIN serving_config_versions v ON v.brand_id = b.id
     WHERE b.id = $1
@@ -131,7 +138,8 @@ export async function createServingConfigVersion(
       ),
       latest AS (
         SELECT s.version, s.min_favourite_orders,
-          s.best_seller_max_rank, s.best_seller_min_list_size, s.rejection_suppression_days
+          s.best_seller_max_rank, s.best_seller_min_list_size, s.rejection_suppression_days,
+          s.repeat_cooldown_hours, s.feedback_window_minutes
         FROM serving_config_versions s
         WHERE s.brand_id = $1
         ORDER BY s.version DESC
@@ -145,7 +153,9 @@ export async function createServingConfigVersion(
           min_favourite_orders,
           best_seller_max_rank,
           best_seller_min_list_size,
-          rejection_suppression_days
+          rejection_suppression_days,
+          repeat_cooldown_hours,
+          feedback_window_minutes
         )
         SELECT
           b.id,
@@ -154,12 +164,15 @@ export async function createServingConfigVersion(
           COALESCE($3::int, l.min_favourite_orders),
           COALESCE($4::int, l.best_seller_max_rank),
           COALESCE($5::int, l.best_seller_min_list_size),
-          COALESCE($6::int, l.rejection_suppression_days)
+          COALESCE($6::int, l.rejection_suppression_days),
+          COALESCE($7::int, l.repeat_cooldown_hours),
+          COALESCE($8::int, l.feedback_window_minutes)
         FROM brand b
         CROSS JOIN latest l
         RETURNING id, brand_id, version, created_by, created_at,
           min_favourite_orders,
-          best_seller_max_rank, best_seller_min_list_size, rejection_suppression_days
+          best_seller_max_rank, best_seller_min_list_size, rejection_suppression_days,
+          repeat_cooldown_hours, feedback_window_minutes
       )
       SELECT
         i.id,
@@ -170,7 +183,9 @@ export async function createServingConfigVersion(
         i.min_favourite_orders,
         i.best_seller_max_rank,
         i.best_seller_min_list_size,
-        i.rejection_suppression_days
+        i.rejection_suppression_days,
+        i.repeat_cooldown_hours,
+        i.feedback_window_minutes
       FROM brand b
       LEFT JOIN inserted i ON TRUE;
       `,
@@ -181,6 +196,8 @@ export async function createServingConfigVersion(
         data.bestSellerMaxRank ?? null,
         data.bestSellerMinListSize ?? null,
         data.rejectionSuppressionDays ?? null,
+        data.repeatCooldownHours ?? null,
+        data.feedbackWindowMinutes ?? null,
       ],
     );
 
@@ -196,6 +213,11 @@ export async function createServingConfigVersion(
     if (isUniqueViolationOf(error, "serving_config_versions_brand_version_key")) {
       throw new ConflictError(
         "Config was changed by someone else. Reload and try again.",
+      );
+    }
+    if (isCheckViolationOf(error, "serving_config_versions_cooldown_after_feedback_window_check")) {
+      throw new ValidationError(
+        "repeatCooldownHours must be 0 or longer than feedbackWindowMinutes, or shown items would never be moved down.",
       );
     }
     throw error;

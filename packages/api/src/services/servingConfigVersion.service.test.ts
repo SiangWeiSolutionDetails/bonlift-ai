@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ConflictError, NotFoundError, ValidationError } from "../errors.js";
 import { pgResult } from "../utils/pg.test-helpers.js";
-import { UNIQUE_VIOLATION } from "../utils/pgErrors.js";
+import { CHECK_VIOLATION, UNIQUE_VIOLATION } from "../utils/pgErrors.js";
 import {
   createServingConfigVersion,
   getLatestServingConfigVersion,
@@ -22,6 +22,8 @@ const VERSION_ROW = {
   best_seller_max_rank: 3,
   best_seller_min_list_size: 10,
   rejection_suppression_days: 30,
+  repeat_cooldown_hours: 24,
+  feedback_window_minutes: 120,
 };
 
 const queryMock = vi.fn();
@@ -48,7 +50,7 @@ describe("getLatestServingConfigVersion", () => {
     ).rejects.not.toThrow(NotFoundError);
   });
 
-  it("maps the row with its six settings", async () => {
+  it("maps the row with its eight settings", async () => {
     queryMock.mockResolvedValueOnce(pgResult([VERSION_ROW]));
 
     const result = await getLatestServingConfigVersion(fakePool, BRAND_ID);
@@ -63,6 +65,8 @@ describe("getLatestServingConfigVersion", () => {
       bestSellerMaxRank: 3,
       bestSellerMinListSize: 10,
       rejectionSuppressionDays: 30,
+      repeatCooldownHours: 24,
+      feedbackWindowMinutes: 120,
     });
   });
 });
@@ -106,7 +110,7 @@ describe("createServingConfigVersion", () => {
 
     expect(queryMock).toHaveBeenCalledWith(
       expect.stringContaining("serving_config_versions"),
-      [BRAND_ID, "api", null, 30, null, null],
+      [BRAND_ID, "api", null, 30, null, null, null, null],
     );
   });
 
@@ -115,7 +119,7 @@ describe("createServingConfigVersion", () => {
 
     await createServingConfigVersion(fakePool, BRAND_ID, { rejectionSuppressionDays: 0 }, "api");
 
-    expect(queryMock).toHaveBeenCalledWith(expect.any(String), [BRAND_ID, "api", null, null, null, 0]);
+    expect(queryMock).toHaveBeenCalledWith(expect.any(String), [BRAND_ID, "api", null, null, null, 0, null, null]);
   });
 
   it("throws ValidationError without querying for a rejection window above 365 days", async () => {
@@ -123,5 +127,57 @@ describe("createServingConfigVersion", () => {
       createServingConfigVersion(fakePool, BRAND_ID, { rejectionSuppressionDays: 366 }, "api"),
     ).rejects.toThrow(ValidationError);
     expect(queryMock).not.toHaveBeenCalled();
+  });
+
+  it("sends a repeat cooldown of 0, which switches rotation off", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([VERSION_ROW]));
+
+    await createServingConfigVersion(fakePool, BRAND_ID, { repeatCooldownHours: 0 }, "api");
+
+    expect(queryMock).toHaveBeenCalledWith(expect.any(String), [BRAND_ID, "api", null, null, null, null, 0, null]);
+  });
+
+  it("throws ValidationError without querying for a repeat cooldown above 720 hours", async () => {
+    await expect(
+      createServingConfigVersion(fakePool, BRAND_ID, { repeatCooldownHours: 721 }, "api"),
+    ).rejects.toThrow(ValidationError);
+    expect(queryMock).not.toHaveBeenCalled();
+  });
+
+  it("sends a changed feedback window", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([VERSION_ROW]));
+
+    await createServingConfigVersion(fakePool, BRAND_ID, { feedbackWindowMinutes: 30 }, "api");
+
+    expect(queryMock).toHaveBeenCalledWith(expect.any(String), [BRAND_ID, "api", null, null, null, null, null, 30]);
+  });
+
+  it("throws ValidationError without querying for a feedback window outside 5 to 1440 minutes", async () => {
+    for (const feedbackWindowMinutes of [4, 1441]) {
+      await expect(
+        createServingConfigVersion(fakePool, BRAND_ID, { feedbackWindowMinutes }, "api"),
+      ).rejects.toThrow(ValidationError);
+    }
+    expect(queryMock).not.toHaveBeenCalled();
+  });
+
+  it("throws ValidationError when the cooldown would not outlast the feedback window", async () => {
+    queryMock.mockRejectedValueOnce({
+      code: CHECK_VIOLATION,
+      constraint: "serving_config_versions_cooldown_after_feedback_window_check",
+    });
+
+    await expect(
+      createServingConfigVersion(fakePool, BRAND_ID, { repeatCooldownHours: 2 }, "api"),
+    ).rejects.toThrow(ValidationError);
+  });
+
+  it("rethrows any other check violation as is", async () => {
+    const error = { code: CHECK_VIOLATION, constraint: "serving_config_versions_other_check" };
+    queryMock.mockRejectedValueOnce(error);
+
+    await expect(
+      createServingConfigVersion(fakePool, BRAND_ID, { repeatCooldownHours: 2 }, "api"),
+    ).rejects.toBe(error);
   });
 });

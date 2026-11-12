@@ -7,6 +7,7 @@ const CHANNEL_ID = "33333333-3333-3333-3333-333333333333";
 const SERVE = {
   id: "66666666-6666-6666-6666-666666666666",
   brandId: BRAND_ID,
+  storedCustomerId: "hashed-customer",
   outletId: "44444444-4444-4444-4444-444444444444",
   daypart: "lunch",
   runId: "55555555-5555-5555-5555-555555555555",
@@ -57,6 +58,7 @@ describe("createRecommendationServeHook", () => {
       null,
       ["A", "B"],
       ["popular_at_outlet", "popular_at_outlet"],
+      "hashed-customer",
     ]);
   });
 

@@ -19,9 +19,9 @@ import { recordRecommendationFeedback } from "../services/recommendationFeedback
 
 const FEEDBACK_DESCRIPTION =
   "Tells us what the customer did with an item from a recommendations response. Send `accepted` when the customer " +
-  "adds a suggested item to the cart and `rejected` when they dismiss it: one call per action, within 2 hours of the " +
-  "recommendation, using the response's `recommendationId`. Feedback sent later, or for an item that was not in " +
-  "that response, is ignored.\n\n" +
+  "adds a suggested item to the cart and `rejected` when they dismiss it: one call per action, within the brand's " +
+  "feedback window (2 hours by default) of the recommendation, using the response's `recommendationId`. Feedback " +
+  "sent later, or for an item that was not in that response, is ignored.\n\n" +
   "Items you send no feedback for count as ignored by the customer. So request a `limit` equal to the number of " +
   "items you display, and pass the items available right now in `include`, so that every returned item is one the " +
   "customer could see.\n\n" +
@@ -43,9 +43,12 @@ export async function recommendationRoutes(app: FastifyInstance) {
         summary: "Recommendations for an order",
         description:
           "Returns a ranked list of items to suggest for an order at an outlet. For an identified customer it is " +
-          "that customer's favourites; for an anonymous customer, or one with no favourites to show, it is the items " +
-          "popular at the outlet. Both are for the requested `daypart`, or the whole day when none is sent. Favourites " +
-          "that go with an item in the cart come first, and the rest follow in the customer's usual order. Items in " +
+          "that customer's favourites, followed by items often ordered with them; for an anonymous customer, or one " +
+          "with nothing personal to show, it is the items popular at the outlet. All are for the requested `daypart`, " +
+          "or the whole day when none is sent. Favourites that go with an item in the cart come first, and the rest " +
+          "follow in the customer's usual order. When you ask for 2 or more items, one slot is kept for a related " +
+          "item when there is one. For an identified customer, an item shown and not accepted moves below the items " +
+          "not shown recently for a while (set per brand), so the same favourite is not first every time. Items in " +
           "the cart or in `exclude` are never returned, and neither are items an identified customer rejected " +
           "recently (see the feedback endpoint). Apply your own availability and dietary filters before " +
           "display, and show the top items. Any failure on our side returns an empty list, so the order can always " +
@@ -58,13 +61,17 @@ export async function recommendationRoutes(app: FastifyInstance) {
           "|---|---|---|\n" +
           "| `frequently_ordered` | One of this customer's favourites in the served `daypart`. Only for an identified " +
           "customer. | `basedOn` |\n" +
+          "| `related_to_favourite` | Often ordered with this customer's favourites, but not one of them. Only for an " +
+          "identified customer. | `basedOn` |\n" +
           "| `popular_at_outlet` | Popular at this outlet in the served `daypart`. Used when there are no favourites " +
-          "to show. | `bestSeller` |\n\n" +
+          "or related items to show. | `bestSeller` |\n\n" +
           "**Detail**\n\n" +
           "| Field | Meaning | Example wording |\n" +
           "|---|---|---|\n" +
           "| `basedOn` | A favourite that goes with an item in the cart: the cart item ids, strongest first. Use the " +
           "first one. | \"Your usual, goes with your Kopi\" |\n" +
+          "| `basedOn` | A related item: the customer's favourite item ids it is often ordered with, strongest " +
+          "first. Use the first one. | \"Goes with your usual Kopi\" |\n" +
           "| `bestSeller` | One of the top sellers at this outlet in the served `daypart`, sent only when the outlet " +
           "has enough ranked items. | \"Best seller here\" |\n\n" +
           "New reasons and detail fields may be added: treat an unknown reason as a generic recommendation and ignore " +

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { useForm, type UseFormRegisterReturn } from "react-hook-form";
+import { useForm, type Resolver, type UseFormRegisterReturn } from "react-hook-form";
 import { ChevronRightIcon } from "lucide-react";
 import { CreateServingConfigVersionBodySchema } from "@bonlift-ai/contracts";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -29,6 +29,37 @@ import type {
   ServingConfigVersion,
 } from "../type";
 import { ServingConfigVersions } from "./serving-config-versions";
+
+const schemaResolver = typeboxResolver(CreateServingConfigVersionBodySchema);
+
+// Mirrors the API rule: a shown item only moves down once the feedback window has closed, so the cooldown must outlast it
+function cooldownOutlastsFeedbackWindow({
+  repeatCooldownHours,
+  feedbackWindowMinutes,
+}: CreateServingConfigVersionInput) {
+  if (repeatCooldownHours === undefined || feedbackWindowMinutes === undefined) return true;
+  return repeatCooldownHours === 0 || repeatCooldownHours * 60 > feedbackWindowMinutes;
+}
+
+const servingConfigResolver: Resolver<CreateServingConfigVersionInput> = async (
+  values,
+  context,
+  options,
+) => {
+  const result = await schemaResolver(values, context, options);
+  if (Object.keys(result.errors).length > 0 || cooldownOutlastsFeedbackWindow(values)) {
+    return result;
+  }
+  return {
+    values: {},
+    errors: {
+      repeatCooldownHours: {
+        type: "cooldownAfterFeedbackWindow",
+        message: "servingConfig:cooldownAfterFeedbackWindow",
+      },
+    },
+  };
+};
 
 type ServingConfigSectionProps = {
   brandId: string;
@@ -112,15 +143,15 @@ function ServingConfigForm({
     bestSellerMaxRank: config.bestSellerMaxRank,
     bestSellerMinListSize: config.bestSellerMinListSize,
     rejectionSuppressionDays: config.rejectionSuppressionDays,
+    repeatCooldownHours: config.repeatCooldownHours,
+    feedbackWindowMinutes: config.feedbackWindowMinutes,
   };
   const {
     register,
     handleSubmit,
     formState: { errors, isDirty },
   } = useForm<CreateServingConfigVersionInput>({
-    resolver: typeboxResolver(
-      CreateServingConfigVersionBodySchema,
-    ),
+    resolver: servingConfigResolver,
     defaultValues,
   });
   const [pendingChanges, setPendingChanges] =
@@ -192,6 +223,22 @@ function ServingConfigForm({
             readOnly={readOnly}
             error={errors.rejectionSuppressionDays?.message}
             registration={register("rejectionSuppressionDays", { valueAsNumber: true })}
+          />
+          <NumberField
+            id="serving-config-repeat-cooldown-hours"
+            label={t("repeatCooldownHours")}
+            hint={t("repeatCooldownHoursHint")}
+            readOnly={readOnly}
+            error={errors.repeatCooldownHours?.message}
+            registration={register("repeatCooldownHours", { valueAsNumber: true })}
+          />
+          <NumberField
+            id="serving-config-feedback-window-minutes"
+            label={t("feedbackWindowMinutes")}
+            hint={t("feedbackWindowMinutesHint")}
+            readOnly={readOnly}
+            error={errors.feedbackWindowMinutes?.message}
+            registration={register("feedbackWindowMinutes", { valueAsNumber: true })}
           />
         </div>
 

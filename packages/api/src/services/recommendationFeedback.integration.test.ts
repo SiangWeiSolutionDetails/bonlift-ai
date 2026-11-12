@@ -8,6 +8,7 @@ import { createBrand } from "./brand.service.js";
 import { createOutlet } from "./outlet.service.js";
 import { RecommendationServe, recordRecommendationServe } from "./recommendation.service.js";
 import { recordRecommendationFeedback } from "./recommendationFeedback.service.js";
+import { createServingConfigVersion } from "./servingConfigVersion.service.js";
 import { createTenant } from "./tenant.service.js";
 
 const SECRET = readCustomerIdSecret();
@@ -22,6 +23,7 @@ async function storeServe(overrides: Partial<RecommendationServe> = {}): Promise
   const serve: RecommendationServe = {
     id: randomUUID(),
     brandId,
+    storedCustomerId: CUSTOMER_HASH,
     outletId,
     daypart: "all_day",
     runId: null,
@@ -63,6 +65,27 @@ async function rejectedItemIds(customerHash = CUSTOMER_HASH): Promise<string[]> 
     [brandId, customerHash],
   );
   return result.rows.map((row) => row.external_item_id);
+}
+
+async function exposedItemIds(): Promise<string[]> {
+  const result = await getTestPool().query(
+    `
+    SELECT external_item_id
+    FROM customer_item_exposures
+    WHERE brand_id = $1
+      AND customer_external_id = $2
+    ORDER BY external_item_id
+    `,
+    [brandId, CUSTOMER_HASH],
+  );
+  return result.rows.map((row) => row.external_item_id);
+}
+
+async function backdateServe(recommendationId: string, age: string): Promise<void> {
+  await getTestPool().query(
+    "UPDATE recommendation_serves SET served_at = now() - $2::interval WHERE id = $1",
+    [recommendationId, age],
+  );
 }
 
 beforeEach(async () => {
@@ -111,7 +134,7 @@ describe("recordRecommendationFeedback (integration)", () => {
     ).resolves.toBeUndefined();
   });
 
-  it("ignores feedback on a serve older than 2 hours", async () => {
+  it("ignores feedback on a serve older than the default 2 hour window", async () => {
     const id = await storeServe();
     await getTestPool().query(
       "UPDATE recommendation_serves SET served_at = now() - interval '2 hours 1 minute' WHERE id = $1",
@@ -122,6 +145,30 @@ describe("recordRecommendationFeedback (integration)", () => {
 
     expect(await feedbackArrays(id)).toStrictEqual({ accepted: [], rejected: [] });
     expect(await rejectedItemIds()).toEqual([]);
+  });
+
+  it("counts feedback just inside the default 2 hour window", async () => {
+    const id = await storeServe();
+    await backdateServe(id, "1 hour 59 minutes");
+
+    await feedback(id, { itemId: "A", type: "rejected", customerId: CUSTOMER_ID });
+
+    expect(await feedbackArrays(id)).toStrictEqual({ accepted: [], rejected: ["A"] });
+  });
+
+  it("uses the brand's latest feedback window", async () => {
+    await createServingConfigVersion(getTestPool(), brandId, { feedbackWindowMinutes: 30 }, "api");
+    const late = await storeServe();
+    await backdateServe(late, "31 minutes");
+    const inTime = await storeServe();
+    await backdateServe(inTime, "29 minutes");
+
+    await feedback(late, { itemId: "A", type: "rejected", customerId: CUSTOMER_ID });
+    await feedback(inTime, { itemId: "B", type: "rejected", customerId: CUSTOMER_ID });
+
+    expect(await feedbackArrays(late)).toStrictEqual({ accepted: [], rejected: [] });
+    expect(await feedbackArrays(inTime)).toStrictEqual({ accepted: [], rejected: ["B"] });
+    expect(await rejectedItemIds()).toEqual(["B"]);
   });
 
   it("rejects feedback without a customer id, recording nothing", async () => {
@@ -167,5 +214,23 @@ describe("recordRecommendationFeedback (integration)", () => {
     await feedback(first, { itemId: "A", type: "accepted", customerId: CUSTOMER_ID });
 
     expect(await rejectedItemIds(otherHash)).toEqual(["A"]);
+  });
+
+  it("forgets that an accepted item was shown, leaving the other items shown", async () => {
+    const id = await storeServe();
+    expect(await exposedItemIds()).toEqual(["A", "B"]);
+
+    await feedback(id, { itemId: "A", type: "accepted", customerId: CUSTOMER_ID });
+    await feedback(id, { itemId: "B", type: "rejected", customerId: CUSTOMER_ID });
+
+    expect(await exposedItemIds()).toEqual(["B"]);
+  });
+
+  it("keeps the items shown when feedback is sent with another brand's key", async () => {
+    const id = await storeServe();
+
+    await feedback(id, { itemId: "A", type: "accepted", customerId: CUSTOMER_ID }, otherBrandId);
+
+    expect(await exposedItemIds()).toEqual(["A", "B"]);
   });
 });

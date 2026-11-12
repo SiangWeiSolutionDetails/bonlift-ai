@@ -52,6 +52,8 @@ describe("servingConfigVersion.service (integration)", () => {
       bestSellerMaxRank: 3,
       bestSellerMinListSize: 10,
       rejectionSuppressionDays: 30,
+      repeatCooldownHours: 24,
+      feedbackWindowMinutes: 120,
     });
   });
 
@@ -83,6 +85,8 @@ describe("servingConfigVersion.service (integration)", () => {
       bestSellerMaxRank: 5,
       bestSellerMinListSize: 10,
       rejectionSuppressionDays: 30,
+      repeatCooldownHours: 24,
+      feedbackWindowMinutes: 120,
     });
   });
 
@@ -93,6 +97,50 @@ describe("servingConfigVersion.service (integration)", () => {
     const created = await createServingConfigVersion(pool, brandId, { minFavouriteOrders: 2 }, "api");
 
     expect(created).toMatchObject({ version: 3, minFavouriteOrders: 2, rejectionSuppressionDays: 0 });
+  });
+
+  it("carries a changed repeat cooldown forward, including 0", async () => {
+    const pool = getTestPool();
+    await createServingConfigVersion(pool, brandId, { repeatCooldownHours: 0 }, "api");
+
+    const created = await createServingConfigVersion(pool, brandId, { minFavouriteOrders: 2 }, "api");
+
+    expect(created).toMatchObject({ version: 3, minFavouriteOrders: 2, repeatCooldownHours: 0 });
+  });
+
+  it("carries a changed feedback window forward", async () => {
+    const pool = getTestPool();
+    await createServingConfigVersion(pool, brandId, { feedbackWindowMinutes: 30 }, "api");
+
+    const created = await createServingConfigVersion(pool, brandId, { minFavouriteOrders: 2 }, "api");
+
+    expect(created).toMatchObject({ version: 3, minFavouriteOrders: 2, feedbackWindowMinutes: 30 });
+  });
+
+  it("rejects a cooldown that would not outlast the feedback window, merged with the latest version, and creates nothing", async () => {
+    const pool = getTestPool();
+    await createServingConfigVersion(pool, brandId, { feedbackWindowMinutes: 180 }, "api");
+
+    await expect(
+      createServingConfigVersion(pool, brandId, { repeatCooldownHours: 3 }, "api"),
+    ).rejects.toThrow(ValidationError);
+    await expect(
+      createServingConfigVersion(pool, brandId, { feedbackWindowMinutes: 1440 }, "api"),
+    ).rejects.toThrow(ValidationError);
+
+    const versions = await getServingConfigVersions(pool, brandId);
+    expect(versions.map((v) => v.version)).toEqual([2, 1]);
+  });
+
+  it("accepts any feedback window when rotation is off", async () => {
+    const created = await createServingConfigVersion(
+      getTestPool(),
+      brandId,
+      { repeatCooldownHours: 0, feedbackWindowMinutes: 1440 },
+      "api",
+    );
+
+    expect(created).toMatchObject({ version: 2, repeatCooldownHours: 0, feedbackWindowMinutes: 1440 });
   });
 
   it("rejects a change that loses the version race with ConflictError", async () => {

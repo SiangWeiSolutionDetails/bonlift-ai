@@ -10,6 +10,11 @@
   "bestSellerMinListSizeHint": "Best sellers are only marked when the list has at least this many items.",
   "rejectionSuppressionDays": "Hide Rejected Items For (Days)",
   "rejectionSuppressionDaysHint": "How long an item a customer rejected stays out of their recommendations. 0 turns this off.",
+  "repeatCooldownHours": "Rotate Shown Items For (Hours)",
+  "repeatCooldownHoursHint": "How long an item shown to a customer but not accepted moves down in their recommendations, so other items get a turn. Accepting it lifts this. 0 turns this off.",
+  "feedbackWindowMinutes": "Feedback Window (Minutes)",
+  "feedbackWindowMinutesHint": "How long after recommendations are shown the app can still send accepted or rejected for them; later feedback is ignored. A shown item only starts rotating once this has passed, so suggestions stay put during a visit.",
+  "cooldownAfterFeedbackWindow": "Rotation must last longer than the feedback window, or be 0 to turn it off.",
   "save": "Save As New Version",
   "history": {
     "title": "Version History",

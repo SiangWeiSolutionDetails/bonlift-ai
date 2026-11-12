@@ -10,11 +10,12 @@ import { assertValid } from "../utils/validate.js";
 
 // $1 = recommendation id, $2 = the API key's brand id, $3 = item id, $4 = 'accepted' or 'rejected',
 // $5 = hashed customer id.
-// Feedback only counts for an item of the brand's own serve, within 2 hours of it; only identified customers' serves
-// are recorded. Anything else matches no serve and changes nothing. Each item is added to its array once, so a retry
-// adds nothing.
-// A rejection is remembered for the customer (the latest rejection wins) and an acceptance forgets it. Every write
-// hangs off the serve update, so nothing happens without a match.
+// Feedback only counts for an item of the brand's own serve, within the brand's latest feedback window of it; only
+// identified customers' serves are recorded. Anything else matches no serve and changes nothing. Each item is added
+// to its array once, so a retry adds nothing.
+// A rejection is remembered for the customer (the latest rejection wins) and an acceptance forgets it, together with
+// when the item was last shown, so an accepted item is not moved down on the next serves. Every write hangs off the
+// serve update, so nothing happens without a match.
 const RECORD_FEEDBACK_SQL = `
 WITH feedback AS (
   UPDATE recommendation_serves s
@@ -29,7 +30,13 @@ WITH feedback AS (
   WHERE s.id = $1
     AND s.brand_id = $2
     AND $3 = ANY(s.item_ids)
-    AND s.served_at > now() - interval '2 hours'
+    AND s.served_at > now() - make_interval(mins => (
+      SELECT c.feedback_window_minutes
+      FROM serving_config_versions c
+      WHERE c.brand_id = s.brand_id
+      ORDER BY c.version DESC
+      LIMIT 1
+    ))
   RETURNING s.brand_id
 ),
 remembered AS (
@@ -47,6 +54,14 @@ forgotten AS (
     AND r.brand_id = f.brand_id
     AND r.customer_external_id = $5
     AND r.external_item_id = $3
+),
+unshown AS (
+  DELETE FROM customer_item_exposures e
+  USING feedback f
+  WHERE $4 = 'accepted'
+    AND e.brand_id = f.brand_id
+    AND e.customer_external_id = $5
+    AND e.external_item_id = $3
 )
 SELECT count(*)::int AS matched
 FROM feedback;

@@ -22,7 +22,7 @@ export function registerApiDocs(app: FastifyInstance) {
       // items an identified customer rejected recently are no longer recommended to them. Feedback documents its 500
       // (retry), unlike /v1/recommendations, which returns an empty list on failure. Feedback requires customerId (400
       // without it), and anonymous responses have a null recommendationId and are not recorded.
-      info: { title: "BonLift AI Serving API", version: "1.8.0" },
+      info: { title: "BonLift AI Serving API", version: "1.9.0" },
       components: {
         securitySchemes: {
           apiKey: { type: "apiKey", in: "header", name: "x-api-key" },

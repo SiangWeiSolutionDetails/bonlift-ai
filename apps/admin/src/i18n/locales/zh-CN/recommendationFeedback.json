@@ -22,7 +22,8 @@
   },
   "reasons": {
     "frequently_ordered": "常点商品",
-    "popular_at_outlet": "门店热销"
+    "popular_at_outlet": "门店热销",
+    "related_to_favourite": "常点商品搭配"
   },
   "dayparts": {
     "allDay": "全天"

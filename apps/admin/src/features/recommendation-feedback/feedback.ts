@@ -3,7 +3,11 @@ import { differenceInCalendarDays } from "date-fns";
 import { parseIsoDate } from "../../lib/date-format";
 import type { FeedbackDay, ServedItem, ServedItemOutcome } from "./type";
 
-export const FEEDBACK_REASONS = ["frequently_ordered", "popular_at_outlet"] as const;
+export const FEEDBACK_REASONS = [
+  "frequently_ordered",
+  "popular_at_outlet",
+  "related_to_favourite",
+] as const;
 export type FeedbackReason = (typeof FEEDBACK_REASONS)[number];
 
 // Stack order of the daily chart, bottom to top, and column order of the tables.

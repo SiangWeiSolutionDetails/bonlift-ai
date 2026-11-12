@@ -11,6 +11,8 @@ export const ServingConfigVersionRecordSchema = Type.Object(
     bestSellerMaxRank: Type.Integer({ minimum: 1 }),
     bestSellerMinListSize: Type.Integer({ minimum: 1 }),
     rejectionSuppressionDays: Type.Integer({ minimum: 0, maximum: 365 }),
+    repeatCooldownHours: Type.Integer({ minimum: 0, maximum: 720 }),
+    feedbackWindowMinutes: Type.Integer({ minimum: 5, maximum: 1440 }),
   },
   { additionalProperties: false },
 );
@@ -32,6 +34,8 @@ export const CreateServingConfigVersionBodySchema = Type.Object(
     bestSellerMaxRank: Type.Optional(Type.Integer({ minimum: 1 })),
     bestSellerMinListSize: Type.Optional(Type.Integer({ minimum: 1 })),
     rejectionSuppressionDays: Type.Optional(Type.Integer({ minimum: 0, maximum: 365 })),
+    repeatCooldownHours: Type.Optional(Type.Integer({ minimum: 0, maximum: 720 })),
+    feedbackWindowMinutes: Type.Optional(Type.Integer({ minimum: 5, maximum: 1440 })),
   },
   { additionalProperties: false, minProperties: 1 },
 );

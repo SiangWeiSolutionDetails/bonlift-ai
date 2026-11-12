@@ -69,6 +69,10 @@ function favouriteRow(itemId: string, runId: string | null = RUN_ID) {
   };
 }
 
+function relatedRow(itemId: string, basedOn: string[] | null) {
+  return { ...favouriteRow(itemId), source: "related", based_on: basedOn };
+}
+
 function outletRow(itemId: string, outletRank: number, outletListSize: number) {
   return { ...itemRow(itemId), outlet_rank: outletRank, outlet_list_size: outletListSize };
 }
@@ -405,6 +409,38 @@ describe("getRecommendations", () => {
       expect((await servedItem({ ...favouriteRow("F1"), based_on: basedOn })).detail).toBeUndefined();
     });
 
+    it("serves a related item with its own reason, listing at most 3 favourites it goes with", async () => {
+      expect(await servedItem(relatedRow("R1", ["F2", "F1", "F4", "F3"]))).toStrictEqual({
+        itemId: "R1",
+        rank: 1,
+        reason: "related_to_favourite",
+        detail: { basedOn: ["F2", "F1", "F4"] },
+      });
+    });
+
+    it("never marks a related item a best seller, even with outlet rank columns set", async () => {
+      expect(
+        await servedItem({ ...relatedRow("R1", ["F1"]), outlet_rank: 1, outlet_list_size: 10 }),
+      ).toStrictEqual({
+        itemId: "R1",
+        rank: 1,
+        reason: "related_to_favourite",
+        detail: { basedOn: ["F1"] },
+      });
+    });
+
+    it("keeps the query's order across favourites and related items", async () => {
+      queryMock.mockResolvedValueOnce(pgResult([favouriteRow("F1"), relatedRow("R1", ["F1"]), favouriteRow("F2")]));
+
+      const result = await recommend(IDENTIFIED_REQUEST);
+
+      expect(result.items.map((item) => [item.itemId, item.rank, item.reason])).toStrictEqual([
+        ["F1", 1, "frequently_ordered"],
+        ["R1", 2, "related_to_favourite"],
+        ["F2", 3, "frequently_ordered"],
+      ]);
+    });
+
     it("never gives a popular item basedOn", async () => {
       expect(await servedItem({ ...itemRow("A"), based_on: ["C1"] })).toStrictEqual({
         itemId: "A",
@@ -456,6 +492,7 @@ describe("getRecommendations serve", () => {
     expect(serve).toStrictEqual({
       id: response.recommendationId,
       brandId: BRAND_ID,
+      storedCustomerId: hashCustomerId(SECRET, "6591234567"),
       outletId: OUTLET_ID,
       daypart: "Lunch",
       runId: RUN_ID,
@@ -485,12 +522,16 @@ describe("getRecommendations serve", () => {
     expect(serve).toBeNull();
   });
 
-  it("keeps an identified customer's serve without the customer id", async () => {
+  it("keeps an identified customer's serve with the hashed customer id, never the plain one", async () => {
     queryMock.mockResolvedValueOnce(pgResult([favouriteRow("F1")]));
 
     const { serve } = await serveFor({ ...REQUEST, customerId: "6591234567" });
 
-    expect(serve).toMatchObject({ customerRunId: CUSTOMER_RUN_ID, reasons: ["frequently_ordered"] });
+    expect(serve).toMatchObject({
+      customerRunId: CUSTOMER_RUN_ID,
+      reasons: ["frequently_ordered"],
+      storedCustomerId: hashCustomerId(SECRET, "6591234567"),
+    });
     expect(JSON.stringify(serve)).not.toContain("6591234567");
   });
 

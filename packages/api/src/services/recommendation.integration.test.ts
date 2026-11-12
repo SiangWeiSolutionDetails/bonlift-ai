@@ -30,6 +30,7 @@ let customerRunId: string;
 // A succeeded run on the brand's latest config version, published the way the worker publishes it.
 async function publishRun(
   jobType: "outlet_item_scores" | "customer_item_scores" | "item_affinity",
+  brand = brandId,
 ): Promise<string> {
   const result = await getTestPool().query(
     `
@@ -57,7 +58,7 @@ async function publishRun(
     )
     SELECT id FROM run;
     `,
-    [brandId, outletId, jobType],
+    [brand, outletId, jobType],
   );
   return result.rows[0].id;
 }
@@ -89,6 +90,7 @@ async function storeFavourites(runId: string, rows: [daypart: string, itemId: st
 async function storeAffinity(
   runId: string,
   rows: [itemA: string, itemB: string, confidence: number, lift?: number, nItemA?: number][],
+  brand = brandId,
 ) {
   for (const [itemA, itemB, confidence, lift = 2, nItemA = 20] of rows) {
     await getTestPool().query(
@@ -96,7 +98,7 @@ async function storeAffinity(
       INSERT INTO item_affinity_scores (run_id, run_date, brand_id, item_a, item_b, n_pair, n_item_a, confidence, lift, rank)
       VALUES ($1, current_date, $2, $3, $4, 10, $7, $5, $6, 1);
       `,
-      [runId, brandId, itemA, itemB, confidence, lift, nItemA],
+      [runId, brand, itemA, itemB, confidence, lift, nItemA],
     );
   }
 }
@@ -491,5 +493,355 @@ describe("items the customer rejected (integration)", () => {
       },
     ]);
     expect(await recommendedItemIds("breakfast")).toEqual(["TOAST"]);
+  });
+});
+
+type ServeRequest = Partial<Parameters<typeof getRecommendations>[3]>;
+
+// Serves and records the serve the way the route's onResponse hook does.
+async function serveAndRecord(request: ServeRequest = {}) {
+  const pool = getTestPool();
+  const served = await getRecommendations(
+    pool,
+    silentLog,
+    brandId,
+    { outletId, cart: [], customerId: CUSTOMER_ID, daypart: "breakfast", limit: 10, ...request },
+    SECRET,
+  );
+  if (served.serve) {
+    await recordRecommendationServe(pool, served.serve, null);
+  }
+  return served;
+}
+
+async function exposedItemIds(brand = brandId): Promise<string[]> {
+  const result = await getTestPool().query(
+    `
+    SELECT external_item_id
+    FROM customer_item_exposures
+    WHERE brand_id = $1
+      AND customer_external_id = $2
+    ORDER BY external_item_id
+    `,
+    [brand, CUSTOMER_HASH],
+  );
+  return result.rows.map((row) => row.external_item_id);
+}
+
+// A showing only moves an item down once the feedback window (2 hours by default) has closed.
+async function closeFeedbackWindow(age = "2 hours 1 minute"): Promise<void> {
+  await getTestPool().query("UPDATE customer_item_exposures SET last_shown_at = now() - $1::interval", [age]);
+}
+
+async function createOtherBrand(): Promise<string> {
+  const pool = getTestPool();
+  const tenant = await createTenant(pool, { name: "Other Foods" });
+  return (await createBrand(pool, { tenantId: tenant.id, name: "Other House" })).id;
+}
+
+describe("items shown before (integration)", () => {
+  const OTHER_CUSTOMER_ID = "6599999999";
+
+  beforeEach(async () => {
+    await storeFavourites(customerRunId, [["breakfast", "MILO", 2]]);
+  });
+
+  it("moves a favourite shown and not accepted below the others on the next serve", async () => {
+    expect((await serveAndRecord({ limit: 1 })).response.items.map((item) => item.itemId)).toEqual(["KAYA"]);
+    await closeFeedbackWindow();
+
+    expect(await recommendedItemIds("breakfast")).toEqual(["MILO", "KAYA"]);
+    expect(await recommendedItemIds("breakfast", { limit: 1 })).toEqual(["MILO"]);
+  });
+
+  it("puts every shown favourite back in stored order once all were shown", async () => {
+    await serveAndRecord();
+    await closeFeedbackWindow();
+
+    expect(await recommendedItemIds("breakfast")).toEqual(["KAYA", "MILO"]);
+  });
+
+  it("serves an accepted favourite first again", async () => {
+    const { response } = await serveAndRecord({ limit: 1 });
+    await closeFeedbackWindow();
+
+    await recordRecommendationFeedback(
+      getTestPool(),
+      brandId,
+      response.recommendationId!,
+      { itemId: "KAYA", type: "accepted", customerId: CUSTOMER_ID },
+      SECRET,
+    );
+
+    expect(await exposedItemIds()).toEqual([]);
+    expect(await recommendedItemIds("breakfast")).toEqual(["KAYA", "MILO"]);
+  });
+
+  it("keeps a shown item moved down when the customer accepts another one", async () => {
+    const { response } = await serveAndRecord();
+
+    await recordRecommendationFeedback(
+      getTestPool(),
+      brandId,
+      response.recommendationId!,
+      { itemId: "MILO", type: "accepted", customerId: CUSTOMER_ID },
+      SECRET,
+    );
+
+    expect(await exposedItemIds()).toEqual(["KAYA"]);
+    await closeFeedbackWindow();
+    expect(await recommendedItemIds("breakfast")).toEqual(["MILO", "KAYA"]);
+  });
+
+  it("keeps an item shown within the feedback window in place, so the list is stable within a visit", async () => {
+    await serveAndRecord({ limit: 1 });
+    await closeFeedbackWindow("1 hour 59 minutes");
+
+    expect(await exposedItemIds()).toEqual(["KAYA"]);
+    expect(await recommendedItemIds("breakfast")).toEqual(["KAYA", "MILO"]);
+  });
+
+  it("uses the brand's latest feedback window", async () => {
+    await createServingConfigVersion(getTestPool(), brandId, { feedbackWindowMinutes: 30 }, "test");
+    await serveAndRecord({ limit: 1 });
+
+    await closeFeedbackWindow("29 minutes");
+    expect(await recommendedItemIds("breakfast")).toEqual(["KAYA", "MILO"]);
+
+    await closeFeedbackWindow("31 minutes");
+    expect(await recommendedItemIds("breakfast")).toEqual(["MILO", "KAYA"]);
+  });
+
+  it("serves the stored order again once the cooldown has passed", async () => {
+    await serveAndRecord({ limit: 1 });
+    await getTestPool().query("UPDATE customer_item_exposures SET last_shown_at = now() - interval '25 hours'");
+
+    expect(await recommendedItemIds("breakfast")).toEqual(["KAYA", "MILO"]);
+  });
+
+  it("moves nothing with a cooldown of 0 hours", async () => {
+    await createServingConfigVersion(getTestPool(), brandId, { repeatCooldownHours: 0 }, "test");
+
+    await serveAndRecord({ limit: 1 });
+    await closeFeedbackWindow();
+
+    expect(await exposedItemIds()).toEqual(["KAYA"]);
+    expect(await recommendedItemIds("breakfast")).toEqual(["KAYA", "MILO"]);
+  });
+
+  it("puts a favourite not shown recently above one that goes with the cart", async () => {
+    const affinityRunId = await publishRun("item_affinity");
+    await storeAffinity(affinityRunId, [["BURGER", "MILO", 0.6]]);
+    const request = { cart: cartOf("BURGER"), daypart: "breakfast" };
+    expect(await recommendedItemIds("breakfast", request)).toEqual(["MILO", "KAYA"]);
+
+    await serveAndRecord({ ...request, limit: 1 });
+    await closeFeedbackWindow();
+
+    expect(await recommendedItemIds("breakfast", request)).toEqual(["KAYA", "MILO"]);
+  });
+
+  it("moves a popular item shown to an identified customer below the others", async () => {
+    await serveAndRecord({ customerId: OTHER_CUSTOMER_ID, daypart: undefined, limit: 1 });
+    await closeFeedbackWindow();
+
+    expect(await recommendedItemIds(undefined, { customerId: OTHER_CUSTOMER_ID })).toEqual(["RICE", "TOAST"]);
+  });
+
+  it("records nothing for an anonymous request and never rotates one", async () => {
+    await serveAndRecord({ customerId: OTHER_CUSTOMER_ID, daypart: undefined, limit: 1 });
+    await closeFeedbackWindow();
+
+    const anonymous = await serveAndRecord({ customerId: undefined, daypart: undefined, limit: 1 });
+
+    expect(anonymous.serve).toBeNull();
+    expect(anonymous.response.items.map((item) => item.itemId)).toEqual(["TOAST"]);
+    expect(await recommendedItemIds(undefined, { customerId: undefined })).toEqual(["TOAST", "RICE"]);
+    const count = await getTestPool().query("SELECT count(*)::int AS n FROM customer_item_exposures");
+    expect(count.rows[0].n).toBe(1);
+  });
+
+  it("leaves other customers unaffected", async () => {
+    await serveAndRecord({ customerId: OTHER_CUSTOMER_ID, daypart: undefined, limit: 1 });
+    await closeFeedbackWindow();
+
+    expect(await recommendedItemIds(undefined, { customerId: "6598765432" })).toEqual(["TOAST", "RICE"]);
+  });
+
+  it("ignores items shown to the same customer by another brand", async () => {
+    const otherBrandId = await createOtherBrand();
+    await getTestPool().query(
+      "INSERT INTO customer_item_exposures (brand_id, customer_external_id, external_item_id) VALUES ($1, $2, 'KAYA')",
+      [otherBrandId, CUSTOMER_HASH],
+    );
+    await closeFeedbackWindow();
+
+    expect(await recommendedItemIds("breakfast")).toEqual(["KAYA", "MILO"]);
+  });
+});
+
+describe("recordRecommendationServe (integration)", () => {
+  beforeEach(async () => {
+    await storeFavourites(customerRunId, [["breakfast", "MILO", 2]]);
+  });
+
+  it("records when the customer was shown every served item, keeping no customer id on the serve", async () => {
+    const { response } = await serveAndRecord();
+
+    expect(await exposedItemIds()).toEqual(["KAYA", "MILO"]);
+    const stored = await getTestPool().query(
+      "SELECT row_to_json(s)::text AS row FROM recommendation_serves s WHERE id = $1",
+      [response.recommendationId],
+    );
+    expect(stored.rows).toHaveLength(1);
+    expect(stored.rows[0].row).not.toContain(CUSTOMER_HASH);
+    expect(stored.rows[0].row).not.toContain(CUSTOMER_ID);
+  });
+
+  it("moves the time an item was last shown forward when it is shown again", async () => {
+    await serveAndRecord({ limit: 1 });
+    await getTestPool().query("UPDATE customer_item_exposures SET last_shown_at = now() - interval '10 days'");
+
+    await serveAndRecord({ limit: 1 });
+
+    const result = await getTestPool().query(
+      "SELECT external_item_id, last_shown_at > now() - interval '1 minute' AS recent FROM customer_item_exposures",
+    );
+    expect(result.rows).toStrictEqual([{ external_item_id: "KAYA", recent: true }]);
+  });
+});
+
+describe("items related to the customer's favourites (integration)", () => {
+  let affinityRunId: string;
+
+  beforeEach(async () => {
+    await storeFavourites(customerRunId, [["breakfast", "MILO", 2]]);
+    affinityRunId = await publishRun("item_affinity");
+    await storeAffinity(affinityRunId, [
+      ["KAYA", "TEA", 0.6],
+      ["MILO", "TEA", 0.4],
+      ["KAYA", "MILO", 0.9],
+      ["MILO", "ROTI", 0.5],
+      ["KAYA", "EGG", 0.3],
+    ]);
+  });
+
+  async function servedItems(request: ServeRequest = {}) {
+    const response = await recommend(getTestPool(), silentLog, brandId, {
+      outletId,
+      cart: [],
+      customerId: CUSTOMER_ID,
+      daypart: "breakfast",
+      limit: 10,
+      ...request,
+    });
+    return response.items;
+  }
+
+  it("serves related items after the favourites, strongest first, with the favourites they go with", async () => {
+    expect(await servedItems()).toStrictEqual([
+      { itemId: "KAYA", rank: 1, reason: "frequently_ordered" },
+      { itemId: "MILO", rank: 2, reason: "frequently_ordered" },
+      { itemId: "TEA", rank: 3, reason: "related_to_favourite", detail: { basedOn: ["KAYA", "MILO"] } },
+      { itemId: "ROTI", rank: 4, reason: "related_to_favourite", detail: { basedOn: ["MILO"] } },
+      { itemId: "EGG", rank: 5, reason: "related_to_favourite", detail: { basedOn: ["KAYA"] } },
+    ]);
+  });
+
+  it("orders related items with the same confidence by lift", async () => {
+    await storeAffinity(affinityRunId, [["KAYA", "BUN", 0.6, 3]]);
+
+    expect((await servedItems()).map((item) => item.itemId)).toEqual(["KAYA", "MILO", "BUN", "TEA", "ROTI", "EGG"]);
+  });
+
+  it("never relates a favourite, even one removed from the response", async () => {
+    expect((await servedItems({ exclude: ["MILO"] })).map((item) => [item.itemId, item.reason])).toEqual([
+      ["KAYA", "frequently_ordered"],
+      ["TEA", "related_to_favourite"],
+      ["ROTI", "related_to_favourite"],
+      ["EGG", "related_to_favourite"],
+    ]);
+  });
+
+  it.each([
+    ["in the cart", { cart: cartOf("TEA") }],
+    ["excluded", { exclude: ["TEA"] }],
+    ["not included", { include: ["KAYA", "MILO", "ROTI", "EGG"] }],
+  ])("never serves a related item %s", async (_name, request) => {
+    expect((await servedItems(request)).map((item) => item.itemId)).toEqual(["KAYA", "MILO", "ROTI", "EGG"]);
+  });
+
+  it("never serves a related item the customer rejected", async () => {
+    await getTestPool().query(
+      "INSERT INTO customer_item_rejections (brand_id, customer_external_id, external_item_id) VALUES ($1, $2, 'TEA')",
+      [brandId, CUSTOMER_HASH],
+    );
+
+    expect((await servedItems()).map((item) => item.itemId)).toEqual(["KAYA", "MILO", "ROTI", "EGG"]);
+  });
+
+  it("serves related items instead of popular ones when every favourite is in the cart", async () => {
+    expect(await servedItems({ cart: cartOf("KAYA", "MILO") })).toStrictEqual([
+      { itemId: "TEA", rank: 1, reason: "related_to_favourite", detail: { basedOn: ["KAYA", "MILO"] } },
+      { itemId: "ROTI", rank: 2, reason: "related_to_favourite", detail: { basedOn: ["MILO"] } },
+      { itemId: "EGG", rank: 3, reason: "related_to_favourite", detail: { basedOn: ["KAYA"] } },
+    ]);
+  });
+
+  it("serves no related items to an anonymous customer", async () => {
+    expect((await servedItems({ customerId: undefined })).map((item) => item.itemId)).toEqual(["TOAST"]);
+  });
+
+  it("moves a related item shown recently below the other related items", async () => {
+    await getTestPool().query(
+      "INSERT INTO customer_item_exposures (brand_id, customer_external_id, external_item_id) VALUES ($1, $2, 'TEA')",
+      [brandId, CUSTOMER_HASH],
+    );
+    await closeFeedbackWindow();
+
+    expect((await servedItems()).map((item) => item.itemId)).toEqual(["KAYA", "MILO", "ROTI", "EGG", "TEA"]);
+  });
+
+  it("ignores another brand's affinity run", async () => {
+    const otherBrandId = await createOtherBrand();
+    const otherRunId = await publishRun("item_affinity", otherBrandId);
+    await storeAffinity(otherRunId, [["KAYA", "LEAK", 0.99]], otherBrandId);
+
+    expect((await servedItems()).map((item) => item.itemId)).not.toContain("LEAK");
+  });
+
+  describe("reserved slot", () => {
+    beforeEach(async () => {
+      await storeFavourites(customerRunId, [["breakfast", "BUN", 3]]);
+    });
+
+    it.each([
+      [3, ["KAYA", "MILO", "TEA"]],
+      [2, ["KAYA", "TEA"]],
+      [1, ["KAYA"]],
+    ])("keeps the last of %i slots for a related item, except with a single slot", async (limit, expected) => {
+      expect((await servedItems({ limit })).map((item) => item.itemId)).toEqual(expected);
+    });
+
+    it("fills the slots left by too few favourites with related items", async () => {
+      expect((await servedItems({ limit: 4, exclude: ["MILO", "BUN"] })).map((item) => item.itemId)).toEqual([
+        "KAYA",
+        "TEA",
+        "ROTI",
+        "EGG",
+      ]);
+    });
+
+    it("serves a related item in a single slot when no favourite is left", async () => {
+      expect(
+        (await servedItems({ limit: 1, cart: cartOf("KAYA", "MILO", "BUN") })).map((item) => item.itemId),
+      ).toEqual(["TEA"]);
+    });
+
+    it("gives every slot to favourites when no related item is left", async () => {
+      expect(
+        (await servedItems({ limit: 3, include: ["KAYA", "MILO", "BUN"] })).map((item) => item.itemId),
+      ).toEqual(["KAYA", "MILO", "BUN"]);
+    });
   });
 });

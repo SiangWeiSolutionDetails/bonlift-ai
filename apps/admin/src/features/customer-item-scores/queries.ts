@@ -6,6 +6,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import {
+  getCustomerItemScoresRun,
   getRunCustomer,
   listCustomerItemScoresRuns,
   listRunCustomers,
@@ -21,6 +22,8 @@ export const customerItemScoresKeys = {
   all: ["customer-item-scores"] as const,
   runs: (brandId: string) =>
     [...customerItemScoresKeys.all, "runs", brandId] as const,
+  run: (runId: string) =>
+    [...customerItemScoresKeys.all, "run", runId] as const,
   customers: (runId: string) =>
     [...customerItemScoresKeys.all, "customers", runId] as const,
   // Holds the normalised id in the client cache only; it is sent in a POST body, never in a URL.
@@ -43,6 +46,17 @@ export function useCustomerItemScoresRuns(brandId: string | undefined) {
       : skipToken,
     refetchInterval: (query) =>
       hasRunningRun(query.state.data) ? RUNNING_POLL_MS : false,
+  });
+}
+
+// For a linked run older than the newest page of the runs list.
+export function useCustomerItemScoresRun(runId: string | undefined) {
+  return useQuery({
+    queryKey: customerItemScoresKeys.run(runId ?? ""),
+    queryFn: runId
+      ? ({ signal }) => getCustomerItemScoresRun(runId, signal)
+      : skipToken,
+    retry: false,
   });
 }
 

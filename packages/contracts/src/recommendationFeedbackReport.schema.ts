@@ -111,6 +111,29 @@ export const ServedItemSchema = Type.Object(
 );
 export type ServedItemSchemaType = Static<typeof ServedItemSchema>;
 
+// available false: the run was deleted after the serve; serves keep the id without a foreign key.
+export const ServeRunLinkSchema = Type.Object(
+  {
+    runId: Type.String({ format: "uuid" }),
+    available: Type.Boolean(),
+  },
+  { additionalProperties: false },
+);
+export type ServeRunLinkSchemaType = Static<typeof ServeRunLinkSchema>;
+
+const NullableRunLink = Type.Union([ServeRunLinkSchema, Type.Null()]);
+
+// The runs that produced the serve; null when that source was not used.
+export const ServeRunsSchema = Type.Object(
+  {
+    outletScores: NullableRunLink,
+    customerScores: NullableRunLink,
+    itemAffinity: NullableRunLink,
+  },
+  { additionalProperties: false },
+);
+export type ServeRunsSchemaType = Static<typeof ServeRunsSchema>;
+
 // channelCode null: served with a key without a channel.
 export const RecommendationServeLogEntrySchema = Type.Object(
   {
@@ -121,6 +144,7 @@ export const RecommendationServeLogEntrySchema = Type.Object(
     channelCode: Type.Union([Type.String(), Type.Null()]),
     daypart: Type.String(),
     items: Type.Array(ServedItemSchema),
+    runs: ServeRunsSchema,
   },
   { additionalProperties: false },
 );

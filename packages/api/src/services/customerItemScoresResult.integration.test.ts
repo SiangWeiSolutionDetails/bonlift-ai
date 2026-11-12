@@ -1,4 +1,6 @@
+import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
+import { NotFoundError } from "../errors.js";
 import { readCustomerIdSecret } from "../config/env.js";
 import { getTestPool } from "../testing/testDb.js";
 import { hashCustomerId } from "../utils/customerIdHash.js";
@@ -10,6 +12,7 @@ import {
 import {
   getCustomerItemScoresCustomerResult,
   getCustomerItemScoresCustomers,
+  getCustomerItemScoresRun,
   getCustomerItemScoresRuns,
 } from "./customerItemScoresResult.service.js";
 import { createOutletItemScoresCalculationConfigVersion } from "./outletItemScoresCalculationConfigVersion.service.js";
@@ -98,5 +101,14 @@ describe("customerItemScoresResult.service (integration)", () => {
     expect(created).toMatchObject({ version: 2, maxRecentOrders: 5 });
     expect(keptLimit).toMatchObject({ version: 3, topN: 10, maxRecentOrders: 5 });
     expect((await getCustomerItemScoresRuns(pool, brandId, {}))[0]).toMatchObject({ configVersion: 3, maxRecentOrders: 5 });
+  });
+
+  it("gets one run by id, as the list shows it", async () => {
+    const pool = getTestPool();
+    const brandId = await createTestBrand();
+    const runId = await createCustomerRun(brandId);
+
+    expect(await getCustomerItemScoresRun(pool, runId)).toStrictEqual((await getCustomerItemScoresRuns(pool, brandId, {}))[0]);
+    await expect(getCustomerItemScoresRun(pool, randomUUID())).rejects.toThrow(NotFoundError);
   });
 });

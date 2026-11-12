@@ -28,6 +28,33 @@ interface StoredServe {
   reasons?: string[];
   accepted?: string[];
   rejected?: string[];
+  runId?: string | null;
+  customerRunId?: string | null;
+  affinityRunId?: string | null;
+}
+
+type JobType = "outlet_item_scores" | "customer_item_scores" | "item_affinity";
+
+// A finished run on the brand's latest config version; outlet scores runs belong to the outlet.
+async function storeRun(jobType: JobType, brand = brandId, outlet = outletId): Promise<string> {
+  const result = await getTestPool().query(
+    `
+    INSERT INTO computation_runs (
+      brand_id, outlet_id, job_type, run_date, algorithm_version, calculation_config_version_id,
+      input_window_from, input_window_to, trigger_type, triggered_by, status, row_count
+    )
+    SELECT $1, CASE WHEN $3 = 'outlet_item_scores' THEN $2::uuid END, $3, current_date, 'test', v.id,
+           '2026-01-01', '2026-01-01', 'manual', 'test', 'succeeded', 1
+    FROM calculation_config_versions v
+    WHERE v.brand_id = $1
+      AND v.job_type = $3
+    ORDER BY v.version DESC
+    LIMIT 1
+    RETURNING id;
+    `,
+    [brand, outlet, jobType],
+  );
+  return result.rows[0].id;
 }
 
 // servedAt is SQL so tests can place serves relative to the database's now().
@@ -38,9 +65,9 @@ async function storeServe(serve: StoredServe): Promise<string> {
     `
     INSERT INTO recommendation_serves (
       id, brand_id, channel_id, outlet_id, daypart, item_ids, reasons, accepted_item_ids,
-      rejected_item_ids, served_at
+      rejected_item_ids, run_id, customer_run_id, affinity_run_id, served_at
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, ${serve.servedAt})
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, ${serve.servedAt})
     `,
     [
       id,
@@ -52,6 +79,9 @@ async function storeServe(serve: StoredServe): Promise<string> {
       serve.reasons ?? itemIds.map(() => "popular_at_outlet"),
       serve.accepted ?? [],
       serve.rejected ?? [],
+      serve.runId ?? null,
+      serve.customerRunId ?? null,
+      serve.affinityRunId ?? null,
     ],
   );
   return id;
@@ -293,9 +323,54 @@ describe("listRecommendationServes (integration)", () => {
             { itemId: "B", label: "B", rank: 2, reason: "popular_at_outlet", outcome: "rejected" },
             { itemId: "C", label: "C", rank: 3, reason: "popular_at_outlet", outcome: null },
           ],
+          runs: { outletScores: null, customerScores: null, itemAffinity: null },
         },
       ],
       nextCursor: null,
+    });
+  });
+
+  it("links the runs that produced a serve, null for a source it did not use", async () => {
+    const runId = await storeRun("outlet_item_scores");
+    const affinityRunId = await storeRun("item_affinity");
+    await storeServe({ servedAt: at("2026-01-02T01:00:00Z"), runId, affinityRunId });
+
+    const page = await serves();
+
+    expect(page.serves[0].runs).toStrictEqual({
+      outletScores: { runId, available: true },
+      customerScores: null,
+      itemAffinity: { runId: affinityRunId, available: true },
+    });
+  });
+
+  it("reports a run that no longer exists as unavailable", async () => {
+    const deletedRunId = randomUUID();
+    const customerRunId = await storeRun("customer_item_scores");
+    await storeServe({ servedAt: at("2026-01-02T01:00:00Z"), runId: deletedRunId, customerRunId });
+
+    const page = await serves();
+
+    expect(page.serves[0].runs).toStrictEqual({
+      outletScores: { runId: deletedRunId, available: false },
+      customerScores: { runId: customerRunId, available: true },
+      itemAffinity: null,
+    });
+  });
+
+  it("never reports another brand's run as available", async () => {
+    const otherOutletId = (await createOutlet(getTestPool(), { brandId: otherBrandId, name: "Elsewhere" })).id;
+    const runId = await storeRun("outlet_item_scores", otherBrandId, otherOutletId);
+    const customerRunId = await storeRun("customer_item_scores", otherBrandId);
+    const affinityRunId = await storeRun("item_affinity", otherBrandId);
+    await storeServe({ servedAt: at("2026-01-02T01:00:00Z"), runId, customerRunId, affinityRunId });
+
+    const page = await serves();
+
+    expect(page.serves[0].runs).toStrictEqual({
+      outletScores: { runId, available: false },
+      customerScores: { runId: customerRunId, available: false },
+      itemAffinity: { runId: affinityRunId, available: false },
     });
   });
 

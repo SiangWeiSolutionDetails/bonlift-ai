@@ -17,7 +17,10 @@ import { RunCalculationDialog } from "@/features/item-affinity/components/run-ca
 import { RunResultsCard } from "@/features/item-affinity/components/run-results-card";
 import { RunsCard } from "@/features/item-affinity/components/runs-card";
 import { ScoreFormula } from "@/features/item-affinity/components/score-formula";
-import { useItemAffinityRuns } from "@/features/item-affinity/queries";
+import {
+  useItemAffinityRun,
+  useItemAffinityRuns,
+} from "@/features/item-affinity/queries";
 import type { ItemAffinitySearch } from "@/features/item-affinity/search";
 
 const routeApi = getRouteApi("/item-affinity");
@@ -32,9 +35,18 @@ export function ItemAffinityPage() {
   const runs = useItemAffinityRuns(search.brandId);
   const runList = runs.data ?? [];
   const publishedRun = runList.find((run) => run.isPublished);
+  const listedRun = runList.find((run) => run.id === search.runId);
+  // A linked run older than the list's newest runs is fetched on its own; one of another brand is ignored
+  const linkedRun = useItemAffinityRun(
+    runs.isSuccess && !listedRun ? search.runId : undefined,
+  );
+  const unlistedRun =
+    linkedRun.data?.brandId === search.brandId ? linkedRun.data : undefined;
   // No run chosen: show what the brand serves now, else the newest run
   const viewingRun =
-    runList.find((run) => run.id === search.runId) ?? publishedRun ?? runList[0];
+    listedRun ??
+    unlistedRun ??
+    (linkedRun.isLoading ? undefined : (publishedRun ?? runList[0]));
 
   // replace: picking a brand, run or item should not fill the back button history
   // resetScroll: a selection change should keep the user's scroll position

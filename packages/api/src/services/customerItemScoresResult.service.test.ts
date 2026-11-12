@@ -5,6 +5,7 @@ import { pgResult } from "../utils/pg.test-helpers.js";
 import {
   getCustomerItemScoresCustomerResult,
   getCustomerItemScoresCustomers,
+  getCustomerItemScoresRun,
   getCustomerItemScoresRuns,
   publishCustomerItemScoresRun,
   searchCustomerItemScoresCustomer,
@@ -68,6 +69,32 @@ describe("getCustomerItemScoresRuns", () => {
 
     expect(run.brandId).toBe(BRAND_ID);
     expect(run).not.toHaveProperty("dayparts");
+    expect(run).not.toHaveProperty("outletId");
+  });
+});
+
+describe("getCustomerItemScoresRun", () => {
+  it("throws NotFoundError when the run does not exist", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([]));
+
+    await expect(getCustomerItemScoresRun(fakePool, RUN_ID)).rejects.toThrow(NotFoundError);
+  });
+
+  it("looks the run up by id", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([fakeRunRow()]));
+
+    await getCustomerItemScoresRun(fakePool, RUN_ID);
+
+    expect(queryMock).toHaveBeenCalledWith(expect.any(String), [RUN_ID]);
+  });
+
+  it("maps the run with its brand", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([fakeRunRow()]));
+
+    const run = await getCustomerItemScoresRun(fakePool, RUN_ID);
+
+    expect(run.id).toBe(RUN_ID);
+    expect(run.brandId).toBe(BRAND_ID);
     expect(run).not.toHaveProperty("outletId");
   });
 });

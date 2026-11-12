@@ -5,6 +5,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import {
+  getItemAffinityRun,
   getRunItem,
   listItemAffinityRuns,
   listRunItems,
@@ -19,6 +20,8 @@ export const itemAffinityKeys = {
   all: ["item-affinity"] as const,
   runs: (brandId: string) =>
     [...itemAffinityKeys.all, "runs", brandId] as const,
+  run: (runId: string) =>
+    [...itemAffinityKeys.all, "run", runId] as const,
   items: (runId: string) =>
     [...itemAffinityKeys.all, "items", runId] as const,
   item: (runId: string, itemId: string) =>
@@ -38,6 +41,15 @@ export function useItemAffinityRuns(brandId: string | undefined) {
       : skipToken,
     refetchInterval: (query) =>
       hasRunningRun(query.state.data) ? RUNNING_POLL_MS : false,
+  });
+}
+
+// For a linked run older than the newest page of the runs list.
+export function useItemAffinityRun(runId: string | undefined) {
+  return useQuery({
+    queryKey: itemAffinityKeys.run(runId ?? ""),
+    queryFn: runId ? ({ signal }) => getItemAffinityRun(runId, signal) : skipToken,
+    retry: false,
   });
 }
 

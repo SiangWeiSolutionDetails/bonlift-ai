@@ -49,6 +49,13 @@
     "outlet": "门店",
     "channel": "渠道",
     "daypart": "时段",
+    "runs": "运行",
+    "runType": {
+      "outletScores": "门店评分",
+      "customerScores": "顾客评分",
+      "itemAffinity": "商品关联"
+    },
+    "runUnavailable": "{{type}} · 运行已不可用",
     "items": "商品",
     "noChannel": "无",
     "rank": "#{{rank}}",

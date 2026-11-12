@@ -11,6 +11,7 @@ import {
   RecommendationServesQuerySchemaType,
   RecommendationServesSchemaType,
   ServedItemOutcomeSchemaType,
+  ServeRunLinkSchemaType,
 } from "@bonlift-ai/contracts";
 import { Pool } from "pg";
 import { NotFoundError, ValidationError } from "../errors.js";
@@ -102,12 +103,13 @@ const FEEDBACK_REPORT_SQL = `
 
 // $7 = reason: keeps serves with any item of that reason. $9 and $10 = the cursor's served_at and id, or NULL for the
 // first page; the plain served_at bound lets the (brand_id, served_at) index stop at the cursor. $11 = page size + 1.
-// LEFT JOIN page keeps one all-NULL row for a brand with no serves on the page.
+// LEFT JOIN page keeps one all-NULL row for a brand with no serves on the page. The run joins run on the page rows
+// only, by primary key; a run counts as available only if it still exists for the serve's brand (and outlet) and job.
 const SERVES_LOG_SQL = `
   WITH ${BOUNDS_SQL},
   page AS (
     SELECT s.id, s.served_at, s.outlet_id, s.channel_id, s.daypart, s.item_ids, s.reasons,
-           s.accepted_item_ids, s.rejected_item_ids
+           s.accepted_item_ids, s.rejected_item_ids, s.run_id, s.customer_run_id, s.affinity_run_id
     ${SERVES_IN_RANGE_SQL}
     ${SERVE_FILTERS_SQL}
       AND ($7::text IS NULL OR $7 = ANY(s.reasons))
@@ -124,7 +126,10 @@ const SERVES_LOG_SQL = `
                    'reason', i.reason,
                    'outcome', ${ITEM_OUTCOME_SQL}
                  ) ORDER BY i.rank)
-          FROM unnest(s.item_ids, s.reasons) WITH ORDINALITY AS i(item_id, reason, rank)) AS items
+          FROM unnest(s.item_ids, s.reasons) WITH ORDINALITY AS i(item_id, reason, rank)) AS items,
+         s.run_id, ors.id IS NOT NULL AS run_available,
+         s.customer_run_id, crs.id IS NOT NULL AS customer_run_available,
+         s.affinity_run_id, ars.id IS NOT NULL AS affinity_run_available
   FROM bounds
   LEFT JOIN page s
     ON TRUE
@@ -132,6 +137,19 @@ const SERVES_LOG_SQL = `
     ON o.id = s.outlet_id
   LEFT JOIN channels c
     ON c.id = s.channel_id
+  LEFT JOIN computation_runs ors
+    ON ors.id = s.run_id
+   AND ors.brand_id = bounds.brand_id
+   AND ors.outlet_id = s.outlet_id
+   AND ors.job_type = 'outlet_item_scores'
+  LEFT JOIN computation_runs crs
+    ON crs.id = s.customer_run_id
+   AND crs.brand_id = bounds.brand_id
+   AND crs.job_type = 'customer_item_scores'
+  LEFT JOIN computation_runs ars
+    ON ars.id = s.affinity_run_id
+   AND ars.brand_id = bounds.brand_id
+   AND ars.job_type = 'item_affinity'
   ORDER BY s.served_at DESC, s.id DESC
 `;
 
@@ -165,6 +183,12 @@ interface ServeLogRow {
   channel_code: string | null;
   daypart: string;
   items: { itemId: string; rank: number; reason: string; outcome: ServedItemOutcomeSchemaType | null }[];
+  run_id: string | null;
+  run_available: boolean;
+  customer_run_id: string | null;
+  customer_run_available: boolean;
+  affinity_run_id: string | null;
+  affinity_run_available: boolean;
 }
 
 interface Cursor {
@@ -285,6 +309,10 @@ function decodeCursor(before: string): Cursor {
   return { servedAt: cursor.servedAt, id: cursor.id };
 }
 
+function toRunLink(runId: string | null, available: boolean): ServeRunLinkSchemaType | null {
+  return runId === null ? null : { runId, available };
+}
+
 function toServeLogEntry(row: ServeLogRow): RecommendationServeLogEntrySchemaType {
   return {
     id: row.id as string,
@@ -294,6 +322,11 @@ function toServeLogEntry(row: ServeLogRow): RecommendationServeLogEntrySchemaTyp
     channelCode: row.channel_code,
     daypart: row.daypart,
     items: row.items.map((item) => ({ ...item, label: item.itemId })),
+    runs: {
+      outletScores: toRunLink(row.run_id, row.run_available),
+      customerScores: toRunLink(row.customer_run_id, row.customer_run_available),
+      itemAffinity: toRunLink(row.affinity_run_id, row.affinity_run_available),
+    },
   };
 }
 

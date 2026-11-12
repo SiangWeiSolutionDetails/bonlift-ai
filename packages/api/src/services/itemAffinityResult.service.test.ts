@@ -4,6 +4,7 @@ import { pgResult } from "../utils/pg.test-helpers.js";
 import {
   getItemAffinityItemResult,
   getItemAffinityItems,
+  getItemAffinityRun,
   getItemAffinityRuns,
   publishItemAffinityRun,
 } from "./itemAffinityResult.service.js";
@@ -65,6 +66,34 @@ describe("getItemAffinityRuns", () => {
     const [run] = await getItemAffinityRuns(fakePool, BRAND_ID, {});
 
     expect(run).toMatchObject({
+      brandId: BRAND_ID,
+      topN: 10,
+      minPairOrders: 10,
+      maxOrderItems: 20,
+    });
+  });
+});
+
+describe("getItemAffinityRun", () => {
+  it("throws NotFoundError when the run does not exist", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([]));
+
+    await expect(getItemAffinityRun(fakePool, RUN_ID)).rejects.toThrow(NotFoundError);
+  });
+
+  it("looks the run up by id", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([fakeRunRow()]));
+
+    await getItemAffinityRun(fakePool, RUN_ID);
+
+    expect(queryMock).toHaveBeenCalledWith(expect.any(String), [RUN_ID]);
+  });
+
+  it("maps the run with its settings", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([fakeRunRow()]));
+
+    expect(await getItemAffinityRun(fakePool, RUN_ID)).toMatchObject({
+      id: RUN_ID,
       brandId: BRAND_ID,
       topN: 10,
       minPairOrders: 10,

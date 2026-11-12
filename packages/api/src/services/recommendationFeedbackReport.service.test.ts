@@ -10,6 +10,8 @@ const BRAND_ID = "11111111-1111-1111-1111-111111111111";
 const OUTLET_ID = "22222222-2222-2222-2222-222222222222";
 const CHANNEL_ID = "33333333-3333-3333-3333-333333333333";
 const SERVE_ID = "44444444-4444-4444-4444-444444444444";
+const RUN_ID = "66666666-6666-6666-6666-666666666666";
+const CUSTOMER_RUN_ID = "77777777-7777-7777-7777-777777777777";
 const QUERY = { from: "2026-11-01", to: "2026-11-03", tz: "Asia/Singapore" };
 
 const queryMock = vi.fn();
@@ -47,6 +49,12 @@ function serveRow(overrides: Record<string, unknown> = {}) {
     channel_code: "tqr",
     daypart: "lunch",
     items: [{ itemId: "ITEM-1", rank: 1, reason: "popular_at_outlet", outcome: "accepted" }],
+    run_id: RUN_ID,
+    run_available: true,
+    customer_run_id: CUSTOMER_RUN_ID,
+    customer_run_available: false,
+    affinity_run_id: null,
+    affinity_run_available: false,
     ...overrides,
   };
 }
@@ -233,10 +241,25 @@ describe("listRecommendationServes", () => {
           items: [
             { itemId: "ITEM-1", label: "ITEM-1", rank: 1, reason: "popular_at_outlet", outcome: "accepted" },
           ],
+          runs: {
+            outletScores: { runId: RUN_ID, available: true },
+            customerScores: { runId: CUSTOMER_RUN_ID, available: false },
+            itemAffinity: null,
+          },
         },
       ],
       nextCursor: null,
     });
+  });
+
+  it("reports every run as null when the serve used none", async () => {
+    queryMock.mockResolvedValueOnce(
+      pgResult([serveRow({ run_id: null, run_available: false, customer_run_id: null })]),
+    );
+
+    const page = await listRecommendationServes(fakePool, BRAND_ID, QUERY);
+
+    expect(page.serves[0].runs).toStrictEqual({ outletScores: null, customerScores: null, itemAffinity: null });
   });
 
   it("drops the extra row and points the cursor at the last returned serve", async () => {

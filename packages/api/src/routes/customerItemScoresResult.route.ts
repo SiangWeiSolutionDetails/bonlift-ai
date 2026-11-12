@@ -24,6 +24,7 @@ import { readCustomerIdSecret } from "../config/env.js";
 import {
   getCustomerItemScoresCustomerResult,
   getCustomerItemScoresCustomers,
+  getCustomerItemScoresRun,
   getCustomerItemScoresRuns,
   publishCustomerItemScoresRun,
   searchCustomerItemScoresCustomer,
@@ -73,6 +74,20 @@ export async function customerItemScoresResultRoutes(app: FastifyInstance) {
         request.params.brandId,
         request.body,
       );
+    },
+  );
+
+  app.get<{ Params: RunParamsSchemaType }>(
+    "/runs/:runId/customer-item-scores",
+    {
+      schema: {
+        params: RunParamsSchema,
+        response: { 200: CustomerItemScoresRunRecordSchema },
+      },
+    },
+    (request) => {
+      const pool = getPool();
+      return getCustomerItemScoresRun(pool, request.params.runId);
     },
   );
 

@@ -49,6 +49,13 @@
     "outlet": "Outlet",
     "channel": "Channel",
     "daypart": "Daypart",
+    "runs": "Runs",
+    "runType": {
+      "outletScores": "Outlet scoring",
+      "customerScores": "Customer scoring",
+      "itemAffinity": "Item affinity"
+    },
+    "runUnavailable": "{{type}} · Run no longer available",
     "items": "Items",
     "noChannel": "None",
     "rank": "#{{rank}}",

@@ -18,6 +18,13 @@ export async function listItemAffinityRuns(
   return data.runs;
 }
 
+export async function getItemAffinityRun(runId: string, signal: AbortSignal) {
+  return apiRequest<ItemAffinityRun>(
+    `/runs/${encodeURIComponent(runId)}/item-affinity`,
+    { signal },
+  );
+}
+
 export async function publishItemAffinityRun(brandId: string, runId: string) {
   return apiRequest<ItemAffinityRun>(
     `/brands/${encodeURIComponent(brandId)}/published-runs/item-affinity`,

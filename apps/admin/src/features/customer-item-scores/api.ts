@@ -18,6 +18,13 @@ export async function listCustomerItemScoresRuns(
   return data.runs;
 }
 
+export async function getCustomerItemScoresRun(runId: string, signal: AbortSignal) {
+  return apiRequest<CustomerItemScoresRun>(
+    `/runs/${encodeURIComponent(runId)}/customer-item-scores`,
+    { signal },
+  );
+}
+
 export async function publishCustomerItemScoresRun(
   brandId: string,
   runId: string,

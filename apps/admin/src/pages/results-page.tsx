@@ -9,7 +9,10 @@ import { RankingCard } from "@/features/outlet-item-scores/components/ranking-ca
 import { RunCalculationDialog } from "@/features/outlet-item-scores/components/run-calculation-dialog";
 import { RunsCard } from "@/features/outlet-item-scores/components/runs-card";
 import { ScoreFormula } from "@/features/outlet-item-scores/components/score-formula";
-import { useOutletItemScoresRuns } from "@/features/outlet-item-scores/queries";
+import {
+  useOutletItemScoresRun,
+  useOutletItemScoresRuns,
+} from "@/features/outlet-item-scores/queries";
 import type { ResultsSearch } from "@/features/outlet-item-scores/search";
 
 const routeApi = getRouteApi("/results");
@@ -23,9 +26,18 @@ export function ResultsPage() {
   const runs = useOutletItemScoresRuns(search.outletId);
   const runList = runs.data ?? [];
   const publishedRun = runList.find((run) => run.isPublished);
+  const listedRun = runList.find((run) => run.id === search.runId);
+  // A linked run older than the list's newest runs is fetched on its own; one of another outlet is ignored
+  const linkedRun = useOutletItemScoresRun(
+    runs.isSuccess && !listedRun ? search.runId : undefined,
+  );
+  const unlistedRun =
+    linkedRun.data?.outletId === search.outletId ? linkedRun.data : undefined;
   // No run chosen: show what the outlet serves now, else the newest run
   const viewingRun =
-    runList.find((run) => run.id === search.runId) ?? publishedRun ?? runList[0];
+    listedRun ??
+    unlistedRun ??
+    (linkedRun.isLoading ? undefined : (publishedRun ?? runList[0]));
 
   // replace: picking an outlet or run should not fill the back button history
   // resetScroll: a filter change should keep the user's scroll position

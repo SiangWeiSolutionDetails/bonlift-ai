@@ -19,6 +19,7 @@ import { FastifyInstance } from "fastify";
 import {
   getItemAffinityItemResult,
   getItemAffinityItems,
+  getItemAffinityRun,
   getItemAffinityRuns,
   publishItemAffinityRun,
 } from "../services/itemAffinityResult.service.js";
@@ -63,6 +64,20 @@ export async function itemAffinityResultRoutes(app: FastifyInstance) {
     (request) => {
       const pool = getPool();
       return publishItemAffinityRun(pool, request.params.brandId, request.body);
+    },
+  );
+
+  app.get<{ Params: RunParamsSchemaType }>(
+    "/runs/:runId/item-affinity",
+    {
+      schema: {
+        params: RunParamsSchema,
+        response: { 200: ItemAffinityRunRecordSchema },
+      },
+    },
+    (request) => {
+      const pool = getPool();
+      return getItemAffinityRun(pool, request.params.runId);
     },
   );
 

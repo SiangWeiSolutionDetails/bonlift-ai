@@ -20,6 +20,8 @@ export const outletItemScoresKeys = {
     [...outletItemScoresKeys.all, "runs", outletId] as const,
   result: (runId: string) =>
     [...outletItemScoresKeys.all, "result", runId] as const,
+  run: (runId: string) =>
+    [...outletItemScoresKeys.all, "run", runId] as const,
 };
 
 function hasRunningRun(runs: OutletItemScoresRun[] | undefined) {
@@ -49,6 +51,26 @@ export function useOutletItemScoresRunResult(
       ? ({ signal }) => getOutletItemScoresRunResult(runId, signal)
       : skipToken,
     staleTime: status === "running" ? 0 : Infinity,
+  });
+}
+
+// For a linked run older than the newest page of the runs list. There is no run-only endpoint, so the result is
+// fetched once and seeded into the cache entry the ranking card reads.
+export function useOutletItemScoresRun(runId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useQuery({
+    queryKey: outletItemScoresKeys.run(runId ?? ""),
+    queryFn: runId
+      ? async ({ signal }) => {
+          const result = await getOutletItemScoresRunResult(runId, signal);
+          queryClient.setQueryData(
+            [...outletItemScoresKeys.result(runId), result.run.status],
+            result,
+          );
+          return result.run;
+        }
+      : skipToken,
+    retry: false,
   });
 }
 

@@ -110,6 +110,32 @@ export async function getCustomerItemScoresRuns(
   return result.rows.filter((row) => row.id !== null).map(mapRunRow);
 }
 
+// One run by id, so a link can open a run older than the newest page of the list.
+export async function getCustomerItemScoresRun(
+  pool: Pool,
+  runId: string,
+): Promise<CustomerItemScoresRunRecordSchemaType> {
+  assertValid(RunParamsSchema, { runId });
+
+  const result = await pool.query(
+    `
+    SELECT ${RUN_COLUMNS}
+    FROM computation_runs r
+    ${RUN_JOINS}
+    WHERE r.id = $1
+      AND r.job_type = 'customer_item_scores'
+      AND EXISTS (SELECT 1 FROM brands b WHERE b.id = r.brand_id AND b.deleted_at IS NULL);
+    `,
+    [runId],
+  );
+
+  if (result.rows.length === 0) {
+    throw new NotFoundError("Run does not exist.");
+  }
+
+  return mapRunRow(result.rows[0]);
+}
+
 // Manual publish skips the worker's "later window wins" rule on purpose: repointing to an older run is the rollback.
 export async function publishCustomerItemScoresRun(
   pool: Pool,

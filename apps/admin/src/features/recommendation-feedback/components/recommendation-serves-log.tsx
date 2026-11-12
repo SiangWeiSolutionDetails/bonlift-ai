@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -13,6 +14,7 @@ import { formatDateTime } from "@/lib/date-format";
 import { getErrorMessage } from "@/lib/error-message";
 import { sortByRank } from "../feedback";
 import { useRecommendationServes } from "../queries";
+import { serveRunLinks, shortRunId, type ServeRunLink } from "../run-links";
 import type { FeedbackFilters, ServeLogEntry } from "../type";
 import { useFeedbackLabels } from "../use-feedback-labels";
 import { ServedItemBadge } from "./served-item-badge";
@@ -42,7 +44,7 @@ export function RecommendationServesLog({ brandId, filters }: RecommendationServ
         <p className="py-6 text-center text-sm text-muted-foreground">{t("serves.empty")}</p>
       )}
 
-      {rows.length > 0 && <ServesTable rows={rows} />}
+      {rows.length > 0 && <ServesTable brandId={brandId} rows={rows} />}
 
       {serves.hasNextPage && (
         <Button
@@ -60,7 +62,7 @@ export function RecommendationServesLog({ brandId, filters }: RecommendationServ
   );
 }
 
-function ServesTable({ rows }: { rows: ServeLogEntry[] }) {
+function ServesTable({ brandId, rows }: { brandId: string; rows: ServeLogEntry[] }) {
   const { t } = useTranslation("recommendationFeedback");
   const { daypartLabel } = useFeedbackLabels();
 
@@ -72,6 +74,7 @@ function ServesTable({ rows }: { rows: ServeLogEntry[] }) {
           <TableHead>{t("serves.outlet")}</TableHead>
           <TableHead>{t("serves.channel")}</TableHead>
           <TableHead>{t("serves.daypart")}</TableHead>
+          <TableHead>{t("serves.runs")}</TableHead>
           <TableHead>{t("serves.items")}</TableHead>
         </TableRow>
       </TableHeader>
@@ -89,6 +92,13 @@ function ServesTable({ rows }: { rows: ServeLogEntry[] }) {
               )}
             </TableCell>
             <TableCell>{daypartLabel(serve.daypart)}</TableCell>
+            <TableCell>
+              <div className="flex flex-col items-start gap-1.5">
+                {serveRunLinks(brandId, serve).map((link) => (
+                  <ServeRunLinkLabel key={link.type} link={link} />
+                ))}
+              </div>
+            </TableCell>
             <TableCell className="whitespace-normal">
               <div className="flex flex-col items-start gap-1.5">
                 {sortByRank(serve.items).map((item) => (
@@ -100,5 +110,29 @@ function ServesTable({ rows }: { rows: ServeLogEntry[] }) {
         ))}
       </TableBody>
     </Table>
+  );
+}
+
+// A deleted run has no page to open, so it is plain text.
+function ServeRunLinkLabel({ link }: { link: ServeRunLink }) {
+  const { t } = useTranslation("recommendationFeedback");
+  const type = t(`serves.runType.${link.type}`);
+
+  if (!link.available) {
+    return (
+      <span className="text-xs text-muted-foreground">
+        {t("serves.runUnavailable", { type })}
+      </span>
+    );
+  }
+
+  return (
+    <Link
+      {...link.target}
+      className="text-xs font-medium underline-offset-4 hover:underline"
+    >
+      {type}{" "}
+      <span className="font-mono font-normal text-muted-foreground">{shortRunId(link.runId)}</span>
+    </Link>
   );
 }

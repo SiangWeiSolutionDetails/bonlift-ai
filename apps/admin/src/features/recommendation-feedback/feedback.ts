@@ -7,8 +7,7 @@ export const FEEDBACK_REASONS = ["frequently_ordered", "popular_at_outlet"] as c
 export type FeedbackReason = (typeof FEEDBACK_REASONS)[number];
 
 // Stack order of the daily chart, bottom to top, and column order of the tables.
-export const OUTCOMES = ["accepted", "rejected", "ignored", "awaiting"] as const satisfies
-  readonly ServedItemOutcome[];
+export const OUTCOMES = ["accepted", "rejected"] as const satisfies readonly ServedItemOutcome[];
 
 // The API's own cap; checking it here saves a request that can only fail.
 export const MAX_RANGE_DAYS = 366;
@@ -16,22 +15,15 @@ export const MAX_RANGE_DAYS = 366;
 const OUTCOME_BADGE_VARIANTS = {
   accepted: "success",
   rejected: "destructive",
-  ignored: "secondary",
-  awaiting: "outline",
 } as const satisfies Record<ServedItemOutcome, string>;
 
-export function outcomeBadgeVariant(outcome: ServedItemOutcome) {
-  return OUTCOME_BADGE_VARIANTS[outcome];
+// null: the item has no feedback, shown as a neutral badge.
+export function outcomeBadgeVariant(outcome: ServedItemOutcome | null) {
+  return outcome === null ? "outline" : OUTCOME_BADGE_VARIANTS[outcome];
 }
 
 export function isKnownReason(reason: string): reason is FeedbackReason {
   return FEEDBACK_REASONS.includes(reason as FeedbackReason);
-}
-
-// null means nothing has an outcome yet, which is no rate rather than a 0% one.
-export function formatRate(rate: number | null, locale: string) {
-  if (rate === null) return "—";
-  return new Intl.NumberFormat(locale, { style: "percent", maximumFractionDigits: 1 }).format(rate);
 }
 
 export function isRangeTooLong(from: string, to: string, maxDays = MAX_RANGE_DAYS) {

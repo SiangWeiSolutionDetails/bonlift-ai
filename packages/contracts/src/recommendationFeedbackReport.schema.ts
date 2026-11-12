@@ -34,38 +34,23 @@ export const RecommendationServesQuerySchema = Type.Object(
 );
 export type RecommendationServesQuerySchemaType = Static<typeof RecommendationServesQuerySchema>;
 
-// awaiting: no feedback yet and the 2-hour feedback window is still open. ignored: no feedback and the window closed.
-export const ServedItemOutcomeSchema = Type.Union([
-  Type.Literal("accepted"),
-  Type.Literal("rejected"),
-  Type.Literal("ignored"),
-  Type.Literal("awaiting"),
-]);
+// The feedback stored on a served item. An item in both feedback arrays was rejected, then accepted: accepted wins.
+export const ServedItemOutcomeSchema = Type.Union([Type.Literal("accepted"), Type.Literal("rejected")]);
 export type ServedItemOutcomeSchemaType = Static<typeof ServedItemOutcomeSchema>;
 
-// acceptanceRate = accepted / (accepted + rejected + ignored), between 0 and 1; awaiting items are left out, and it is
-// null when nothing has an outcome yet.
+// Counts of stored feedback only; served items without feedback are not counted.
 export const FeedbackCountsSchema = Type.Object(
   {
-    servedItems: Count,
     accepted: Count,
     rejected: Count,
-    ignored: Count,
-    awaiting: Count,
-    acceptanceRate: Type.Union([Type.Number({ minimum: 0, maximum: 1 }), Type.Null()]),
   },
   { additionalProperties: false },
 );
 export type FeedbackCountsSchemaType = Static<typeof FeedbackCountsSchema>;
 
-// serves: recommendation responses with at least one item counted in servedItems.
-export const RecommendationFeedbackSummarySchema = Type.Object(
-  {
-    ...FeedbackCountsSchema.properties,
-    serves: Count,
-  },
-  { additionalProperties: false },
-);
+export const RecommendationFeedbackSummarySchema = Type.Object(FeedbackCountsSchema.properties, {
+  additionalProperties: false,
+});
 export type RecommendationFeedbackSummarySchemaType = Static<
   typeof RecommendationFeedbackSummarySchema
 >;
@@ -92,7 +77,8 @@ export type RecommendationFeedbackBreakdownRowSchemaType = Static<
   typeof RecommendationFeedbackBreakdownRowSchema
 >;
 
-// days has one row per date from from to to, zeros included. Breakdowns are sorted by servedItems descending, then key.
+// days has one row per date from from to to, zeros included. Breakdowns list only rows with feedback, sorted by
+// accepted + rejected descending, then accepted descending, then key.
 export const RecommendationFeedbackReportSchema = Type.Object(
   {
     brandId: Type.String({ format: "uuid" }),
@@ -112,14 +98,14 @@ export type RecommendationFeedbackReportSchemaType = Static<
   typeof RecommendationFeedbackReportSchema
 >;
 
-// label is the item id: serves store only ids.
+// label is the item id: serves store only ids. outcome null: no feedback on the item.
 export const ServedItemSchema = Type.Object(
   {
     itemId: Type.String(),
     label: Type.String(),
     rank: Type.Integer({ minimum: 1 }),
     reason: Type.String(),
-    outcome: ServedItemOutcomeSchema,
+    outcome: Type.Union([ServedItemOutcomeSchema, Type.Null()]),
   },
   { additionalProperties: false },
 );

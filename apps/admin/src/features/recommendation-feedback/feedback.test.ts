@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   daypartOptions,
-  formatRate,
   isKnownReason,
   isRangeTooLong,
   outcomeBadgeVariant,
@@ -9,14 +8,10 @@ import {
   topOutcome,
 } from "./feedback";
 
-const day = (counts: Partial<Record<"accepted" | "rejected" | "ignored" | "awaiting", number>>) => ({
+const day = (counts: Partial<Record<"accepted" | "rejected", number>>) => ({
   date: "2026-11-01",
-  servedItems: 0,
   accepted: 0,
   rejected: 0,
-  ignored: 0,
-  awaiting: 0,
-  acceptanceRate: null,
   ...counts,
 });
 
@@ -25,30 +20,14 @@ const item = (itemId: string, rank: number) => ({
   label: itemId,
   rank,
   reason: "popular_at_outlet",
-  outcome: "ignored" as const,
-});
-
-describe("formatRate", () => {
-  it("shows a dash when there is no rate", () => {
-    expect(formatRate(null, "en")).toBe("—");
-  });
-
-  it.each([
-    [0, "0%"],
-    [0.5, "50%"],
-    [1 / 3, "33.3%"],
-    [1, "100%"],
-  ])("formats %d as %s", (rate, text) => {
-    expect(formatRate(rate, "en")).toBe(text);
-  });
+  outcome: null,
 });
 
 describe("outcomeBadgeVariant", () => {
   it.each([
     ["accepted", "success"],
     ["rejected", "destructive"],
-    ["ignored", "secondary"],
-    ["awaiting", "outline"],
+    [null, "outline"],
   ] as const)("shows %s as %s", (outcome, variant) => {
     expect(outcomeBadgeVariant(outcome)).toBe(variant);
   });
@@ -76,8 +55,8 @@ describe("isRangeTooLong", () => {
 
 describe("topOutcome", () => {
   it("picks the highest outcome in stack order that has items", () => {
-    expect(topOutcome(day({ accepted: 2, ignored: 1 }))).toBe("ignored");
-    expect(topOutcome(day({ accepted: 2, awaiting: 1 }))).toBe("awaiting");
+    expect(topOutcome(day({ accepted: 2, rejected: 1 }))).toBe("rejected");
+    expect(topOutcome(day({ accepted: 2 }))).toBe("accepted");
   });
 
   it("has no top on an empty day", () => {

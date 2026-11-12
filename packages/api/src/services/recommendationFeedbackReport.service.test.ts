@@ -20,12 +20,8 @@ function groupedRow(groupingSet: number, key: string | null, overrides: Record<s
     grouping_set: groupingSet,
     key,
     outlet_name: null,
-    served_items: 4,
-    accepted: 1,
+    accepted: 3,
     rejected: 1,
-    ignored: 2,
-    awaiting: 0,
-    serves: 2,
     ...overrides,
   };
 }
@@ -145,12 +141,12 @@ describe("getRecommendationFeedbackReport", () => {
   it("splits the grouping sets into summary, zero-filled days and breakdowns", async () => {
     queryMock.mockResolvedValueOnce(pgResult(reportRows()));
 
-    const counts = { servedItems: 4, accepted: 1, rejected: 1, ignored: 2, awaiting: 0, acceptanceRate: 0.25 };
-    const zero = { servedItems: 0, accepted: 0, rejected: 0, ignored: 0, awaiting: 0, acceptanceRate: null };
+    const counts = { accepted: 3, rejected: 1 };
+    const zero = { accepted: 0, rejected: 0 };
     expect(await getRecommendationFeedbackReport(fakePool, BRAND_ID, QUERY)).toStrictEqual({
       brandId: BRAND_ID,
       ...QUERY,
-      summary: { ...counts, serves: 2 },
+      summary: counts,
       days: [
         { date: "2026-11-01", ...zero },
         { date: "2026-11-02", ...counts },
@@ -161,26 +157,6 @@ describe("getRecommendationFeedbackReport", () => {
       byReason: [{ key: "popular_at_outlet", label: "popular_at_outlet", ...counts }],
       byDaypart: [{ key: "lunch", label: "lunch", ...counts }],
     });
-  });
-
-  it("leaves awaiting items out of the acceptance rate", async () => {
-    queryMock.mockResolvedValueOnce(
-      pgResult([groupedRow(0b11111, null, { served_items: 5, accepted: 1, rejected: 1, ignored: 0, awaiting: 3 })]),
-    );
-
-    const report = await getRecommendationFeedbackReport(fakePool, BRAND_ID, QUERY);
-
-    expect(report.summary.acceptanceRate).toBe(0.5);
-  });
-
-  it("returns a null acceptance rate when every item is awaiting", async () => {
-    queryMock.mockResolvedValueOnce(
-      pgResult([groupedRow(0b11111, null, { served_items: 2, accepted: 0, rejected: 0, ignored: 0, awaiting: 2 })]),
-    );
-
-    const report = await getRecommendationFeedbackReport(fakePool, BRAND_ID, QUERY);
-
-    expect(report.summary.acceptanceRate).toBeNull();
   });
 
   it("throws NotFoundError when the brand does not exist", async () => {

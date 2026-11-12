@@ -18,9 +18,7 @@
   },
   "outcomes": {
     "accepted": "Accepted",
-    "rejected": "Rejected",
-    "ignored": "Ignored",
-    "awaiting": "Awaiting"
+    "rejected": "Rejected"
   },
   "reasons": {
     "frequently_ordered": "Frequently Ordered",
@@ -30,21 +28,11 @@
     "allDay": "All Day"
   },
   "summary": {
-    "servedItems": "Served Items",
     "accepted": "Accepted",
-    "rejected": "Rejected",
-    "ignored": "Ignored",
-    "ignoredHint": "No feedback within 2 hours",
-    "awaiting": "Awaiting Feedback",
-    "awaitingHint": "Served under 2 hours ago",
-    "acceptanceRate": "Acceptance Rate",
-    "acceptanceRateHint": "Accepted out of items with an outcome; awaiting items are excluded",
-    "serves": "Recommendations",
-    "servesHint": "Responses with at least one item"
+    "rejected": "Rejected"
   },
   "charts": {
-    "outcomes": "Served Items by Outcome",
-    "acceptanceRate": "Daily Acceptance Rate"
+    "outcomes": "Feedback by Outcome"
   },
   "breakdown": {
     "title": "Breakdown",
@@ -53,9 +41,7 @@
     "byReason": "By Reason",
     "byDaypart": "By Daypart",
     "name": "Name",
-    "servedItems": "Served Items",
-    "acceptanceRate": "Acceptance Rate",
-    "empty": "No recommendations in this period."
+    "empty": "No feedback in this period."
   },
   "serves": {
     "title": "Recent Recommendations",

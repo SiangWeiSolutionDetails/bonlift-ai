@@ -47,53 +47,57 @@ const SERVE_FILTERS_SQL = `
     AND ($6::text IS NULL OR s.daypart = $6)
     AND ($8::uuid IS NULL OR s.channel_id = $8)`;
 
-// Per served item i of serve s: accepted wins over rejected. With no feedback it is awaiting while feedback can still
-// arrive (the 2-hour window of recommendationFeedback.service.ts), then ignored. Computed at read time, never stored.
+// Feedback stored on served item i of serve s, NULL when there is none. An item in both arrays counts as accepted.
 const ITEM_OUTCOME_SQL = `
   CASE
     WHEN i.item_id = ANY(s.accepted_item_ids) THEN 'accepted'
     WHEN i.item_id = ANY(s.rejected_item_ids) THEN 'rejected'
-    WHEN s.served_at <= now() - interval '2 hours' THEN 'ignored'
-    ELSE 'awaiting'
   END`;
 
-// One aggregation over per-item rows yields the summary, days and every breakdown. GROUPING(...) is a bitmask with a
-// bit set for each listed column the row is NOT grouped by (day is the highest bit), so it names the row's set.
+// One aggregation over the stored feedback yields the summary, days and every breakdown. Only the feedback arrays are
+// unnested, so serves and items without feedback add no rows and every breakdown row has feedback. A rejected item that
+// was later accepted is skipped in the rejected branch. Each item's reason is read from reasons at the item's position
+// in item_ids (feedback is only stored for served items). GROUPING(...) is a bitmask with a bit set for each listed
+// column the row is NOT grouped by (day is the highest bit), so it names the row's set.
 const FEEDBACK_REPORT_SQL = `
   WITH ${BOUNDS_SQL},
-  served_items AS (
-    SELECT s.id AS serve_id,
-           (s.served_at AT TIME ZONE $4)::date::text AS day,
+  feedback AS (
+    SELECT (s.served_at AT TIME ZONE $4)::date::text AS day,
            s.outlet_id,
            s.daypart,
-           i.item_id,
-           i.reason,
-           ${ITEM_OUTCOME_SQL} AS outcome
+           f.item_id,
+           f.reason,
+           f.outcome
     ${SERVES_IN_RANGE_SQL}
-    CROSS JOIN LATERAL unnest(s.item_ids, s.reasons) AS i(item_id, reason)
+    CROSS JOIN LATERAL (
+      SELECT given.item_id, given.outcome, s.reasons[array_position(s.item_ids, given.item_id)] AS reason
+      FROM (
+        SELECT a.item_id, 'accepted' AS outcome
+        FROM unnest(s.accepted_item_ids) AS a(item_id)
+        UNION ALL
+        SELECT r.item_id, 'rejected'
+        FROM unnest(s.rejected_item_ids) AS r(item_id)
+        WHERE r.item_id <> ALL(s.accepted_item_ids)
+      ) given
+    ) f
     ${SERVE_FILTERS_SQL}
-      AND ($7::text IS NULL OR i.reason = $7)
+      AND ($7::text IS NULL OR f.reason = $7)
   ),
   grouped AS (
     SELECT GROUPING(day, item_id, outlet_id, reason, daypart) AS grouping_set,
            coalesce(day, item_id, outlet_id::text, reason, daypart) AS key,
            outlet_id,
-           count(*)::int AS served_items,
            (count(*) FILTER (WHERE outcome = 'accepted'))::int AS accepted,
-           (count(*) FILTER (WHERE outcome = 'rejected'))::int AS rejected,
-           (count(*) FILTER (WHERE outcome = 'ignored'))::int AS ignored,
-           (count(*) FILTER (WHERE outcome = 'awaiting'))::int AS awaiting,
-           count(DISTINCT serve_id)::int AS serves
-    FROM served_items
+           (count(*) FILTER (WHERE outcome = 'rejected'))::int AS rejected
+    FROM feedback
     GROUP BY GROUPING SETS ((), (day), (item_id), (outlet_id), (reason), (daypart))
   )
-  SELECT g.grouping_set, g.key, o.name AS outlet_name, g.served_items, g.accepted, g.rejected, g.ignored,
-         g.awaiting, g.serves
+  SELECT g.grouping_set, g.key, o.name AS outlet_name, g.accepted, g.rejected
   FROM bounds
   CROSS JOIN grouped g
   LEFT JOIN outlets o
     ON o.id = g.outlet_id
-  ORDER BY g.grouping_set, g.served_items DESC, g.key
+  ORDER BY g.grouping_set, g.accepted + g.rejected DESC, g.accepted DESC, g.key
 `;
 
 // $7 = reason: keeps serves with any item of that reason. $9 and $10 = the cursor's served_at and id, or NULL for the
@@ -148,12 +152,8 @@ interface GroupedRow {
   grouping_set: number;
   key: string | null;
   outlet_name: string | null;
-  served_items: number;
   accepted: number;
   rejected: number;
-  ignored: number;
-  awaiting: number;
-  serves: number;
 }
 
 interface ServeLogRow {
@@ -164,7 +164,7 @@ interface ServeLogRow {
   outlet_name: string;
   channel_code: string | null;
   daypart: string;
-  items: { itemId: string; rank: number; reason: string; outcome: ServedItemOutcomeSchemaType }[];
+  items: { itemId: string; rank: number; reason: string; outcome: ServedItemOutcomeSchemaType | null }[];
 }
 
 interface Cursor {
@@ -203,23 +203,8 @@ function filterParams(query: RecommendationFeedbackReportQuerySchemaType) {
   ];
 }
 
-function acceptanceRate(accepted: number, rejected: number, ignored: number): number | null {
-  const decided = accepted + rejected + ignored;
-  return decided === 0 ? null : accepted / decided;
-}
-
 function toCounts(row: GroupedRow | undefined): FeedbackCountsSchemaType {
-  const accepted = row?.accepted ?? 0;
-  const rejected = row?.rejected ?? 0;
-  const ignored = row?.ignored ?? 0;
-  return {
-    servedItems: row?.served_items ?? 0,
-    accepted,
-    rejected,
-    ignored,
-    awaiting: row?.awaiting ?? 0,
-    acceptanceRate: acceptanceRate(accepted, rejected, ignored),
-  };
+  return { accepted: row?.accepted ?? 0, rejected: row?.rejected ?? 0 };
 }
 
 function toBreakdownRow(row: GroupedRow): RecommendationFeedbackBreakdownRowSchemaType {
@@ -267,7 +252,7 @@ export async function getRecommendationFeedbackReport(
     from: query.from,
     to: query.to,
     tz: query.tz,
-    summary: { ...toCounts(summary), serves: summary?.serves ?? 0 },
+    summary: toCounts(summary),
     days: toDays(query.from, query.to, rowsOfSet(rows, GROUPING_SET.day)),
     byItem: rowsOfSet(rows, GROUPING_SET.item).map(toBreakdownRow),
     byOutlet: rowsOfSet(rows, GROUPING_SET.outlet).map(toBreakdownRow),

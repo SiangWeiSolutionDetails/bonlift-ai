@@ -13,13 +13,11 @@ import { formatDate, formatShortDate } from "@/lib/date-format";
 import { OUTCOMES, topOutcome } from "../feedback";
 import type { FeedbackDay, ServedItemOutcome } from "../type";
 
-// Tailwind green-500, red-500, zinc-400 and sky-500, the usage chart's greens and reds. The legend, tooltip and
-// tables carry the values too, so the colour is never the only cue.
+// Tailwind green-500 and red-500, the usage chart's greens and reds. The legend, tooltip and tables carry the values
+// too, so the colour is never the only cue.
 const COLORS: Record<ServedItemOutcome, { light: string; dark: string }> = {
   accepted: { light: "oklch(72.3% 0.219 149.579)", dark: "oklch(72.3% 0.219 149.579)" },
   rejected: { light: "oklch(63.7% 0.237 25.331)", dark: "oklch(63.7% 0.237 25.331)" },
-  ignored: { light: "oklch(70.5% 0.015 286.067)", dark: "oklch(55.2% 0.016 285.938)" },
-  awaiting: { light: "oklch(68.5% 0.169 237.323)", dark: "oklch(68.5% 0.169 237.323)" },
 };
 
 export function FeedbackOutcomesChart({ days }: { days: FeedbackDay[] }) {

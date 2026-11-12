@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { OUTCOMES, formatRate } from "../feedback";
+import { OUTCOMES } from "../feedback";
 import type { FeedbackBreakdownRow, FeedbackReport } from "../type";
 import { useFeedbackLabels } from "../use-feedback-labels";
 
@@ -46,7 +46,7 @@ export function FeedbackBreakdownTable({ report }: { report: FeedbackReport }) {
 }
 
 function BreakdownRows({ dimension, rows }: { dimension: Dimension; rows: FeedbackBreakdownRow[] }) {
-  const { t, i18n } = useTranslation("recommendationFeedback");
+  const { t } = useTranslation("recommendationFeedback");
   const { reasonLabel, daypartLabel } = useFeedbackLabels();
 
   if (rows.length === 0) {
@@ -64,13 +64,11 @@ function BreakdownRows({ dimension, rows }: { dimension: Dimension; rows: Feedba
       <TableHeader>
         <TableRow>
           <TableHead>{t("breakdown.name")}</TableHead>
-          <TableHead className="text-right">{t("breakdown.servedItems")}</TableHead>
           {OUTCOMES.map((outcome) => (
             <TableHead key={outcome} className="text-right">
               {t(`outcomes.${outcome}`)}
             </TableHead>
           ))}
-          <TableHead className="text-right">{t("breakdown.acceptanceRate")}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -79,7 +77,6 @@ function BreakdownRows({ dimension, rows }: { dimension: Dimension; rows: Feedba
             <TableCell className={dimension === "byItem" ? "font-mono text-xs" : undefined}>
               {rowLabel(row)}
             </TableCell>
-            <TableCell className="text-right">{row.servedItems.toLocaleString()}</TableCell>
             {OUTCOMES.map((outcome) => (
               <TableCell
                 key={outcome}
@@ -88,9 +85,6 @@ function BreakdownRows({ dimension, rows }: { dimension: Dimension; rows: Feedba
                 {row[outcome].toLocaleString()}
               </TableCell>
             ))}
-            <TableCell className="text-right font-medium">
-              {formatRate(row.acceptanceRate, i18n.language)}
-            </TableCell>
           </TableRow>
         ))}
       </TableBody>

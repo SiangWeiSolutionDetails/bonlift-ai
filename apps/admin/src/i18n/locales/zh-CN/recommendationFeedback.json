@@ -18,9 +18,7 @@
   },
   "outcomes": {
     "accepted": "已接受",
-    "rejected": "已拒绝",
-    "ignored": "已忽略",
-    "awaiting": "等待反馈"
+    "rejected": "已拒绝"
   },
   "reasons": {
     "frequently_ordered": "常点商品",
@@ -30,21 +28,11 @@
     "allDay": "全天"
   },
   "summary": {
-    "servedItems": "推荐商品数",
     "accepted": "已接受",
-    "rejected": "已拒绝",
-    "ignored": "已忽略",
-    "ignoredHint": "2 小时内未收到反馈",
-    "awaiting": "等待反馈",
-    "awaitingHint": "推荐时间不足 2 小时",
-    "acceptanceRate": "接受率",
-    "acceptanceRateHint": "已接受数占已有结果商品数的比例；不含等待反馈的商品",
-    "serves": "推荐次数",
-    "servesHint": "至少包含一个商品的推荐响应"
+    "rejected": "已拒绝"
   },
   "charts": {
-    "outcomes": "按结果统计的推荐商品",
-    "acceptanceRate": "每日接受率"
+    "outcomes": "按结果统计的反馈"
   },
   "breakdown": {
     "title": "明细",
@@ -53,9 +41,7 @@
     "byReason": "按原因",
     "byDaypart": "按时段",
     "name": "名称",
-    "servedItems": "推荐商品数",
-    "acceptanceRate": "接受率",
-    "empty": "此期间没有推荐。"
+    "empty": "此期间没有反馈。"
   },
   "serves": {
     "title": "最近的推荐",

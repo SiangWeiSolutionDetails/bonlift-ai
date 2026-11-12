@@ -4,7 +4,8 @@ import { outcomeBadgeVariant } from "../feedback";
 import type { ServedItem } from "../type";
 import { useFeedbackLabels } from "../use-feedback-labels";
 
-// One served item: rank, item id and its outcome; the reason is in the tooltip to keep the row short.
+// One served item: rank, item id and its feedback, an empty neutral badge when there is none. The reason is in the
+// tooltip to keep the row short.
 export function ServedItemBadge({ item }: { item: ServedItem }) {
   const { t } = useTranslation("recommendationFeedback");
   const { reasonLabel } = useFeedbackLabels();
@@ -15,7 +16,9 @@ export function ServedItemBadge({ item }: { item: ServedItem }) {
         {t("serves.rank", { rank: item.rank })}
       </span>
       <span className="font-mono text-xs">{item.label}</span>
-      <Badge variant={outcomeBadgeVariant(item.outcome)}>{t(`outcomes.${item.outcome}`)}</Badge>
+      <Badge variant={outcomeBadgeVariant(item.outcome)}>
+        {item.outcome && t(`outcomes.${item.outcome}`)}
+      </Badge>
     </span>
   );
 }

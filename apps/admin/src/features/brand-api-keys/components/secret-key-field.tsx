@@ -7,6 +7,27 @@ import { Input } from "@/components/ui/input";
 const COPIED_FEEDBACK_MS = 1500;
 const MASK = "•".repeat(16);
 
+// navigator.clipboard only exists on secure origins (HTTPS/localhost); staging is plain HTTP,
+// so fall back to the legacy execCommand copy through an off-screen textarea.
+async function writeToClipboard(text: string) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    if (!document.execCommand("copy")) throw new Error("execCommand copy failed");
+  } finally {
+    document.body.removeChild(textarea);
+  }
+}
+
 type SecretKeyFieldProps = {
   id: string;
   secret: string;
@@ -28,10 +49,10 @@ export function SecretKeyField({ id, secret, keyPrefix }: SecretKeyFieldProps) {
 
   async function copy() {
     try {
-      await navigator.clipboard.writeText(secret);
+      await writeToClipboard(secret);
       setCopied(true);
     } catch {
-      // Clipboard can be blocked (insecure origin, permissions); revealing lets the key be selected by hand
+      // Both clipboard paths failed; revealing lets the key be selected by hand
       setRevealed(true);
     }
   }

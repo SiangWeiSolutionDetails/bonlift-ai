@@ -15,6 +15,7 @@ import {
   SquareStackIcon,
   StoreIcon,
   TagIcon,
+  ThumbsUpIcon,
 } from "lucide-react";
 import App from "@/App";
 import { validateApiKeysSearch } from "@/features/brand-api-keys/search";
@@ -23,6 +24,7 @@ import { validateCustomerScoresSearch } from "@/features/customer-item-scores/se
 import { validateItemAffinitySearch } from "@/features/item-affinity/search";
 import { validateSnapshotsSearch } from "@/features/order-snapshots/search";
 import { validateResultsSearch } from "@/features/outlet-item-scores/search";
+import { validateRecommendationFeedbackSearch } from "@/features/recommendation-feedback/search";
 import type enCommon from "@/i18n/locales/en/common.json";
 import { ApiKeysPage } from "@/pages/api-keys-page";
 import { BrandsPage } from "@/pages/brands-page";
@@ -30,6 +32,7 @@ import { CustomerScoresPage } from "@/pages/customer-scores-page";
 import { ItemAffinityPage } from "@/pages/item-affinity-page";
 import { OrderSnapshotsPage } from "@/pages/order-snapshots-page";
 import { OutletsPage } from "@/pages/outlets-page";
+import { RecommendationFeedbackPage } from "@/pages/recommendation-feedback-page";
 import { ResultsPage } from "@/pages/results-page";
 import { TenantsPage } from "@/pages/tenants-page";
 import { UsagePage } from "@/pages/usage-page";
@@ -114,6 +117,18 @@ const usageRoute = createRoute({
   staticData: { titleKey: "nav.usage", groupKey: "nav.integration", icon: <GaugeIcon /> },
 });
 
+const recommendationFeedbackRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/recommendation-feedback",
+  component: RecommendationFeedbackPage,
+  validateSearch: validateRecommendationFeedbackSearch,
+  staticData: {
+    titleKey: "nav.recommendationFeedback",
+    groupKey: "nav.integration",
+    icon: <ThumbsUpIcon />,
+  },
+});
+
 // Order here is the sidebar order; routes with a staticData icon and groupKey appear in the sidebar.
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -126,6 +141,7 @@ const routeTree = rootRoute.addChildren([
   itemAffinityRoute,
   apiKeysRoute,
   usageRoute,
+  recommendationFeedbackRoute,
 ]);
 
 export const router = createRouter({ routeTree });

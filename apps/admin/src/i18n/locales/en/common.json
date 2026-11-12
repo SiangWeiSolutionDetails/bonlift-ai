@@ -36,7 +36,8 @@
     "customerScores": "Customer Item Scoring",
     "itemAffinity": "Item Affinity",
     "apiKeys": "API Keys",
-    "usage": "Usage"
+    "usage": "Usage",
+    "recommendationFeedback": "Recommendation Feedback"
   },
   "language": {
     "label": "Language"

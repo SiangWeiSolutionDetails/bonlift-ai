@@ -1,0 +1,72 @@
+{
+  "page": {
+    "title": "推荐反馈",
+    "description": "顾客对所推荐商品的反馈情况。日期按 {{tz}} 时区划分。仅记录已识别顾客的推荐。"
+  },
+  "picker": {
+    "brand": "品牌",
+    "brandPlaceholder": "选择品牌",
+    "noBrand": "请选择品牌以查看其推荐反馈。",
+    "from": "从",
+    "to": "至",
+    "outlet": "门店",
+    "daypart": "时段",
+    "reason": "推荐原因",
+    "channel": "渠道",
+    "all": "全部",
+    "rangeTooLong": "所选范围不能超过 {{max}} 天。"
+  },
+  "outcomes": {
+    "accepted": "已接受",
+    "rejected": "已拒绝",
+    "ignored": "已忽略",
+    "awaiting": "等待反馈"
+  },
+  "reasons": {
+    "frequently_ordered": "常点商品",
+    "popular_at_outlet": "门店热销"
+  },
+  "dayparts": {
+    "allDay": "全天"
+  },
+  "summary": {
+    "servedItems": "推荐商品数",
+    "accepted": "已接受",
+    "rejected": "已拒绝",
+    "ignored": "已忽略",
+    "ignoredHint": "2 小时内未收到反馈",
+    "awaiting": "等待反馈",
+    "awaitingHint": "推荐时间不足 2 小时",
+    "acceptanceRate": "接受率",
+    "acceptanceRateHint": "已接受数占已有结果商品数的比例；不含等待反馈的商品",
+    "serves": "推荐次数",
+    "servesHint": "至少包含一个商品的推荐响应"
+  },
+  "charts": {
+    "outcomes": "按结果统计的推荐商品",
+    "acceptanceRate": "每日接受率"
+  },
+  "breakdown": {
+    "title": "明细",
+    "byItem": "按商品",
+    "byOutlet": "按门店",
+    "byReason": "按原因",
+    "byDaypart": "按时段",
+    "name": "名称",
+    "servedItems": "推荐商品数",
+    "acceptanceRate": "接受率",
+    "empty": "此期间没有推荐。"
+  },
+  "serves": {
+    "title": "最近的推荐",
+    "time": "时间",
+    "outlet": "门店",
+    "channel": "渠道",
+    "daypart": "时段",
+    "items": "商品",
+    "noChannel": "无",
+    "rank": "#{{rank}}",
+    "empty": "此期间没有推荐。",
+    "loadMore": "加载更多"
+  }
+}

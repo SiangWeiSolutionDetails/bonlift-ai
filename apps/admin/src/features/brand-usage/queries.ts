@@ -3,7 +3,7 @@ import { brandKeys } from "../brands/queries";
 import { getBrandUsage } from "./api";
 
 // Days are counted in the viewer's time zone, so a Singapore viewer's "1 Nov" is Singapore's 1 Nov.
-const VIEWER_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+export const VIEWER_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 export const brandUsageKeys = {
   range: (brandId: string, from: string, to: string, tz: string) =>

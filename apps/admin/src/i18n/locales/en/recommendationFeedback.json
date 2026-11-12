@@ -1,0 +1,72 @@
+{
+  "page": {
+    "title": "Recommendation Feedback",
+    "description": "How customers responded to the items they were recommended. Days are in {{tz}}. Only recommendations for identified customers are recorded."
+  },
+  "picker": {
+    "brand": "Brand",
+    "brandPlaceholder": "Select a brand",
+    "noBrand": "Select a brand to see its recommendation feedback.",
+    "from": "From",
+    "to": "To",
+    "outlet": "Outlet",
+    "daypart": "Daypart",
+    "reason": "Reason",
+    "channel": "Channel",
+    "all": "All",
+    "rangeTooLong": "Choose a range of at most {{max}} days."
+  },
+  "outcomes": {
+    "accepted": "Accepted",
+    "rejected": "Rejected",
+    "ignored": "Ignored",
+    "awaiting": "Awaiting"
+  },
+  "reasons": {
+    "frequently_ordered": "Frequently Ordered",
+    "popular_at_outlet": "Popular at Outlet"
+  },
+  "dayparts": {
+    "allDay": "All Day"
+  },
+  "summary": {
+    "servedItems": "Served Items",
+    "accepted": "Accepted",
+    "rejected": "Rejected",
+    "ignored": "Ignored",
+    "ignoredHint": "No feedback within 2 hours",
+    "awaiting": "Awaiting Feedback",
+    "awaitingHint": "Served under 2 hours ago",
+    "acceptanceRate": "Acceptance Rate",
+    "acceptanceRateHint": "Accepted out of items with an outcome; awaiting items are excluded",
+    "serves": "Recommendations",
+    "servesHint": "Responses with at least one item"
+  },
+  "charts": {
+    "outcomes": "Served Items by Outcome",
+    "acceptanceRate": "Daily Acceptance Rate"
+  },
+  "breakdown": {
+    "title": "Breakdown",
+    "byItem": "By Item",
+    "byOutlet": "By Outlet",
+    "byReason": "By Reason",
+    "byDaypart": "By Daypart",
+    "name": "Name",
+    "servedItems": "Served Items",
+    "acceptanceRate": "Acceptance Rate",
+    "empty": "No recommendations in this period."
+  },
+  "serves": {
+    "title": "Recent Recommendations",
+    "time": "Time",
+    "outlet": "Outlet",
+    "channel": "Channel",
+    "daypart": "Daypart",
+    "items": "Items",
+    "noChannel": "None",
+    "rank": "#{{rank}}",
+    "empty": "No recommendations in this period.",
+    "loadMore": "Load More"
+  }
+}

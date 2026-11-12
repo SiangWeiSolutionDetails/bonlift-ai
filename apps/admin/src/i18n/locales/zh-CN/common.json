@@ -36,7 +36,8 @@
     "customerScores": "顾客商品评分",
     "itemAffinity": "商品关联",
     "apiKeys": "API 密钥",
-    "usage": "用量"
+    "usage": "用量",
+    "recommendationFeedback": "推荐反馈"
   },
   "language": {
     "label": "语言"

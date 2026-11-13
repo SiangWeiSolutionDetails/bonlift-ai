@@ -3,6 +3,10 @@
     "title": "品牌",
     "newBrand": "新建品牌"
   },
+  "search": {
+    "placeholder": "按名称搜索品牌",
+    "noMatches": "没有匹配的品牌。"
+  },
   "table": {
     "name": "名称",
     "tenant": "租户",

@@ -3,6 +3,10 @@
     "title": "Tenants",
     "newTenant": "New Tenant"
   },
+  "search": {
+    "placeholder": "Search tenants by name",
+    "noMatches": "No tenants match your search."
+  },
   "table": {
     "name": "Name",
     "status": "Status",

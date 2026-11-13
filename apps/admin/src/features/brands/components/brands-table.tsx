@@ -25,6 +25,7 @@ type BrandsTableProps = {
   tenants: Tenant[];
   isPending: boolean;
   error: Error | null;
+  emptyMessage?: string;
   onEdit: (brand: Brand) => void;
   onView: (brand: Brand) => void;
   onDelete: (brand: Brand) => void;
@@ -59,6 +60,7 @@ function BrandsTableRows({
   tenants,
   isPending,
   error,
+  emptyMessage,
   onEdit,
   onView,
   onDelete,
@@ -81,7 +83,7 @@ function BrandsTableRows({
   }
 
   if (!brands?.length) {
-    return <MessageRow>{t("table.empty")}</MessageRow>;
+    return <MessageRow>{emptyMessage ?? t("table.empty")}</MessageRow>;
   }
 
   const tenantNames = new Map(tenants.map((tenant) => [tenant.id, tenant.name]));

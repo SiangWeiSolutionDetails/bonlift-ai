@@ -26,6 +26,7 @@ type TenantsTableProps = {
   onEdit: (tenant: Tenant) => void;
   onView: (tenant: Tenant) => void;
   onDelete: (tenant: Tenant) => void;
+  emptyMessage?: string;
 };
 
 export function TenantsTable(props: TenantsTableProps) {
@@ -58,6 +59,7 @@ function TenantsTableRows({
   onEdit,
   onView,
   onDelete,
+  emptyMessage,
 }: TenantsTableProps) {
   const { t } = useTranslation("tenants");
   const { t: tCommon } = useTranslation();
@@ -77,7 +79,7 @@ function TenantsTableRows({
   }
 
   if (!tenants?.length) {
-    return <MessageRow>{t("table.empty")}</MessageRow>;
+    return <MessageRow>{emptyMessage ?? t("table.empty")}</MessageRow>;
   }
 
   return tenants.map((tenant) => (

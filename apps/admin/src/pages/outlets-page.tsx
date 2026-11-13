@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -19,6 +20,7 @@ import { OutletsTable } from "@/features/outlets/components/outlets-table";
 import { useDeleteOutlet, useOutlets } from "@/features/outlets/queries";
 import type { Outlet, OutletListParams } from "@/features/outlets/type";
 import { getErrorMessage } from "@/lib/error-message";
+import { filterByName } from "@/lib/filter-by-name";
 
 // Radix Select reserves "" for "no selection", so the "all brands" option needs its own value
 const ALL_BRANDS = "all";
@@ -33,6 +35,7 @@ export function OutletsPage() {
   // Not reset on close, so the title doesn't flip while the dialog animates out
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [brandFilter, setBrandFilter] = useState(ALL_BRANDS);
+  const [searchText, setSearchText] = useState("");
 
   function openOutlet(outlet: Outlet, readOnly: boolean) {
     setSelectedOutlet(outlet);
@@ -45,6 +48,7 @@ export function OutletsPage() {
   const { data: outlets, isPending, error } = useOutlets(listParams);
   // Feeds the filter, the create dialog and the brand column
   const { data: brands = [] } = useBrands();
+  const filteredOutlets = filterByName(outlets, searchText);
 
   return (
     <div className="flex flex-col gap-6">
@@ -75,6 +79,14 @@ export function OutletsPage() {
             ))}
           </SelectContent>
         </Select>
+        <Input
+          type="search"
+          className="w-72"
+          aria-label={t("search.placeholder")}
+          placeholder={t("search.placeholder")}
+          value={searchText}
+          onChange={(event) => setSearchText(event.target.value)}
+        />
       </div>
 
       {deleteOutletMutation.error && (
@@ -84,8 +96,9 @@ export function OutletsPage() {
       )}
 
       <OutletsTable
-        outlets={outlets}
+        outlets={filteredOutlets}
         brands={brands}
+        emptyMessage={searchText.trim() ? t("search.noMatches") : undefined}
         isPending={isPending}
         error={error}
         onEdit={(outlet) => openOutlet(outlet, false)}

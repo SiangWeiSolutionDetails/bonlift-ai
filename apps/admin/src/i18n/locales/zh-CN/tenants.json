@@ -3,6 +3,10 @@
     "title": "租户",
     "newTenant": "新建租户"
   },
+  "search": {
+    "placeholder": "按名称搜索租户",
+    "noMatches": "没有匹配的租户。"
+  },
   "table": {
     "name": "名称",
     "status": "状态",

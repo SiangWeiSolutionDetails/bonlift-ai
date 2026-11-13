@@ -28,6 +28,7 @@ type OutletsTableProps = {
   onEdit: (outlet: Outlet) => void;
   onView: (outlet: Outlet) => void;
   onDelete: (outlet: Outlet) => void;
+  emptyMessage?: string;
 };
 
 export function OutletsTable(props: OutletsTableProps) {
@@ -62,6 +63,7 @@ function OutletsTableRows({
   onEdit,
   onView,
   onDelete,
+  emptyMessage,
 }: OutletsTableProps) {
   const { t } = useTranslation("outlets");
   const { t: tCommon } = useTranslation();
@@ -86,7 +88,7 @@ function OutletsTableRows({
   }
 
   if (!outlets?.length) {
-    return <MessageRow>{t("table.empty")}</MessageRow>;
+    return <MessageRow>{emptyMessage ?? t("table.empty")}</MessageRow>;
   }
 
   return outlets.map((outlet) => (

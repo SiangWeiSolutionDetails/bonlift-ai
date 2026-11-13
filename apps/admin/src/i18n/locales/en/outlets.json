@@ -7,6 +7,10 @@
     "brand": "Brand",
     "allBrands": "All Brands"
   },
+  "search": {
+    "placeholder": "Search outlets by name",
+    "noMatches": "No outlets match your search."
+  },
   "table": {
     "name": "Name",
     "brand": "Brand",

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { BrandsTable } from "@/features/brands/components/brands-table";
 import { CreateBrandDialog } from "@/features/brands/components/create-brand-dialog";
 import { BrandDialog } from "@/features/brands/components/brand-dialog";
@@ -11,6 +12,7 @@ import type { Brand } from "@/features/brands/type";
 import { useBrands, useDeleteBrand } from "@/features/brands/queries";
 import { useTenants } from "@/features/tenants/queries";
 import { getErrorMessage } from "@/lib/error-message";
+import { filterByName } from "@/lib/filter-by-name";
 
 export function BrandsPage() {
   const { t } = useTranslation("brands");
@@ -21,6 +23,7 @@ export function BrandsPage() {
   const deleteBrandMutation = useDeleteBrand();
   // Not reset on close, so the title doesn't flip while the dialog animates out
   const [isReadOnly, setIsReadOnly] = useState(false);
+  const [searchText, setSearchText] = useState("");
 
   function openBrand(brand: Brand, readOnly: boolean) {
     setSelectedBrandId(brand.id);
@@ -32,6 +35,7 @@ export function BrandsPage() {
   // Derived from the list so the open dialog sees saved changes
   const selectedBrand =
     brands?.find((brand) => brand.id === selectedBrandId) ?? null;
+  const filteredBrands = filterByName(brands, searchText);
 
   return (
     <div className="flex flex-col gap-6">
@@ -45,6 +49,15 @@ export function BrandsPage() {
         }
       />
 
+      <Input
+        type="search"
+        className="w-72"
+        aria-label={t("search.placeholder")}
+        placeholder={t("search.placeholder")}
+        value={searchText}
+        onChange={(event) => setSearchText(event.target.value)}
+      />
+
       {deleteBrandMutation.error && (
         <p className="text-sm text-destructive">
           {getErrorMessage(deleteBrandMutation.error, tCommon)}
@@ -52,10 +65,11 @@ export function BrandsPage() {
       )}
 
       <BrandsTable
-        brands={brands}
+        brands={filteredBrands}
         tenants={tenants}
         isPending={isPending}
         error={error}
+        emptyMessage={searchText.trim() ? t("search.noMatches") : undefined}
         onEdit={(brand) => openBrand(brand, false)}
         onView={(brand) => openBrand(brand, true)}
         onDelete={setBrandToDelete}

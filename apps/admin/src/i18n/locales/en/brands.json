@@ -3,6 +3,10 @@
     "title": "Brands",
     "newBrand": "New Brand"
   },
+  "search": {
+    "placeholder": "Search brands by name",
+    "noMatches": "No brands match your search."
+  },
   "table": {
     "name": "Name",
     "tenant": "Tenant",

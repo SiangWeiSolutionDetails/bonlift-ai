@@ -4,12 +4,14 @@ import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { CreateTenantDialog } from "@/features/tenants/components/create-tenant-dialog";
 import { TenantDialog } from "@/features/tenants/components/tenant-dialog";
 import { TenantsTable } from "@/features/tenants/components/tenants-table";
 import type { Tenant } from "@/features/tenants/type";
 import { useDeleteTenant, useTenants } from "@/features/tenants/queries";
 import { getErrorMessage } from "@/lib/error-message";
+import { filterByName } from "@/lib/filter-by-name";
 
 export function TenantsPage() {
   const { t } = useTranslation("tenants");
@@ -20,6 +22,7 @@ export function TenantsPage() {
   const deleteTenantMutation = useDeleteTenant();
   // Not reset on close, so the title doesn't flip while the dialog animates out
   const [isReadOnly, setIsReadOnly] = useState(false);
+  const [searchText, setSearchText] = useState("");
 
   function openTenant(tenant: Tenant, readOnly: boolean) {
     setSelectedTenant(tenant);
@@ -27,6 +30,7 @@ export function TenantsPage() {
   }
 
   const { data: tenants, error, isPending } = useTenants();
+  const filteredTenants = filterByName(tenants, searchText);
 
   return (
     <div className="flex flex-col gap-6">
@@ -40,6 +44,15 @@ export function TenantsPage() {
         }
       />
 
+      <Input
+        type="search"
+        className="w-72"
+        aria-label={t("search.placeholder")}
+        placeholder={t("search.placeholder")}
+        value={searchText}
+        onChange={(event) => setSearchText(event.target.value)}
+      />
+
       {deleteTenantMutation.error && (
         <p className="text-sm text-destructive">
           {getErrorMessage(deleteTenantMutation.error, tCommon)}
@@ -47,7 +60,8 @@ export function TenantsPage() {
       )}
 
       <TenantsTable
-        tenants={tenants}
+        tenants={filteredTenants}
+        emptyMessage={searchText.trim() ? t("search.noMatches") : undefined}
         isPending={isPending}
         error={error}
         onEdit={(tenant) => openTenant(tenant, false)}

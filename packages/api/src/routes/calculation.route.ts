@@ -6,6 +6,7 @@ import {
 } from "@bonlift-ai/worker";
 import { getPool } from "@bonlift-ai/db";
 import {
+  BrandCalculationsStartResponseSchema,
   BrandParamsSchema,
   BrandParamsSchemaType,
   CustomerItemScoresCalculationQuerySchema,
@@ -23,8 +24,35 @@ import {
 import { startOutletItemScoresCalculation } from "../services/calculation.service.js";
 import { startCustomerItemScoresCalculation } from "../services/customerItemScoresCalculation.service.js";
 import { startItemAffinityCalculation } from "../services/itemAffinityCalculation.service.js";
+import { startAllBrandCalculations } from "../services/brandCalculations.service.js";
+
+const QUEUES = {
+  outlet_item_scores: queueOutletItemScores,
+  customer_item_scores: queueCustomerItemScores,
+  item_affinity: queueItemAffinity,
+};
 
 export async function calculationRoutes(app: FastifyInstance) {
+  app.post<{ Params: BrandParamsSchemaType }>(
+    "/calculate/all/:brandId",
+    {
+      schema: {
+        params: BrandParamsSchema,
+        response: { 202: BrandCalculationsStartResponseSchema },
+      },
+    },
+    async (request, reply) => {
+      const result = await startAllBrandCalculations(
+        getPool(),
+        QUEUES,
+        request.params.brandId,
+        { type: "manual", by: "api" },
+      );
+      reply.status(202);
+      return result;
+    },
+  );
+
   app.post<{
     Params: OutletParamsSchemaType;
     Querystring: OutletItemScoresCalculationQuerySchemaType;

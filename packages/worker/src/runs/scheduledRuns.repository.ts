@@ -1,12 +1,34 @@
 import {
   CALCULATION_ALGORITHM_VERSIONS,
   CalculationJobTypeSchemaType,
+  CalculationTriggerTypeSchemaType,
 } from "@bonlift-ai/contracts";
 import { Pool } from "pg";
 
-export interface ScheduledRun {
+export interface BrandRun {
   id: string;
   jobType: CalculationJobTypeSchemaType;
+  outletId: string | null;
+}
+
+export type BrandStatus = "not_found" | "inactive" | "active";
+
+export interface BrandRunOptions {
+  triggerType: CalculationTriggerTypeSchemaType;
+  triggeredBy: string;
+  // Manual Run all starts runs with the schedule switched off; the nightly scheduler does not.
+  requireEnabledSchedule: boolean;
+}
+
+export const SCHEDULED_RUN_OPTIONS: BrandRunOptions = {
+  triggerType: "scheduled",
+  triggeredBy: "scheduler",
+  requireEnabledSchedule: true,
+};
+
+export interface CreatedBrandRuns {
+  brandStatus: BrandStatus;
+  runs: BrandRun[];
 }
 
 export interface BrandScheduleState {
@@ -20,26 +42,32 @@ export interface ScheduleOutcome {
   failedToQueue: number;
 }
 
-// $1 = brand id, $2..$4 = algorithm versions (outlet, customer, affinity).
+// $1 = brand id, $2..$4 = algorithm versions (outlet, customer, affinity), $5 = trigger type, $6 = triggered by,
+// $7 = whether a disabled schedule creates nothing.
 // One statement creates the brand's runs: one per live outlet for outlet item scores, one each for customer item
 // scores and item affinity. Windows and time zone come from the brand's schedule row at run time, so changing a
-// window needs no rescheduling. Windows are inclusive and end yesterday in the schedule's time zone. A disabled
-// schedule or a non-live brand creates nothing. A scope with no order snapshots in its window is skipped, so idle
-// outlets don't fill computation_runs with empty runs. A scope that already has a running run is skipped by the
-// one-running indexes (ON CONFLICT names each partial index by its predicate).
-const CREATE_SCHEDULED_RUNS_SQL = `
+// window needs no rescheduling. Windows are inclusive and end yesterday in the schedule's time zone. A non-live brand
+// creates nothing. A scope with no order snapshots in its window is skipped, so idle outlets don't fill
+// computation_runs with empty runs. A scope that already has a running run is skipped by the one-running indexes
+// (ON CONFLICT names each partial index by its predicate). The brand row is returned even when nothing is created,
+// so callers tell an unknown brand (no rows) and an inactive one apart without a second query.
+const CREATE_BRAND_RUNS_SQL = `
 WITH
+brand AS (
+  SELECT b.id, b.is_active
+  FROM brands b
+  WHERE b.id = $1
+    AND b.deleted_at IS NULL
+),
 schedule AS (
   SELECT s.brand_id, s.outlet_window_days, s.customer_window_days, s.affinity_window_days,
          (now() AT TIME ZONE s.time_zone)::date AS today,
          (now() AT TIME ZONE s.time_zone)::date - 1 AS window_to
   FROM brand_calculation_schedules s
-  JOIN brands b
+  JOIN brand b
     ON b.id = s.brand_id
-  WHERE s.brand_id = $1
-    AND s.is_enabled
-    AND b.is_active
-    AND b.deleted_at IS NULL
+  WHERE b.is_active
+    AND (s.is_enabled OR NOT $7::boolean)
 ),
 latest_config AS (
   SELECT DISTINCT ON (ccv.job_type) ccv.job_type, ccv.id
@@ -53,7 +81,7 @@ outlet_runs AS (
     input_window_from, input_window_to, trigger_type, triggered_by, status
   )
   SELECT s.brand_id, o.id, 'outlet_item_scores', s.today, $2, c.id,
-         s.window_to - (s.outlet_window_days - 1), s.window_to, 'scheduled', 'scheduler', 'running'
+         s.window_to - (s.outlet_window_days - 1), s.window_to, $5, $6, 'running'
   FROM schedule s
   JOIN outlets o
     ON o.brand_id = s.brand_id
@@ -68,7 +96,7 @@ outlet_runs AS (
         AND os.order_date BETWEEN s.window_to - (s.outlet_window_days - 1) AND s.window_to
     )
   ON CONFLICT (outlet_id, job_type) WHERE status = 'running' DO NOTHING
-  RETURNING id, job_type
+  RETURNING id, job_type, outlet_id
 ),
 -- Inactive outlets count here, as in the brand-level calculations themselves; deleted ones do not.
 brand_runs AS (
@@ -77,7 +105,7 @@ brand_runs AS (
     input_window_from, input_window_to, trigger_type, triggered_by, status
   )
   SELECT s.brand_id, NULL, j.job_type, s.today, j.algorithm_version, c.id,
-         s.window_to - (j.window_days - 1), s.window_to, 'scheduled', 'scheduler', 'running'
+         s.window_to - (j.window_days - 1), s.window_to, $5, $6, 'running'
   FROM schedule s
   CROSS JOIN LATERAL (
     VALUES ('customer_item_scores', $3, s.customer_window_days),
@@ -95,22 +123,44 @@ brand_runs AS (
       AND os.order_date BETWEEN s.window_to - (j.window_days - 1) AND s.window_to
   )
   ON CONFLICT (brand_id, job_type) WHERE status = 'running' AND outlet_id IS NULL DO NOTHING
-  RETURNING id, job_type
+  RETURNING id, job_type, outlet_id
+),
+created AS (
+  SELECT id, job_type, outlet_id FROM outlet_runs
+  UNION ALL
+  SELECT id, job_type, outlet_id FROM brand_runs
 )
-SELECT id, job_type FROM outlet_runs
-UNION ALL
-SELECT id, job_type FROM brand_runs;
+SELECT b.is_active, c.id, c.job_type, c.outlet_id
+FROM brand b
+LEFT JOIN created c ON TRUE;
 `;
 
-export async function createScheduledRuns(pool: Pool, brandId: string): Promise<ScheduledRun[]> {
-  const result = await pool.query(CREATE_SCHEDULED_RUNS_SQL, [
+function toBrandStatus(rows: any[]): BrandStatus {
+  if (rows.length === 0) return "not_found";
+  return rows[0].is_active ? "active" : "inactive";
+}
+
+export async function createBrandRuns(
+  pool: Pool,
+  brandId: string,
+  options: BrandRunOptions,
+): Promise<CreatedBrandRuns> {
+  const result = await pool.query(CREATE_BRAND_RUNS_SQL, [
     brandId,
     CALCULATION_ALGORITHM_VERSIONS.outlet_item_scores,
     CALCULATION_ALGORITHM_VERSIONS.customer_item_scores,
     CALCULATION_ALGORITHM_VERSIONS.item_affinity,
+    options.triggerType,
+    options.triggeredBy,
+    options.requireEnabledSchedule,
   ]);
 
-  return result.rows.map((row) => ({ id: row.id, jobType: row.job_type }));
+  return {
+    brandStatus: toBrandStatus(result.rows),
+    runs: result.rows
+      .filter((row) => row.id !== null)
+      .map((row) => ({ id: row.id, jobType: row.job_type, outletId: row.outlet_id })),
+  };
 }
 
 // Null for an unknown or deleted brand.

@@ -10,6 +10,7 @@ import { brandCalculationScheduleRoutes } from "./routes/brandCalculationSchedul
 import { datasetRoutes } from "./routes/dataset.route.js";
 import { orderSnapshotRoutes } from "./routes/orderSnapshot.route.js";
 import { calculationRoutes } from "./routes/calculation.route.js";
+import { calculationsOverviewRoutes } from "./routes/calculationsOverview.route.js";
 import { outletItemScoresCalculationConfigVersionRoutes } from "./routes/outletItemScoresCalculationConfigVersion.route.js";
 import { outletItemScoresResultRoutes } from "./routes/outletItemScoresResult.route.js";
 import { customerItemScoresCalculationConfigVersionRoutes } from "./routes/customerItemScoresCalculationConfigVersion.route.js";
@@ -80,6 +81,7 @@ export function buildApp(): FastifyInstance {
     admin.register(datasetRoutes);
     admin.register(orderSnapshotRoutes);
     admin.register(calculationRoutes);
+    admin.register(calculationsOverviewRoutes);
     admin.register(outletItemScoresCalculationConfigVersionRoutes);
     admin.register(outletItemScoresResultRoutes);
     admin.register(customerItemScoresCalculationConfigVersionRoutes);

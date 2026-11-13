@@ -12,6 +12,7 @@ import {
   DatabaseIcon,
   GaugeIcon,
   KeyRoundIcon,
+  LayoutDashboardIcon,
   SquareStackIcon,
   StoreIcon,
   TagIcon,
@@ -20,6 +21,7 @@ import {
 import App from "@/App";
 import { validateApiKeysSearch } from "@/features/brand-api-keys/search";
 import { validateUsageSearch } from "@/features/brand-usage/search";
+import { validateCalculationsSearch } from "@/features/calculations-overview/search";
 import { validateCustomerScoresSearch } from "@/features/customer-item-scores/search";
 import { validateItemAffinitySearch } from "@/features/item-affinity/search";
 import { validateSnapshotsSearch } from "@/features/order-snapshots/search";
@@ -28,6 +30,7 @@ import { validateRecommendationFeedbackSearch } from "@/features/recommendation-
 import type enCommon from "@/i18n/locales/en/common.json";
 import { ApiKeysPage } from "@/pages/api-keys-page";
 import { BrandsPage } from "@/pages/brands-page";
+import { CalculationsPage } from "@/pages/calculations-page";
 import { CustomerScoresPage } from "@/pages/customer-scores-page";
 import { ItemAffinityPage } from "@/pages/item-affinity-page";
 import { OrderSnapshotsPage } from "@/pages/order-snapshots-page";
@@ -74,6 +77,14 @@ const snapshotsRoute = createRoute({
   component: OrderSnapshotsPage,
   validateSearch: validateSnapshotsSearch,
   staticData: { titleKey: "nav.snapshots", groupKey: "nav.dataset", icon: <DatabaseIcon /> },
+});
+
+const calculationsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/calculations",
+  component: CalculationsPage,
+  validateSearch: validateCalculationsSearch,
+  staticData: { titleKey: "nav.calculations", groupKey: "nav.computation", icon: <LayoutDashboardIcon /> },
 });
 
 const resultsRoute = createRoute({
@@ -136,6 +147,7 @@ const routeTree = rootRoute.addChildren([
   brandsRoute,
   outletsRoute,
   snapshotsRoute,
+  calculationsRoute,
   resultsRoute,
   customerScoresRoute,
   itemAffinityRoute,

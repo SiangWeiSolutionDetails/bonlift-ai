@@ -1,0 +1,120 @@
+{
+  "page": {
+    "title": "计算总览",
+    "runAll": "运行全部计算"
+  },
+  "picker": {
+    "brand": "品牌",
+    "brandPlaceholder": "选择品牌",
+    "noBrand": "请选择品牌以查看其计算状态。"
+  },
+  "status": {
+    "running": "运行中",
+    "succeeded": "成功",
+    "failed": "失败",
+    "neverRun": "从未运行"
+  },
+  "jobs": {
+    "outletItemScores": {
+      "title": "门店商品评分",
+      "description": "按近期热度为每家门店的商品排序，按门店分别运行。",
+      "subjects": "已评分商品",
+      "rows": "评分行数"
+    },
+    "customerItemScores": {
+      "title": "顾客商品评分",
+      "description": "根据顾客下单的时间远近和频率，为每位顾客的商品排序。",
+      "subjects": "顾客数",
+      "rows": "评分行数"
+    },
+    "itemAffinity": {
+      "title": "商品关联",
+      "description": "找出整个品牌中经常被一起下单的商品。",
+      "subjects": "有关联商品的商品",
+      "rows": "商品对"
+    }
+  },
+  "dialog": {
+    "title": "运行全部计算？",
+    "description": "以下所有计算将立即为该品牌开始运行，使用其计算计划中的时间窗口。",
+    "window_one": "最近 {{count}} 天，截至 {{date}}",
+    "window_other": "最近 {{count}} 天，截至 {{date}}",
+    "skipNote": "已在运行中、或时间窗口内没有订单的门店和计算将被跳过。",
+    "submit": "全部运行",
+    "submitting": "启动中…"
+  },
+  "result": {
+    "started_one": "已启动 {{count}} 个运行。",
+    "started_other": "已启动 {{count}} 个运行。",
+    "failedToQueue_one": "{{count}} 个未能加入队列。",
+    "failedToQueue_other": "{{count}} 个未能加入队列。",
+    "nothingToStart": "没有可启动的计算 — 全部已在运行中或没有数据。"
+  },
+  "progress": {
+    "running": "计算运行中",
+    "done": "计算已完成",
+    "finished": "已完成 {{finished}} / {{total}}",
+    "failed_one": "{{count}} 个失败",
+    "failed_other": "{{count}} 个失败"
+  },
+  "insights": {
+    "title": "需要关注",
+    "latestRunFailed": "{{calculation}}：最近一次运行失败。",
+    "latestRunFailedOutlet": "{{calculation}}（{{outlet}}）：最近一次运行失败。",
+    "noErrorMessage": "未记录错误信息。",
+    "recentFailures_one": "{{calculation}}：最近 7 天有 {{count}} 次运行失败。",
+    "recentFailures_other": "{{calculation}}：最近 7 天有 {{count}} 次运行失败。",
+    "noPublishedResultsBrand": "{{calculation}}：尚未发布任何结果，因此不会提供推荐。",
+    "noPublishedResults_one": "{{calculation}}：{{count}} 家门店没有已发布的结果，因此不会获得推荐：{{outlets}}",
+    "noPublishedResults_other": "{{calculation}}：{{count}} 家门店没有已发布的结果，因此不会获得推荐：{{outlets}}",
+    "noOrdersInWindow_one": "{{calculation}}：{{count}} 家门店在时间窗口内没有订单，将被跳过：{{outlets}}",
+    "noOrdersInWindow_other": "{{calculation}}：{{count}} 家门店在时间窗口内没有订单，将被跳过：{{outlets}}",
+    "staleResults_one": "{{calculation}}：结果已过时 {{count}} 天。",
+    "staleResults_other": "{{calculation}}：结果已过时 {{count}} 天。"
+  },
+  "card": {
+    "scheduleWindow": "时间窗口",
+    "scheduleWindowValue_one": "最近 {{count}} 天",
+    "scheduleWindowValue_other": "最近 {{count}} 天",
+    "publishedWindow": "已发布窗口",
+    "publishedOutlets": "已发布门店",
+    "publishedOutletsValue": "{{published}} / {{total}}",
+    "lastFinished": "最近完成",
+    "duration": "耗时",
+    "notFinished": "尚未完成",
+    "resultsAge": "结果时效",
+    "resultsAgeValue_one": "已过时 {{count}} 天",
+    "resultsAgeValue_other": "已过时 {{count}} 天",
+    "upToDate": "最新",
+    "nothingPublished": "尚未发布",
+    "noRuns": "暂无运行",
+    "viewDetails": "查看详情"
+  },
+  "outlets": {
+    "outlet": "门店",
+    "status": "最近运行",
+    "publishedWindow": "已发布窗口",
+    "hasData": "窗口内有订单",
+    "yes": "是",
+    "no": "否",
+    "inactive": "停用",
+    "empty": "该品牌没有门店。"
+  },
+  "topPairs": {
+    "title": "热门商品对",
+    "description": "已发布的商品关联运行中关联最强的商品对。",
+    "pair": "商品对",
+    "confidence": "置信度",
+    "lift": "提升度",
+    "orders": "共同订单数",
+    "empty": "暂无已发布的商品对。"
+  },
+  "topItems": {
+    "title": "热门商品",
+    "description": "所有门店已发布评分中下单最多的商品。",
+    "item": "商品",
+    "orders": "订单数",
+    "outlets": "门店数",
+    "empty": "暂无已发布的商品。"
+  }
+}

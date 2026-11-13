@@ -1,4 +1,5 @@
 import { closePool, getPool } from "@bonlift-ai/db";
+import { Pool } from "pg";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import {
   queueScheduledCalculations,
@@ -13,9 +14,13 @@ import {
   order,
   storeOrders,
 } from "../testing/fixtures.js";
-import { createScheduledRuns } from "./scheduledRuns.repository.js";
+import { createBrandRuns, SCHEDULED_RUN_OPTIONS } from "./scheduledRuns.repository.js";
 
 const TIME_ZONE = "Asia/Singapore";
+
+async function createScheduledRuns(pool: Pool, brandId: string) {
+  return (await createBrandRuns(pool, brandId, SCHEDULED_RUN_OPTIONS)).runs;
+}
 
 let today: string;
 let yesterday: string;

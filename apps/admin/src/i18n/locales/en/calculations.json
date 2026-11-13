@@ -1,0 +1,120 @@
+{
+  "page": {
+    "title": "Calculations",
+    "runAll": "Run All Calculations"
+  },
+  "picker": {
+    "brand": "Brand",
+    "brandPlaceholder": "Select a brand",
+    "noBrand": "Choose a brand to see the state of its calculations."
+  },
+  "status": {
+    "running": "Running",
+    "succeeded": "Succeeded",
+    "failed": "Failed",
+    "neverRun": "Never run"
+  },
+  "jobs": {
+    "outletItemScores": {
+      "title": "Outlet Item Scoring",
+      "description": "Ranks each outlet's items by recent popularity. Runs per outlet.",
+      "subjects": "Items scored",
+      "rows": "Score rows"
+    },
+    "customerItemScores": {
+      "title": "Customer Item Scoring",
+      "description": "Ranks each customer's items by how recently and often they ordered them.",
+      "subjects": "Customers",
+      "rows": "Score rows"
+    },
+    "itemAffinity": {
+      "title": "Item Affinity",
+      "description": "Finds items that are often ordered together across the brand.",
+      "subjects": "Items with partners",
+      "rows": "Pairs"
+    }
+  },
+  "dialog": {
+    "title": "Run all calculations?",
+    "description": "Every calculation below starts now for this brand, using the windows from its calculation schedule.",
+    "window_one": "Last {{count}} day, to {{date}}",
+    "window_other": "Last {{count}} days, to {{date}}",
+    "skipNote": "Outlets and calculations that are already running, or have no orders in their window, are skipped.",
+    "submit": "Run All",
+    "submitting": "Starting…"
+  },
+  "result": {
+    "started_one": "Started {{count}} run.",
+    "started_other": "Started {{count}} runs.",
+    "failedToQueue_one": "{{count}} failed to queue.",
+    "failedToQueue_other": "{{count}} failed to queue.",
+    "nothingToStart": "Nothing to start — everything is already running or has no data."
+  },
+  "progress": {
+    "running": "Running calculations",
+    "done": "Calculations finished",
+    "finished": "{{finished}} of {{total}} finished",
+    "failed_one": "{{count}} failed",
+    "failed_other": "{{count}} failed"
+  },
+  "insights": {
+    "title": "Needs Attention",
+    "latestRunFailed": "{{calculation}}: the latest run failed.",
+    "latestRunFailedOutlet": "{{calculation}} at {{outlet}}: the latest run failed.",
+    "noErrorMessage": "No error message was recorded.",
+    "recentFailures_one": "{{calculation}}: {{count}} run failed in the last 7 days.",
+    "recentFailures_other": "{{calculation}}: {{count}} runs failed in the last 7 days.",
+    "noPublishedResultsBrand": "{{calculation}}: nothing has been published yet, so it gives no recommendations.",
+    "noPublishedResults_one": "{{calculation}}: {{count}} outlet has no published results, so it gets no recommendations: {{outlets}}",
+    "noPublishedResults_other": "{{calculation}}: {{count}} outlets have no published results, so they get no recommendations: {{outlets}}",
+    "noOrdersInWindow_one": "{{calculation}}: {{count}} outlet has no orders in the window and is skipped: {{outlets}}",
+    "noOrdersInWindow_other": "{{calculation}}: {{count}} outlets have no orders in the window and are skipped: {{outlets}}",
+    "staleResults_one": "{{calculation}}: results are {{count}} day old.",
+    "staleResults_other": "{{calculation}}: results are {{count}} days old."
+  },
+  "card": {
+    "scheduleWindow": "Window",
+    "scheduleWindowValue_one": "Last {{count}} day",
+    "scheduleWindowValue_other": "Last {{count}} days",
+    "publishedWindow": "Published window",
+    "publishedOutlets": "Published outlets",
+    "publishedOutletsValue": "{{published}} of {{total}}",
+    "lastFinished": "Last finished",
+    "duration": "Duration",
+    "notFinished": "Not finished yet",
+    "resultsAge": "Results age",
+    "resultsAgeValue_one": "{{count}} day old",
+    "resultsAgeValue_other": "{{count}} days old",
+    "upToDate": "Up to date",
+    "nothingPublished": "Nothing published",
+    "noRuns": "No runs yet",
+    "viewDetails": "View details"
+  },
+  "outlets": {
+    "outlet": "Outlet",
+    "status": "Latest run",
+    "publishedWindow": "Published window",
+    "hasData": "Orders in window",
+    "yes": "Yes",
+    "no": "No",
+    "inactive": "Inactive",
+    "empty": "This brand has no outlets."
+  },
+  "topPairs": {
+    "title": "Top Pairs",
+    "description": "Strongest pairs of the published item affinity run.",
+    "pair": "Pair",
+    "confidence": "Confidence",
+    "lift": "Lift",
+    "orders": "Orders together",
+    "empty": "No published pairs yet."
+  },
+  "topItems": {
+    "title": "Top Items",
+    "description": "Most-ordered items across all outlets' published scores.",
+    "item": "Item",
+    "orders": "Orders",
+    "outlets": "Outlets",
+    "empty": "No published items yet."
+  }
+}

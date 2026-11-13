@@ -28,3 +28,4 @@ export * from "./recommendationFeedbackReport.schema.js";
 export * from "./brandCalculationSchedule.schema.js";
 export * from "./brandChannel.schema.js";
 export * from "./customerId.js";
+export * from "./calculationsOverview.schema.js";

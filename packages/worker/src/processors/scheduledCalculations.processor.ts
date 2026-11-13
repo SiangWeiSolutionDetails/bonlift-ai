@@ -1,4 +1,3 @@
-import { CalculationJobTypeSchemaType } from "@bonlift-ai/contracts";
 import { getPool } from "@bonlift-ai/db";
 import { Job } from "bullmq";
 import { Pool } from "pg";
@@ -11,16 +10,14 @@ import {
   ScheduledCalculationJobData,
   syncBrandCalculationSchedule,
 } from "../queues/scheduledCalculations.queue.js";
+import { QueueByJobType, startBrandCalculations } from "../runs/brandCalculations.js";
 import {
-  createScheduledRuns,
-  failUnqueuedRun,
   loadBrandSchedule,
   recordScheduleFailure,
   recordScheduleSuccess,
+  SCHEDULED_RUN_OPTIONS,
   ScheduleOutcome,
 } from "../runs/scheduledRuns.repository.js";
-
-export type QueueByJobType = Record<CalculationJobTypeSchemaType, (runId: string) => Promise<void>>;
 
 export interface ScheduledCalculationsDeps {
   queues: QueueByJobType;
@@ -46,22 +43,8 @@ const DEPS: ScheduledCalculationsDeps = {
 };
 
 async function queueRuns(pool: Pool, queues: QueueByJobType, brandId: string): Promise<ScheduleOutcome> {
-  const runs = await createScheduledRuns(pool, brandId);
-
-  // One run failing to queue never stops the others.
-  const results = await Promise.allSettled(
-    runs.map(async (run) => {
-      try {
-        await queues[run.jobType](run.id);
-      } catch (error) {
-        await failUnqueuedRun(pool, run.id);
-        throw error;
-      }
-    }),
-  );
-  const failedToQueue = results.filter((result) => result.status === "rejected").length;
-
-  return { queued: runs.length - failedToQueue, failedToQueue };
+  const { queued, failedToQueue } = await startBrandCalculations(pool, queues, brandId, SCHEDULED_RUN_OPTIONS);
+  return { queued, failedToQueue };
 }
 
 function isStale(fired: FiredTiming, current: BrandScheduleTiming): boolean {

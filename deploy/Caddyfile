@@ -1,12 +1,10 @@
-:80 {
-	handle /v1/* {
-		reverse_proxy api:4000
-	}
+{
+	# TLS terminates at Cloudflare; cloudflared reaches Caddy over plain HTTP on localhost.
+	auto_https off
+}
 
-	# The admin bundle embeds ADMIN_TOKEN, so admin pages and admin API are reachable only from these IPs.
-	@notAllowed not remote_ip {$ADMIN_ALLOWED_IPS}
-	respond @notAllowed 403
-
+# Protected by Cloudflare Access: the admin bundle embeds ADMIN_TOKEN.
+http://{$ADMIN_HOST} {
 	handle_path /api/* {
 		reverse_proxy api:4000
 	}
@@ -16,4 +14,19 @@
 		try_files {path} /index.html
 		file_server
 	}
+}
+
+# Public, authenticated per request by brand API keys.
+http://{$API_HOST} {
+	handle /v1/* {
+		reverse_proxy api:4000
+	}
+
+	handle {
+		respond 404
+	}
+}
+
+:80 {
+	respond 404
 }

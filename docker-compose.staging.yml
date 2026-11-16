@@ -71,9 +71,11 @@ services:
     image: ${IMAGE_REGISTRY:-ghcr.io/siangweisolutiondetails}/bonlift-web:${IMAGE_TAG:-staging}
     restart: unless-stopped
     environment:
-      ADMIN_ALLOWED_IPS: ${ADMIN_ALLOWED_IPS:?ADMIN_ALLOWED_IPS must be set in .env}
+      ADMIN_HOST: ${ADMIN_HOST:?ADMIN_HOST must be set in .env}
+      API_HOST: ${API_HOST:?API_HOST must be set in .env}
+    # Reachable only through the cloudflared tunnel on this host.
     ports:
-      - "80:80"
+      - "127.0.0.1:80:80"
     volumes:
       - caddy_data:/data
     depends_on:

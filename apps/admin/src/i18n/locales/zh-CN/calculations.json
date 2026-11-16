@@ -123,8 +123,10 @@
     "empty": "暂无已发布的商品。"
   },
   "totals": {
+    "succeeded": "成功",
+    "failed": "失败",
     "running": "正在运行",
-    "succeededLast7Days": "近 7 天成功",
-    "failedLast7Days": "近 7 天失败"
+    "ofLatestRuns_one": "/ 最近 {{count}} 次运行",
+    "ofLatestRuns_other": "/ 最近 {{count}} 次运行"
   }
 }

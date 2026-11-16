@@ -12,27 +12,19 @@ const TONES = {
 
 export function OverviewTotalsStrip({ totals }: { totals: OverviewTotals }) {
   const { t } = useTranslation("calculations");
+  const ofScopes = t("totals.ofLatestRuns", { count: totals.scopes });
 
   return (
     <div className="grid gap-4 sm:grid-cols-3">
-      <TotalTile
-        icon={CircleCheckIcon}
-        tone="good"
-        label={t("totals.succeededLast7Days")}
-        value={totals.succeededRunsLast7Days}
-      />
-      <TotalTile
-        icon={CircleXIcon}
-        tone="bad"
-        label={t("totals.failedLast7Days")}
-        value={totals.failedRunsLast7Days}
-      />
+      <TotalTile icon={CircleCheckIcon} tone="good" label={t("totals.succeeded")} value={totals.succeeded} caption={ofScopes} />
+      <TotalTile icon={CircleXIcon} tone="bad" label={t("totals.failed")} value={totals.failed} caption={ofScopes} />
       <TotalTile
         icon={LoaderCircleIcon}
         tone="info"
         label={t("totals.running")}
-        value={totals.runningRuns}
-        spin={totals.runningRuns > 0}
+        value={totals.running}
+        caption={ofScopes}
+        spin={totals.running > 0}
       />
     </div>
   );
@@ -43,10 +35,11 @@ type TotalTileProps = {
   tone: keyof typeof TONES;
   label: string;
   value: number;
+  caption: string;
   spin?: boolean;
 };
 
-function TotalTile({ icon: Icon, tone, label, value, spin = false }: TotalTileProps) {
+function TotalTile({ icon: Icon, tone, label, value, caption, spin = false }: TotalTileProps) {
   return (
     <div className="flex flex-col gap-3 rounded-xl bg-card p-5 shadow-panel">
       <div className="flex items-center gap-3">
@@ -55,7 +48,10 @@ function TotalTile({ icon: Icon, tone, label, value, spin = false }: TotalTilePr
         </span>
         <span className="text-sm font-medium text-muted-foreground">{label}</span>
       </div>
-      <span className="text-3xl font-semibold tracking-tight tabular-nums">{value.toLocaleString()}</span>
+      <div className="flex items-baseline gap-2">
+        <span className="text-3xl font-semibold tracking-tight tabular-nums">{value.toLocaleString()}</span>
+        <span className="text-sm text-muted-foreground tabular-nums">{caption}</span>
+      </div>
     </div>
   );
 }

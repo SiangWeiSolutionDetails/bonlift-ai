@@ -56,7 +56,6 @@ function entry(overrides: Partial<CalculationEntry> = {}): CalculationEntry {
     outlets: [],
     runningRuns: 0,
     failedRunsLast7Days: 0,
-    succeededRunsLast7Days: 0,
     resultsAgeDays: 0,
     metrics: { subjects: 0, rows: 0 },
     ...overrides,
@@ -239,14 +238,24 @@ describe("deriveInsights", () => {
 });
 
 describe("summarizeOverview", () => {
-  it("adds up running, succeeded and failed runs across calculations", () => {
+  it("counts each scope once by its latest run, ignoring older runs and history counts", () => {
     const data = overview([
-      entry({ jobType: "outlet_item_scores", scope: "outlet", runningRuns: 2, succeededRunsLast7Days: 5, failedRunsLast7Days: 1 }),
-      entry({ jobType: "customer_item_scores", runningRuns: 1, succeededRunsLast7Days: 2 }),
-      entry({ jobType: "item_affinity", failedRunsLast7Days: 2 }),
+      entry({
+        jobType: "outlet_item_scores",
+        scope: "outlet",
+        failedRunsLast7Days: 4,
+        outlets: [
+          outlet("A", { latestRun: run("a", "succeeded") }),
+          outlet("B", { latestRun: run("b", "failed") }),
+          outlet("C", { latestRun: run("c", "running") }),
+          outlet("D"),
+        ],
+      }),
+      entry({ jobType: "customer_item_scores", latestRun: run("customer", "succeeded") }),
+      entry({ jobType: "item_affinity", latestRun: null }),
     ]);
 
-    expect(summarizeOverview(data)).toEqual({ runningRuns: 3, succeededRunsLast7Days: 7, failedRunsLast7Days: 3 });
+    expect(summarizeOverview(data)).toEqual({ running: 1, succeeded: 2, failed: 1, neverRun: 2, scopes: 6 });
   });
 });
 

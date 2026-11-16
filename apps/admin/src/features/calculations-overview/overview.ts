@@ -157,19 +157,23 @@ export function latestFinishedRun(entry: CalculationEntry) {
   return latest;
 }
 
-export type OverviewTotals = {
-  runningRuns: number;
-  succeededRunsLast7Days: number;
-  failedRunsLast7Days: number;
-};
+// Current state, not history: each scope (an outlet, or a brand-level calculation) counts once, by its latest run,
+// so the totals add up the status badges shown in the sections.
+export type OverviewTotals = Record<CalculationRunStatus | "neverRun", number> & { scopes: number };
 
 export function summarizeOverview(overview: CalculationsOverview): OverviewTotals {
-  const entries = joinCalculations(overview.calculations).map(({ entry }) => entry);
-  return {
-    runningRuns: entries.reduce((sum, entry) => sum + entry.runningRuns, 0),
-    succeededRunsLast7Days: entries.reduce((sum, entry) => sum + entry.succeededRunsLast7Days, 0),
-    failedRunsLast7Days: entries.reduce((sum, entry) => sum + entry.failedRunsLast7Days, 0),
-  };
+  const totals: OverviewTotals = { running: 0, succeeded: 0, failed: 0, neverRun: 0, scopes: 0 };
+  for (const { entry } of joinCalculations(overview.calculations)) {
+    const statuses =
+      entry.scope === "outlet"
+        ? entry.outlets.map((outlet) => outlet.latestRun?.status)
+        : [entry.latestRun?.status];
+    for (const status of statuses) {
+      totals[status ?? "neverRun"] += 1;
+      totals.scopes += 1;
+    }
+  }
+  return totals;
 }
 
 export type RunAllPhase = "nothingToStart" | "running" | "succeeded" | "failed";

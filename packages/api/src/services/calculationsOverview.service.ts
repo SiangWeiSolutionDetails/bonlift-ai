@@ -59,15 +59,13 @@ outlet_state AS (
              AND r.job_type = 'outlet_item_scores'
              AND r.status = 'running'
          ) AS running_runs,
-         recent.failed_runs,
-         recent.succeeded_runs
+         recent.failed_runs
   FROM brand b
   JOIN outlets o
     ON o.brand_id = b.id
    AND o.deleted_at IS NULL
   CROSS JOIN LATERAL (
-    SELECT count(*) FILTER (WHERE r.status = 'failed') AS failed_runs,
-           count(*) FILTER (WHERE r.status = 'succeeded') AS succeeded_runs
+    SELECT count(*) FILTER (WHERE r.status = 'failed') AS failed_runs
     FROM computation_runs r
     WHERE r.outlet_id = o.id
       AND r.job_type = 'outlet_item_scores'
@@ -104,16 +102,14 @@ brand_state AS (
              AND r.outlet_id IS NULL
              AND r.status = 'running'
          ) AS running_runs,
-         recent.failed_runs,
-         recent.succeeded_runs
+         recent.failed_runs
   FROM brand b
   CROSS JOIN LATERAL (
     VALUES (1, 'customer_item_scores', b.customer_window_days),
            (2, 'item_affinity', b.affinity_window_days)
   ) AS j(sort_order, job_type, window_days)
   CROSS JOIN LATERAL (
-    SELECT count(*) FILTER (WHERE r.status = 'failed') AS failed_runs,
-           count(*) FILTER (WHERE r.status = 'succeeded') AS succeeded_runs
+    SELECT count(*) FILTER (WHERE r.status = 'failed') AS failed_runs
     FROM computation_runs r
     WHERE r.brand_id = b.id
       AND r.job_type = j.job_type
@@ -229,7 +225,6 @@ SELECT
   ), '[]'::json) AS outlets,
   (SELECT COALESCE(sum(o.running_runs), 0) FROM outlet_state o) AS outlet_running_runs,
   (SELECT COALESCE(sum(o.failed_runs), 0) FROM outlet_state o) AS outlet_failed_runs,
-  (SELECT COALESCE(sum(o.succeeded_runs), 0) FROM outlet_state o) AS outlet_succeeded_runs,
   -- Inactive outlets are never recalculated, so their old published window would age forever.
   b.window_to - (SELECT min(o.published_to) FROM outlet_state o WHERE o.is_active) AS outlet_results_age_days,
   (SELECT subjects FROM outlet_metrics) AS outlet_subjects,
@@ -247,7 +242,6 @@ SELECT
                'publishedRun',   j.published_run,
                'runningRuns',    j.running_runs,
                'failedRuns',     j.failed_runs,
-               'succeededRuns',  j.succeeded_runs,
                'resultsAgeDays', b.window_to - j.published_to
              )
              ORDER BY j.sort_order
@@ -335,7 +329,6 @@ function buildOutletEntry(row: any): CalculationOverviewEntrySchemaType {
     outlets: row.outlets.map(mapOutlet),
     runningRuns: Number(row.outlet_running_runs),
     failedRunsLast7Days: Number(row.outlet_failed_runs),
-    succeededRunsLast7Days: Number(row.outlet_succeeded_runs),
     resultsAgeDays: toNullableNumber(row.outlet_results_age_days),
     metrics: toMetrics(row.outlet_subjects, row.outlet_rows),
   };
@@ -351,7 +344,6 @@ function buildBrandEntry(calculation: any, metrics: Metrics): CalculationOvervie
     outlets: [],
     runningRuns: Number(calculation.runningRuns),
     failedRunsLast7Days: Number(calculation.failedRuns),
-    succeededRunsLast7Days: Number(calculation.succeededRuns),
     resultsAgeDays: toNullableNumber(calculation.resultsAgeDays),
     metrics,
   };

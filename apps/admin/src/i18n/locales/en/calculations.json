@@ -123,8 +123,10 @@
     "empty": "No published items yet."
   },
   "totals": {
+    "succeeded": "Succeeded",
+    "failed": "Failed",
     "running": "Running now",
-    "succeededLast7Days": "Succeeded in last 7 days",
-    "failedLast7Days": "Failed in last 7 days"
+    "ofLatestRuns_one": "of {{count}} latest run",
+    "ofLatestRuns_other": "of {{count}} latest runs"
   }
 }

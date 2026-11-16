@@ -20,7 +20,10 @@
     "unknownBrand": "Unknown brand",
     "editOutlet": "Edit {{name}}",
     "viewOutlet": "View {{name}}",
-    "deleteOutlet": "Delete {{name}}"
+    "deleteOutlet": "Delete {{name}}",
+    "copyOutletId": "Copy outlet ID of {{name}}",
+    "copyId": "Copy ID",
+    "copied": "Copied"
   },
   "create": {
     "title": "New Outlet",

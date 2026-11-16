@@ -20,7 +20,10 @@
     "unknownBrand": "未知品牌",
     "editOutlet": "编辑 {{name}}",
     "viewOutlet": "查看 {{name}}",
-    "deleteOutlet": "删除 {{name}}"
+    "deleteOutlet": "删除 {{name}}",
+    "copyOutletId": "复制 {{name}} 的门店 ID",
+    "copyId": "复制 ID",
+    "copied": "已复制"
   },
   "create": {
     "title": "新建门店",

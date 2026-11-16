@@ -9,7 +9,7 @@ const MASK = "•".repeat(16);
 
 // navigator.clipboard only exists on secure origins (HTTPS/localhost); staging is plain HTTP,
 // so fall back to the legacy execCommand copy through an off-screen textarea.
-async function writeToClipboard(text: string) {
+export async function writeToClipboard(text: string) {
   if (navigator.clipboard && window.isSecureContext) {
     await navigator.clipboard.writeText(text);
     return;

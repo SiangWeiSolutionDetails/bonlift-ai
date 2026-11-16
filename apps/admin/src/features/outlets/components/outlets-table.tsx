@@ -16,6 +16,7 @@ import type { Brand } from "@/features/brands/type";
 import { getErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
 import type { Outlet } from "../type";
+import { CopyOutletIdButton } from "./copy-outlet-id-button";
 
 const COLUMN_COUNT = 4;
 const SKELETON_ROW_COUNT = 5;
@@ -42,7 +43,7 @@ export function OutletsTable(props: OutletsTableProps) {
             <TableHead>{t("table.name")}</TableHead>
             <TableHead>{t("table.brand")}</TableHead>
             <TableHead className="w-32">{t("table.status")}</TableHead>
-            <TableHead className="w-40 text-right">
+            <TableHead className="w-64 text-right">
               <span className="sr-only">{t("table.actions")}</span>
             </TableHead>
           </TableRow>
@@ -104,6 +105,7 @@ function OutletsTableRows({
         </Badge>
       </TableCell>
       <TableCell className="text-right">
+        <CopyOutletIdButton outlet={outlet} />
         <Button
           variant="ghost"
           size="sm"

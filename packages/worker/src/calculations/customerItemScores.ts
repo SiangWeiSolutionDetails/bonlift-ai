@@ -105,46 +105,42 @@ daypart_items AS (
             ELSE oi.ordered_time >= d.start OR  oi.ordered_time < d."end"
        END
 ),
--- A customer's newest orders first within each daypart (S4-02); NULL max_recent_orders (older versions) keeps every order.
--- The trailing keys only make ties deterministic.
-recent_orders AS (
-  SELECT outlet_id, order_date, order_id, customer_id, daypart
-  FROM (
-    SELECT o.*,
-           row_number() OVER (
-             PARTITION BY o.customer_id, o.daypart
-             ORDER BY o.order_date DESC, o.ordered_time DESC NULLS LAST, o.outlet_id, o.order_id
-           ) AS recency
-    FROM (SELECT DISTINCT outlet_id, order_date, order_id, customer_id, ordered_time, daypart FROM daypart_items) o
-  ) ranked_orders
+-- No self-joins from here on: the planner can't estimate rows coming out of jsonb_array_elements (it guesses ~1), so a
+-- join between these CTEs becomes a nested loop that is quadratic in the real row count. Window functions do it in one pass.
+-- A customer's newest orders first within each daypart (S4-02): dense_rank gives every item of an order the same recency.
+-- rank() is the row_number of the order's first item, so is_first_item marks exactly one row per order. The trailing
+-- keys only make ties deterministic; both windows share one sort because one's ORDER BY is a prefix of the other's.
+ranked_items AS (
+  SELECT i.customer_id, i.daypart, i.item_id, i.weight,
+         dense_rank() OVER recency_window AS recency,
+         row_number() OVER item_window = rank() OVER recency_window AS is_first_item
+  FROM daypart_items i
+  WINDOW customer_window AS (PARTITION BY i.customer_id, i.daypart),
+         recency_window AS (customer_window ORDER BY i.order_date DESC, i.ordered_time DESC NULLS LAST, i.outlet_id, i.order_id),
+         item_window AS (customer_window ORDER BY i.order_date DESC, i.ordered_time DESC NULLS LAST, i.outlet_id, i.order_id, i.item_id)
+),
+-- NULL max_recent_orders (older versions) keeps every order
+scored_items AS (
+  SELECT ri.customer_id, ri.daypart, ri.item_id, ri.weight, ri.is_first_item
+  FROM ranked_items ri
   CROSS JOIN run
   WHERE run.max_recent_orders IS NULL
-     OR ranked_orders.recency <= run.max_recent_orders
+     OR ri.recency <= run.max_recent_orders
 ),
-scored_items AS (
-  SELECT i.outlet_id, i.order_date, i.order_id, i.customer_id, i.item_id, i.daypart, i.weight
-  FROM daypart_items i
-  JOIN recent_orders USING (outlet_id, order_date, order_id, customer_id, daypart)
-),
--- Denominator: weight of every non-empty order of the customer in the daypart, each order once
-customer_totals AS (
-  SELECT customer_id, daypart, sum(weight) AS total_weight
-  FROM (SELECT DISTINCT outlet_id, order_date, order_id, customer_id, daypart, weight FROM scored_items) o
-  GROUP BY customer_id, daypart
-),
+-- Denominator: weight of every non-empty order of the customer in the daypart, each order once (via its first item)
 item_scores AS (
-  SELECT customer_id, daypart, item_id, sum(weight) AS weight, count(*) AS n_orders
+  SELECT customer_id, daypart, item_id, sum(weight) AS weight, count(*) AS n_orders,
+         sum(sum(weight) FILTER (WHERE is_first_item)) OVER (PARTITION BY customer_id, daypart) AS total_weight
   FROM scored_items
   GROUP BY customer_id, daypart, item_id
 ),
 ranked AS (
-  SELECT s.customer_id, s.daypart, s.item_id, s.weight / t.total_weight AS score, s.n_orders,
+  SELECT customer_id, daypart, item_id, weight / total_weight AS score, n_orders,
          row_number() OVER (
-           PARTITION BY s.customer_id, s.daypart
-           ORDER BY s.weight / t.total_weight DESC, s.n_orders DESC, s.item_id
+           PARTITION BY customer_id, daypart
+           ORDER BY weight / total_weight DESC, n_orders DESC, item_id
          ) AS rank
-  FROM item_scores s
-  JOIN customer_totals t USING (customer_id, daypart)
+  FROM item_scores
 ),
 inserted AS (
   INSERT INTO customer_item_scores (

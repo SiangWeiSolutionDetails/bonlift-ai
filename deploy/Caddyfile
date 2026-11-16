@@ -1,0 +1,19 @@
+:80 {
+	handle /v1/* {
+		reverse_proxy api:4000
+	}
+
+	# The admin bundle embeds ADMIN_TOKEN, so admin pages and admin API are reachable only from these IPs.
+	@notAllowed not remote_ip {$ADMIN_ALLOWED_IPS}
+	respond @notAllowed 403
+
+	handle_path /api/* {
+		reverse_proxy api:4000
+	}
+
+	handle {
+		root * /srv/admin
+		try_files {path} /index.html
+		file_server
+	}
+}

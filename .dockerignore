@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+**/.env
+**/.env.*
+.git
+.github
+docs
+.claude
+.superpowers
+.playwright-mcp
+*.md
+*.log

@@ -156,3 +156,28 @@ export function latestFinishedRun(entry: CalculationEntry) {
   }
   return latest;
 }
+
+export type OverviewTotals = {
+  runningRuns: number;
+  failedRunsLast7Days: number;
+  // Oldest published results across calculations; null when nothing is published anywhere
+  oldestResultsAgeDays: number | null;
+};
+
+export function summarizeOverview(overview: CalculationsOverview): OverviewTotals {
+  const entries = joinCalculations(overview.calculations).map(({ entry }) => entry);
+  const ages = entries.flatMap((entry) => (entry.resultsAgeDays === null ? [] : [entry.resultsAgeDays]));
+  return {
+    runningRuns: entries.reduce((sum, entry) => sum + entry.runningRuns, 0),
+    failedRunsLast7Days: entries.reduce((sum, entry) => sum + entry.failedRunsLast7Days, 0),
+    oldestResultsAgeDays: ages.length > 0 ? Math.max(...ages) : null,
+  };
+}
+
+export type RunAllPhase = "nothingToStart" | "running" | "succeeded" | "failed";
+
+export function runAllPhase(progress: RunProgress): RunAllPhase {
+  if (progress.total === 0) return "nothingToStart";
+  if (progress.finished < progress.total) return "running";
+  return progress.failed > 0 ? "failed" : "succeeded";
+}

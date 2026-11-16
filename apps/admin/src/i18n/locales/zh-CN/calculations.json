@@ -49,18 +49,18 @@
     "invalidRange": "开始日期不能晚于结束日期。"
   },
   "result": {
-    "started_one": "已启动 {{count}} 个运行。",
-    "started_other": "已启动 {{count}} 个运行。",
     "failedToQueue_one": "{{count}} 个未能加入队列。",
     "failedToQueue_other": "{{count}} 个未能加入队列。",
-    "nothingToStart": "没有可启动的计算 — 全部已在运行中或没有数据。"
+    "nothingToStart": "没有可启动的计算 — 全部已在运行中或没有数据。",
+    "nothingToStartTitle": "没有可启动的计算"
   },
   "progress": {
     "running": "计算运行中",
     "done": "计算已完成",
     "finished": "已完成 {{finished}} / {{total}}",
     "failed_one": "{{count}} 个失败",
-    "failed_other": "{{count}} 个失败"
+    "failed_other": "{{count}} 个失败",
+    "doneWithFailures": "已完成，但有失败"
   },
   "insights": {
     "title": "需要关注",
@@ -121,5 +121,12 @@
     "orders": "订单数",
     "outlets": "门店数",
     "empty": "暂无已发布的商品。"
+  },
+  "totals": {
+    "attention": "需要关注",
+    "allGood": "一切正常",
+    "running": "正在运行",
+    "failedLast7Days": "近 7 天失败",
+    "oldestResults": "最旧结果"
   }
 }

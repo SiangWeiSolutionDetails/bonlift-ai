@@ -10,30 +10,42 @@ import { countOutletStatuses, latestFinishedRun } from "../overview";
 import type { RegisteredCalculation } from "../registry";
 import type { CalculationEntry } from "../type";
 import { CalculationStatusBadge } from "./calculation-status-badge";
+import { CollapsibleSection } from "./collapsible-section";
 import { OutletRunsTable } from "./outlet-runs-table";
 
-type CalculationCardProps = RegisteredCalculation & { brandId: string };
+type CalculationCardProps = RegisteredCalculation & { brandId: string; results?: ReactNode };
 
-export function CalculationCard({ definition, entry, brandId }: CalculationCardProps) {
+export function CalculationCard({ definition, entry, brandId, results }: CalculationCardProps) {
   const { t } = useTranslation("calculations");
   const finishedRun = latestFinishedRun(entry);
   const duration = finishedRun ? formatDuration(finishedRun.startedAt, finishedRun.finishedAt) : null;
 
-  return (
-    <section className="grid min-w-0 content-start gap-5 rounded-xl bg-card p-5 shadow-panel">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="grid min-w-0 gap-1">
-          <h3 className="font-heading text-base font-semibold">{t(definition.titleKey)}</h3>
-          <p className="text-sm text-muted-foreground">{t(definition.descriptionKey)}</p>
-        </div>
-        {entry.scope === "brand" ? (
-          <CalculationStatusBadge run={entry.latestRun} />
-        ) : (
-          <OutletStatusSummary entry={entry} />
-        )}
-      </div>
+  const summary = (
+    <div className="grid gap-3">
+      {entry.scope === "brand" ? (
+        <CalculationStatusBadge run={entry.latestRun} />
+      ) : (
+        <OutletStatusSummary entry={entry} />
+      )}
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-4">
+        <Detail label={t("card.resultsAge")}>
+          <ResultsAge days={entry.resultsAgeDays} />
+        </Detail>
+        <Detail label={t("card.lastFinished")}>
+          {finishedRun?.finishedAt ? formatDateTime(finishedRun.finishedAt) : t("card.noRuns")}
+        </Detail>
+        <Detail label={t(definition.metricsLabelKey.subjects)}>
+          {entry.metrics.subjects.toLocaleString()}
+        </Detail>
+      </dl>
+    </div>
+  );
 
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-3">
+  return (
+    <CollapsibleSection title={t(definition.titleKey)} summary={summary}>
+      <p className="text-sm text-muted-foreground">{t(definition.descriptionKey)}</p>
+
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-4">
         <Detail label={t("card.scheduleWindow")}>
           {t("card.scheduleWindowValue", { count: entry.windowDays })}
         </Detail>
@@ -51,22 +63,15 @@ export function CalculationCard({ definition, entry, brandId }: CalculationCardP
             })}
           </Detail>
         )}
-        <Detail label={t("card.resultsAge")}>
-          <ResultsAge days={entry.resultsAgeDays} />
-        </Detail>
-        <Detail label={t("card.lastFinished")}>
-          {finishedRun?.finishedAt ? formatDateTime(finishedRun.finishedAt) : t("card.noRuns")}
-        </Detail>
         <Detail label={t("card.duration")}>{duration ?? "—"}</Detail>
-        <Detail label={t(definition.metricsLabelKey.subjects)}>
-          {entry.metrics.subjects.toLocaleString()}
-        </Detail>
         <Detail label={t(definition.metricsLabelKey.rows)}>
           {entry.metrics.rows.toLocaleString()}
         </Detail>
       </dl>
 
       {entry.scope === "outlet" && <OutletRunsTable brandId={brandId} outlets={entry.outlets} />}
+
+      {results}
 
       <div>
         <Button asChild variant="outline" size="sm">
@@ -76,7 +81,7 @@ export function CalculationCard({ definition, entry, brandId }: CalculationCardP
           </Link>
         </Button>
       </div>
-    </section>
+    </CollapsibleSection>
   );
 }
 

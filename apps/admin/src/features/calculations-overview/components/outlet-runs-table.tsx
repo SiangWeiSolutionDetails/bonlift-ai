@@ -26,44 +26,46 @@ export function OutletRunsTable({ brandId, outlets }: OutletRunsTableProps) {
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>{t("outlets.outlet")}</TableHead>
-          <TableHead>{t("outlets.status")}</TableHead>
-          <TableHead>{t("outlets.publishedWindow")}</TableHead>
-          <TableHead>{t("outlets.hasData")}</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {outlets.map((outlet) => (
-          <TableRow key={outlet.outletId}>
-            <TableCell>
-              <span className="flex items-center gap-2">
-                <Link
-                  to="/results"
-                  search={{ brandId, outletId: outlet.outletId }}
-                  className="font-medium underline-offset-4 hover:underline"
-                >
-                  {outlet.outletName}
-                </Link>
-                {!outlet.isActive && <Badge variant="outline">{t("outlets.inactive")}</Badge>}
-              </span>
-            </TableCell>
-            <TableCell>
-              <CalculationStatusBadge run={outlet.latestRun} />
-            </TableCell>
-            <TableCell className={outlet.publishedRun ? undefined : "text-muted-foreground"}>
-              {outlet.publishedRun
-                ? formatWindow(outlet.publishedRun.from, outlet.publishedRun.to)
-                : t("card.nothingPublished")}
-            </TableCell>
-            <TableCell className={outlet.hasOrdersInWindow ? undefined : "text-destructive"}>
-              {outlet.hasOrdersInWindow ? t("outlets.yes") : t("outlets.no")}
-            </TableCell>
+    <div className="overflow-hidden rounded-lg border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>{t("outlets.outlet")}</TableHead>
+            <TableHead>{t("outlets.status")}</TableHead>
+            <TableHead>{t("outlets.publishedWindow")}</TableHead>
+            <TableHead>{t("outlets.hasData")}</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {outlets.map((outlet) => (
+            <TableRow key={outlet.outletId}>
+              <TableCell>
+                <span className="flex items-center gap-2">
+                  <Link
+                    to="/results"
+                    search={{ brandId, outletId: outlet.outletId }}
+                    className="font-medium underline-offset-4 hover:underline"
+                  >
+                    {outlet.outletName}
+                  </Link>
+                  {!outlet.isActive && <Badge variant="outline">{t("outlets.inactive")}</Badge>}
+                </span>
+              </TableCell>
+              <TableCell>
+                <CalculationStatusBadge run={outlet.latestRun} />
+              </TableCell>
+              <TableCell className={outlet.publishedRun ? undefined : "text-muted-foreground"}>
+                {outlet.publishedRun
+                  ? formatWindow(outlet.publishedRun.from, outlet.publishedRun.to)
+                  : t("card.nothingPublished")}
+              </TableCell>
+              <TableCell className={outlet.hasOrdersInWindow ? undefined : "text-destructive"}>
+                {outlet.hasOrdersInWindow ? t("outlets.yes") : t("outlets.no")}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 }

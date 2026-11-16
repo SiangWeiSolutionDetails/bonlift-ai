@@ -5,6 +5,8 @@ import {
   deriveInsights,
   latestFinishedRun,
   shouldPollOverview,
+  runAllPhase,
+  summarizeOverview,
 } from "./overview";
 import { joinCalculations } from "./registry";
 import type {
@@ -232,5 +234,34 @@ describe("deriveInsights", () => {
     expect(deriveInsights(data)).toEqual([
       { kind: "noPublishedResults", jobType: "item_affinity", outletNames: [] },
     ]);
+  });
+});
+
+describe("summarizeOverview", () => {
+  it("adds up running and failed runs and takes the oldest published results", () => {
+    const data = overview([
+      entry({ jobType: "outlet_item_scores", scope: "outlet", runningRuns: 2, failedRunsLast7Days: 1, resultsAgeDays: 3 }),
+      entry({ jobType: "customer_item_scores", runningRuns: 1, resultsAgeDays: 0 }),
+      entry({ jobType: "item_affinity", failedRunsLast7Days: 2, resultsAgeDays: null }),
+    ]);
+
+    expect(summarizeOverview(data)).toEqual({ runningRuns: 3, failedRunsLast7Days: 3, oldestResultsAgeDays: 3 });
+  });
+
+  it("has no oldest age when nothing is published", () => {
+    const data = overview([entry({ resultsAgeDays: null })]);
+
+    expect(summarizeOverview(data).oldestResultsAgeDays).toBeNull();
+  });
+});
+
+describe("runAllPhase", () => {
+  it.each([
+    [{ total: 0, finished: 0, failed: 0 }, "nothingToStart"],
+    [{ total: 3, finished: 1, failed: 1 }, "running"],
+    [{ total: 3, finished: 3, failed: 0 }, "succeeded"],
+    [{ total: 3, finished: 3, failed: 1 }, "failed"],
+  ] as const)("%o → %s", (progress, expected) => {
+    expect(runAllPhase(progress)).toBe(expected);
   });
 });

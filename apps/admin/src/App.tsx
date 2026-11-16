@@ -10,6 +10,7 @@ import {
   BreadcrumbPage,
 } from '@/components/ui/breadcrumb'
 import { Separator } from '@/components/ui/separator'
+import { Toaster } from '@/components/ui/sonner'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 
 function App() {
@@ -43,6 +44,7 @@ function App() {
           <Outlet />
         </div>
       </SidebarInset>
+      <Toaster position="bottom-right" />
     </SidebarProvider>
   )
 }

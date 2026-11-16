@@ -15,6 +15,7 @@ import {
 import { useBrands } from "@/features/brands/queries";
 import { CalculationsOverviewReport } from "@/features/calculations-overview/components/calculations-overview-report";
 import { RunAllDialog } from "@/features/calculations-overview/components/run-all-dialog";
+import { useRunAllToast } from "@/features/calculations-overview/components/run-all-toast";
 import { useCalculationsOverview } from "@/features/calculations-overview/queries";
 import type { StartAllResponse } from "@/features/calculations-overview/type";
 
@@ -35,6 +36,7 @@ export function CalculationsPage() {
     [startResponse],
   );
   const overview = useCalculationsOverview(search.brandId, trackedRunIds);
+  useRunAllToast(overview.data, startResponse);
 
   // replace: picking a brand should not fill the back button history
   function selectBrand(brandId: string) {
@@ -80,7 +82,6 @@ export function CalculationsPage() {
           overview={overview.data}
           error={overview.error}
           isPending={overview.isPending}
-          startResponse={startResponse}
         />
       )}
 

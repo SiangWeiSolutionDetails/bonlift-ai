@@ -49,18 +49,18 @@
     "invalidRange": "The start date must be on or before the end date."
   },
   "result": {
-    "started_one": "Started {{count}} run.",
-    "started_other": "Started {{count}} runs.",
     "failedToQueue_one": "{{count}} failed to queue.",
     "failedToQueue_other": "{{count}} failed to queue.",
-    "nothingToStart": "Nothing to start — everything is already running or has no data."
+    "nothingToStart": "Nothing to start — everything is already running or has no data.",
+    "nothingToStartTitle": "Nothing to start"
   },
   "progress": {
     "running": "Running calculations",
     "done": "Calculations finished",
     "finished": "{{finished}} of {{total}} finished",
     "failed_one": "{{count}} failed",
-    "failed_other": "{{count}} failed"
+    "failed_other": "{{count}} failed",
+    "doneWithFailures": "Finished with failures"
   },
   "insights": {
     "title": "Needs Attention",
@@ -121,5 +121,12 @@
     "orders": "Orders",
     "outlets": "Outlets",
     "empty": "No published items yet."
+  },
+  "totals": {
+    "attention": "Needs attention",
+    "allGood": "All good",
+    "running": "Running now",
+    "failedLast7Days": "Failed in last 7 days",
+    "oldestResults": "Oldest results"
   }
 }

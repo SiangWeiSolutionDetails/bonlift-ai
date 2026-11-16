@@ -17,19 +17,16 @@
   "jobs": {
     "outletItemScores": {
       "title": "门店商品评分",
-      "description": "按近期热度为每家门店的商品排序，按门店分别运行。",
       "subjects": "已评分商品",
       "rows": "评分行数"
     },
     "customerItemScores": {
       "title": "顾客商品评分",
-      "description": "根据顾客下单的时间远近和频率，为每位顾客的商品排序。",
       "subjects": "顾客数",
       "rows": "评分行数"
     },
     "itemAffinity": {
       "title": "商品关联",
-      "description": "找出整个品牌中经常被一起下单的商品。",
       "subjects": "有关联商品的商品",
       "rows": "商品对"
     }
@@ -37,8 +34,6 @@
   "dialog": {
     "title": "运行全部计算？",
     "description": "以下所有计算将立即为该品牌开始。日期默认取自品牌的计算排程，修改仅对本次运行生效。",
-    "window_one": "最近 {{count}} 天，截至 {{date}}",
-    "window_other": "最近 {{count}} 天，截至 {{date}}",
     "skipNote": "已在运行中、或时间窗口内没有订单的门店和计算将被跳过。",
     "submit": "全部运行",
     "submitting": "启动中…",
@@ -79,9 +74,8 @@
   },
   "card": {
     "scheduleWindow": "时间窗口",
-    "scheduleWindowValue_one": "最近 {{count}} 天",
-    "scheduleWindowValue_other": "最近 {{count}} 天",
     "publishedWindow": "已发布窗口",
+    "publishedRun": "已发布运行",
     "publishedOutlets": "已发布门店",
     "publishedOutletsValue": "{{published}} / {{total}}",
     "lastFinished": "最近完成",
@@ -99,9 +93,6 @@
     "outlet": "门店",
     "status": "最近运行",
     "publishedWindow": "已发布窗口",
-    "hasData": "窗口内有订单",
-    "yes": "是",
-    "no": "否",
     "inactive": "停用",
     "empty": "该品牌没有门店。"
   },

@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { formatDate } from "@/lib/date-format";
+import { formatWindow } from "@/features/outlet-item-scores/format";
 import { getErrorMessage } from "@/lib/error-message";
 import { useStartAllCalculations } from "../queries";
 import { joinCalculations } from "../registry";
@@ -54,6 +54,10 @@ type RunAllConfirmProps = Pick<RunAllDialogProps, "overview" | "onStarted"> & {
   startAll: ReturnType<typeof useStartAllCalculations>;
 };
 
+function formatScheduleWindow(window: DateWindow) {
+  return formatWindow(window.from, window.to);
+}
+
 // Unmounts when the dialog closes, so every open starts again from the schedule windows
 function RunAllConfirm({ overview, startAll, onStarted }: RunAllConfirmProps) {
   const { t } = useTranslation("calculations");
@@ -94,10 +98,7 @@ function RunAllConfirm({ overview, startAll, onStarted }: RunAllConfirmProps) {
               key={entry.jobType}
               jobType={entry.jobType}
               title={t(definition.titleKey)}
-              scheduleHint={t("dialog.window", {
-                count: entry.windowDays,
-                date: formatDate(overview.windowTo),
-              })}
+              scheduleHint={formatScheduleWindow(defaults[entry.jobType] ?? window)}
               window={window}
               onChange={(next) => setWindow(entry.jobType, next)}
             />

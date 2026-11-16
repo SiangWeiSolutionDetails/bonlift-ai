@@ -11,12 +11,14 @@ export type CalculationDetailsTarget =
   | { to: "/customer-scores"; search: CustomerScoresSearch }
   | { to: "/item-affinity"; search: ItemAffinitySearch };
 
+// Set to open the page on one run instead of the default (published) one
+export type DetailsLink = { runId?: string; outletId?: string };
+
 export type CalculationDefinition = {
   jobType: CalculationJobType;
   titleKey: CalculationsKey;
-  descriptionKey: CalculationsKey;
   metricsLabelKey: { subjects: CalculationsKey; rows: CalculationsKey };
-  details: (brandId: string) => CalculationDetailsTarget;
+  details: (brandId: string, link?: DetailsLink) => CalculationDetailsTarget;
 };
 
 // Display order of the cards. A new calculation is one entry here plus its translations.
@@ -24,32 +26,29 @@ export const CALCULATIONS: CalculationDefinition[] = [
   {
     jobType: "outlet_item_scores",
     titleKey: "jobs.outletItemScores.title",
-    descriptionKey: "jobs.outletItemScores.description",
     metricsLabelKey: {
       subjects: "jobs.outletItemScores.subjects",
       rows: "jobs.outletItemScores.rows",
     },
-    details: (brandId) => ({ to: "/results", search: { brandId } }),
+    details: (brandId, link) => ({ to: "/results", search: { brandId, ...link } }),
   },
   {
     jobType: "customer_item_scores",
     titleKey: "jobs.customerItemScores.title",
-    descriptionKey: "jobs.customerItemScores.description",
     metricsLabelKey: {
       subjects: "jobs.customerItemScores.subjects",
       rows: "jobs.customerItemScores.rows",
     },
-    details: (brandId) => ({ to: "/customer-scores", search: { brandId } }),
+    details: (brandId, link) => ({ to: "/customer-scores", search: { brandId, runId: link?.runId } }),
   },
   {
     jobType: "item_affinity",
     titleKey: "jobs.itemAffinity.title",
-    descriptionKey: "jobs.itemAffinity.description",
     metricsLabelKey: {
       subjects: "jobs.itemAffinity.subjects",
       rows: "jobs.itemAffinity.rows",
     },
-    details: (brandId) => ({ to: "/item-affinity", search: { brandId } }),
+    details: (brandId, link) => ({ to: "/item-affinity", search: { brandId, runId: link?.runId } }),
   },
 ];
 

@@ -17,19 +17,16 @@
   "jobs": {
     "outletItemScores": {
       "title": "Outlet Item Scoring",
-      "description": "Ranks each outlet's items by recent popularity. Runs per outlet.",
       "subjects": "Items scored",
       "rows": "Score rows"
     },
     "customerItemScores": {
       "title": "Customer Item Scoring",
-      "description": "Ranks each customer's items by how recently and often they ordered them.",
       "subjects": "Customers",
       "rows": "Score rows"
     },
     "itemAffinity": {
       "title": "Item Affinity",
-      "description": "Finds items that are often ordered together across the brand.",
       "subjects": "Items with partners",
       "rows": "Pairs"
     }
@@ -37,8 +34,6 @@
   "dialog": {
     "title": "Run all calculations?",
     "description": "Every calculation below starts now for this brand. The dates default to the brand's calculation schedule; changes apply to this run only.",
-    "window_one": "Last {{count}} day, to {{date}}",
-    "window_other": "Last {{count}} days, to {{date}}",
     "skipNote": "Outlets and calculations that are already running, or have no orders in their window, are skipped.",
     "submit": "Run All",
     "submitting": "Starting…",
@@ -79,9 +74,8 @@
   },
   "card": {
     "scheduleWindow": "Window",
-    "scheduleWindowValue_one": "Last {{count}} day",
-    "scheduleWindowValue_other": "Last {{count}} days",
     "publishedWindow": "Published window",
+    "publishedRun": "Published run",
     "publishedOutlets": "Published outlets",
     "publishedOutletsValue": "{{published}} of {{total}}",
     "lastFinished": "Last finished",
@@ -99,9 +93,6 @@
     "outlet": "Outlet",
     "status": "Latest run",
     "publishedWindow": "Published window",
-    "hasData": "Orders in window",
-    "yes": "Yes",
-    "no": "No",
     "inactive": "Inactive",
     "empty": "This brand has no outlets."
   },

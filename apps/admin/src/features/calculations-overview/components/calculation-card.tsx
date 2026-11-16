@@ -8,13 +8,24 @@ import { formatDateTime } from "@/lib/date-format";
 import { countOutletStatuses, latestFinishedRun } from "../overview";
 import type { RegisteredCalculation } from "../registry";
 import type { CalculationEntry } from "../type";
+import { scheduleWindow } from "../windows";
 import { CalculationStatusBadge, StatusBadge } from "./calculation-status-badge";
 import { CollapsibleSection } from "./collapsible-section";
 import { OutletRunsTable } from "./outlet-runs-table";
+import { PublishedRun, RunIdLink } from "./published-run";
 
-type CalculationCardProps = RegisteredCalculation & { brandId: string; results?: ReactNode };
+type CalculationCardProps = RegisteredCalculation & {
+  brandId: string;
+  windowTo: string;
+  results?: ReactNode;
+};
 
-export function CalculationCard({ definition, entry, brandId, results }: CalculationCardProps) {
+function formatScheduleWindow(windowDays: number, windowTo: string) {
+  const { from, to } = scheduleWindow(windowDays, windowTo);
+  return formatWindow(from, to);
+}
+
+export function CalculationCard({ definition, entry, brandId, windowTo, results }: CalculationCardProps) {
   const { t } = useTranslation("calculations");
   const finishedRun = latestFinishedRun(entry);
   const duration = finishedRun ? formatDuration(finishedRun.startedAt, finishedRun.finishedAt) : null;
@@ -41,18 +52,36 @@ export function CalculationCard({ definition, entry, brandId, results }: Calcula
   );
 
   return (
-    <CollapsibleSection title={t(definition.titleKey)} summary={summary}>
-      <p className="text-sm text-muted-foreground">{t(definition.descriptionKey)}</p>
+    <CollapsibleSection
+      title={t(definition.titleKey)}
+      summary={summary}
+      action={
+        entry.publishedRun && (
+          <div className="grid justify-items-end gap-0.5 text-right">
+            <span className="text-xs text-muted-foreground">{t("card.publishedRun")}</span>
+            <RunIdLink
+              runId={entry.publishedRun.id}
+              target={definition.details(brandId, { runId: entry.publishedRun.id })}
+            />
+          </div>
+        )
+      }
+    >
 
       <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-4">
         <Detail label={t("card.scheduleWindow")}>
-          {t("card.scheduleWindowValue", { count: entry.windowDays })}
+          {formatScheduleWindow(entry.windowDays, windowTo)}
         </Detail>
         {entry.scope === "brand" ? (
           <Detail label={t("card.publishedWindow")}>
-            {entry.publishedRun
-              ? formatWindow(entry.publishedRun.from, entry.publishedRun.to)
-              : t("card.nothingPublished")}
+            {entry.publishedRun ? (
+              <PublishedRun
+                run={entry.publishedRun}
+                target={definition.details(brandId, { runId: entry.publishedRun.id })}
+              />
+            ) : (
+              t("card.nothingPublished")
+            )}
           </Detail>
         ) : (
           <Detail label={t("card.publishedOutlets")}>
@@ -72,8 +101,8 @@ export function CalculationCard({ definition, entry, brandId, results }: Calcula
 
       {results}
 
-      <div>
-        <Button asChild variant="outline" size="sm">
+      <div className="flex justify-end">
+        <Button asChild variant="ghost" size="sm">
           <Link {...definition.details(brandId)}>
             {t("card.viewDetails")}
             <ArrowRightIcon data-icon="inline-end" />

@@ -9,9 +9,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatWindow } from "@/features/outlet-item-scores/format";
 import type { CalculationOutlet } from "../type";
 import { CalculationStatusBadge } from "./calculation-status-badge";
+import { PublishedRun } from "./published-run";
 
 type OutletRunsTableProps = {
   brandId: string;
@@ -33,7 +33,6 @@ export function OutletRunsTable({ brandId, outlets }: OutletRunsTableProps) {
             <TableHead>{t("outlets.outlet")}</TableHead>
             <TableHead>{t("outlets.status")}</TableHead>
             <TableHead>{t("outlets.publishedWindow")}</TableHead>
-            <TableHead>{t("outlets.hasData")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -55,12 +54,17 @@ export function OutletRunsTable({ brandId, outlets }: OutletRunsTableProps) {
                 <CalculationStatusBadge run={outlet.latestRun} />
               </TableCell>
               <TableCell className={outlet.publishedRun ? undefined : "text-muted-foreground"}>
-                {outlet.publishedRun
-                  ? formatWindow(outlet.publishedRun.from, outlet.publishedRun.to)
-                  : t("card.nothingPublished")}
-              </TableCell>
-              <TableCell className={outlet.hasOrdersInWindow ? undefined : "text-destructive"}>
-                {outlet.hasOrdersInWindow ? t("outlets.yes") : t("outlets.no")}
+                {outlet.publishedRun ? (
+                  <PublishedRun
+                    run={outlet.publishedRun}
+                    target={{
+                      to: "/results",
+                      search: { brandId, outletId: outlet.outletId, runId: outlet.publishedRun.id },
+                    }}
+                  />
+                ) : (
+                  t("card.nothingPublished")
+                )}
               </TableCell>
             </TableRow>
           ))}

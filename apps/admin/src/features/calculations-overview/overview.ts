@@ -158,6 +158,7 @@ export function latestFinishedRun(entry: CalculationEntry) {
 }
 
 export type OverviewTotals = {
+  runningRuns: number;
   succeededRunsLast7Days: number;
   failedRunsLast7Days: number;
 };
@@ -165,6 +166,7 @@ export type OverviewTotals = {
 export function summarizeOverview(overview: CalculationsOverview): OverviewTotals {
   const entries = joinCalculations(overview.calculations).map(({ entry }) => entry);
   return {
+    runningRuns: entries.reduce((sum, entry) => sum + entry.runningRuns, 0),
     succeededRunsLast7Days: entries.reduce((sum, entry) => sum + entry.succeededRunsLast7Days, 0),
     failedRunsLast7Days: entries.reduce((sum, entry) => sum + entry.failedRunsLast7Days, 0),
   };

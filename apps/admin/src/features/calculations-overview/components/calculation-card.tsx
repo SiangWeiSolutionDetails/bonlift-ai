@@ -2,14 +2,13 @@ import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowRightIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDuration, formatWindow } from "@/features/outlet-item-scores/format";
 import { formatDateTime } from "@/lib/date-format";
 import { countOutletStatuses, latestFinishedRun } from "../overview";
 import type { RegisteredCalculation } from "../registry";
 import type { CalculationEntry } from "../type";
-import { CalculationStatusBadge } from "./calculation-status-badge";
+import { CalculationStatusBadge, StatusBadge } from "./calculation-status-badge";
 import { CollapsibleSection } from "./collapsible-section";
 import { OutletRunsTable } from "./outlet-runs-table";
 
@@ -105,12 +104,7 @@ function ResultsAge({ days }: { days: number | null }) {
   );
 }
 
-const SUMMARY_STATUSES = [
-  ["running", "secondary"],
-  ["succeeded", "success"],
-  ["failed", "destructive"],
-  ["neverRun", "outline"],
-] as const;
+const SUMMARY_STATUSES = ["running", "succeeded", "failed", "neverRun"] as const;
 
 function OutletStatusSummary({ entry }: { entry: CalculationEntry }) {
   const { t } = useTranslation("calculations");
@@ -118,10 +112,10 @@ function OutletStatusSummary({ entry }: { entry: CalculationEntry }) {
 
   return (
     <div className="flex flex-wrap gap-1.5">
-      {SUMMARY_STATUSES.filter(([status]) => counts[status] > 0).map(([status, variant]) => (
-        <Badge key={status} variant={variant}>
+      {SUMMARY_STATUSES.filter((status) => counts[status] > 0).map((status) => (
+        <StatusBadge key={status} status={status}>
           {t(`status.${status}`)} · {counts[status]}
-        </Badge>
+        </StatusBadge>
       ))}
     </div>
   );

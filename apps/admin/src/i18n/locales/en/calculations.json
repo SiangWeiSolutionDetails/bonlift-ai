@@ -123,6 +123,7 @@
     "empty": "No published items yet."
   },
   "totals": {
+    "running": "Running now",
     "succeededLast7Days": "Succeeded in last 7 days",
     "failedLast7Days": "Failed in last 7 days"
   }

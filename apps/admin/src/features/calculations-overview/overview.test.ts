@@ -239,14 +239,14 @@ describe("deriveInsights", () => {
 });
 
 describe("summarizeOverview", () => {
-  it("adds up succeeded and failed runs across calculations", () => {
+  it("adds up running, succeeded and failed runs across calculations", () => {
     const data = overview([
-      entry({ jobType: "outlet_item_scores", scope: "outlet", succeededRunsLast7Days: 5, failedRunsLast7Days: 1 }),
-      entry({ jobType: "customer_item_scores", succeededRunsLast7Days: 2 }),
+      entry({ jobType: "outlet_item_scores", scope: "outlet", runningRuns: 2, succeededRunsLast7Days: 5, failedRunsLast7Days: 1 }),
+      entry({ jobType: "customer_item_scores", runningRuns: 1, succeededRunsLast7Days: 2 }),
       entry({ jobType: "item_affinity", failedRunsLast7Days: 2 }),
     ]);
 
-    expect(summarizeOverview(data)).toEqual({ succeededRunsLast7Days: 7, failedRunsLast7Days: 3 });
+    expect(summarizeOverview(data)).toEqual({ runningRuns: 3, succeededRunsLast7Days: 7, failedRunsLast7Days: 3 });
   });
 });
 

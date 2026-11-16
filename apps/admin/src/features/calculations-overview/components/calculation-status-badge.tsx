@@ -1,32 +1,36 @@
+import type { ReactNode } from "react";
 import { CircleCheckIcon, CircleDashedIcon, CircleXIcon, Loader2Icon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
-import type { CalculationRun } from "../type";
+import type { CalculationRun, CalculationRunStatus } from "../type";
 
-const STATUS_VARIANT = {
-  running: "secondary",
-  succeeded: "success",
-  failed: "destructive",
+export type BadgeStatus = CalculationRunStatus | "neverRun";
+
+// One look per status, shared by every status badge on the page
+const STATUS_STYLE = {
+  running: { variant: "secondary", icon: <Loader2Icon className="animate-spin" /> },
+  succeeded: { variant: "success", icon: <CircleCheckIcon /> },
+  failed: { variant: "destructive", icon: <CircleXIcon /> },
+  neverRun: { variant: "outline", icon: <CircleDashedIcon /> },
 } as const;
+
+export function StatusBadge({ status, title, children }: { status: BadgeStatus; title?: string; children: ReactNode }) {
+  const style = STATUS_STYLE[status];
+  return (
+    <Badge variant={style.variant} title={title}>
+      {style.icon}
+      {children}
+    </Badge>
+  );
+}
 
 export function CalculationStatusBadge({ run }: { run: CalculationRun | null }) {
   const { t } = useTranslation("calculations");
-
-  if (!run) {
-    return (
-      <Badge variant="outline">
-        <CircleDashedIcon />
-        {t("status.neverRun")}
-      </Badge>
-    );
-  }
+  const status = run?.status ?? "neverRun";
 
   return (
-    <Badge variant={STATUS_VARIANT[run.status]} title={run.error ?? undefined}>
-      {run.status === "running" && <Loader2Icon className="animate-spin" />}
-      {run.status === "succeeded" && <CircleCheckIcon />}
-      {run.status === "failed" && <CircleXIcon />}
-      {t(`status.${run.status}`)}
-    </Badge>
+    <StatusBadge status={status} title={run?.error ?? undefined}>
+      {t(`status.${status}`)}
+    </StatusBadge>
   );
 }

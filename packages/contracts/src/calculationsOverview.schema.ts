@@ -117,6 +117,7 @@ export const CalculationOverviewEntrySchema = Type.Object(
     outlets: Type.Array(CalculationOverviewOutletSchema),
     runningRuns: Count,
     failedRunsLast7Days: Count,
+    succeededRunsLast7Days: Count,
     resultsAgeDays: Type.Union([Type.Integer(), Type.Null()]),
     metrics: CalculationOverviewMetricsSchema,
   },

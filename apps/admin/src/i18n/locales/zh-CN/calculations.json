@@ -123,9 +123,7 @@
     "empty": "暂无已发布的商品。"
   },
   "totals": {
-    "attention": "需要关注",
-    "allGood": "一切正常",
-    "failedLast7Days": "近 7 天失败",
-    "oldestResults": "最旧结果"
+    "succeededLast7Days": "近 7 天成功",
+    "failedLast7Days": "近 7 天失败"
   }
 }

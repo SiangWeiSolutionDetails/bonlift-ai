@@ -35,7 +35,7 @@ export function CalculationsOverviewReport({
 
   return (
     <div className="flex flex-col gap-6">
-      <OverviewTotalsStrip totals={summarizeOverview(overview)} attentionCount={insights.length} />
+      <OverviewTotalsStrip totals={summarizeOverview(overview)} />
 
       <InsightsPanel insights={insights} />
 
@@ -68,8 +68,8 @@ function resultsFor(jobType: CalculationJobType, overview: CalculationsOverview)
 function OverviewSkeleton() {
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid gap-4 sm:grid-cols-3">
-        {Array.from({ length: 3 }, (_, index) => (
+      <div className="grid gap-4 sm:grid-cols-2">
+        {Array.from({ length: 2 }, (_, index) => (
           <Skeleton key={index} className="h-28 w-full rounded-xl" />
         ))}
       </div>

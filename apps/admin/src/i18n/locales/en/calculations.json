@@ -123,9 +123,7 @@
     "empty": "No published items yet."
   },
   "totals": {
-    "attention": "Needs attention",
-    "allGood": "All good",
-    "failedLast7Days": "Failed in last 7 days",
-    "oldestResults": "Oldest results"
+    "succeededLast7Days": "Succeeded in last 7 days",
+    "failedLast7Days": "Failed in last 7 days"
   }
 }

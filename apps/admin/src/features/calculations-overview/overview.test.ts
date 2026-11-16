@@ -56,6 +56,7 @@ function entry(overrides: Partial<CalculationEntry> = {}): CalculationEntry {
     outlets: [],
     runningRuns: 0,
     failedRunsLast7Days: 0,
+    succeededRunsLast7Days: 0,
     resultsAgeDays: 0,
     metrics: { subjects: 0, rows: 0 },
     ...overrides,
@@ -238,20 +239,14 @@ describe("deriveInsights", () => {
 });
 
 describe("summarizeOverview", () => {
-  it("adds up failed runs and takes the oldest published results", () => {
+  it("adds up succeeded and failed runs across calculations", () => {
     const data = overview([
-      entry({ jobType: "outlet_item_scores", scope: "outlet", runningRuns: 2, failedRunsLast7Days: 1, resultsAgeDays: 3 }),
-      entry({ jobType: "customer_item_scores", runningRuns: 1, resultsAgeDays: 0 }),
-      entry({ jobType: "item_affinity", failedRunsLast7Days: 2, resultsAgeDays: null }),
+      entry({ jobType: "outlet_item_scores", scope: "outlet", succeededRunsLast7Days: 5, failedRunsLast7Days: 1 }),
+      entry({ jobType: "customer_item_scores", succeededRunsLast7Days: 2 }),
+      entry({ jobType: "item_affinity", failedRunsLast7Days: 2 }),
     ]);
 
-    expect(summarizeOverview(data)).toEqual({ failedRunsLast7Days: 3, oldestResultsAgeDays: 3 });
-  });
-
-  it("has no oldest age when nothing is published", () => {
-    const data = overview([entry({ resultsAgeDays: null })]);
-
-    expect(summarizeOverview(data).oldestResultsAgeDays).toBeNull();
+    expect(summarizeOverview(data)).toEqual({ succeededRunsLast7Days: 7, failedRunsLast7Days: 3 });
   });
 });
 

@@ -18,8 +18,8 @@ const queues = {
   item_affinity: queueMock,
 };
 
-function start(brandId = BRAND_ID) {
-  return startAllBrandCalculations(fakePool, queues, brandId, TRIGGER);
+function start(brandId = BRAND_ID, body = {}) {
+  return startAllBrandCalculations(fakePool, queues, brandId, body, TRIGGER);
 }
 
 const CREATED_ROWS = [
@@ -79,5 +79,42 @@ describe("startAllBrandCalculations", () => {
     queueMock.mockRejectedValue(new Error("Redis is down"));
 
     await expect(start()).rejects.toThrow(ServiceUnavailableError);
+  });
+
+  describe("windows", () => {
+    const EMPTY_BRAND = [{ is_active: true, id: null, job_type: null, outlet_id: null }];
+
+    it.each([
+      ["from after to", { item_affinity: { from: "20261110", to: "20261101" } }],
+      ["an impossible date", { outlet_item_scores: { from: "20260230", to: "20260301" } }],
+      ["a malformed date", { customer_item_scores: { from: "2026-11-01", to: "20261110" } }],
+      ["a missing bound", { item_affinity: { from: "20261101" } }],
+      ["an unknown calculation", { unknown_job: { from: "20261101", to: "20261110" } }],
+    ])("throws ValidationError without querying for %s", async (_label, windows) => {
+      await expect(start(BRAND_ID, { windows } as any)).rejects.toThrow(ValidationError);
+      expect(queryMock).not.toHaveBeenCalled();
+    });
+
+    it("passes each override to its own bounds and NULL for calculations left out", async () => {
+      queryMock.mockResolvedValueOnce(pgResult(EMPTY_BRAND));
+
+      await start(BRAND_ID, {
+        windows: {
+          outlet_item_scores: { from: "20261020", to: "20261110" },
+          item_affinity: { from: "20261101", to: "20261101" },
+        },
+      });
+
+      const params = queryMock.mock.calls[0][1];
+      expect(params.slice(7)).toEqual(["20261020", "20261110", null, null, "20261101", "20261101"]);
+    });
+
+    it("passes NULL for every bound without a body", async () => {
+      queryMock.mockResolvedValueOnce(pgResult(EMPTY_BRAND));
+
+      await start();
+
+      expect(queryMock.mock.calls[0][1].slice(7)).toEqual([null, null, null, null, null, null]);
+    });
   });
 });

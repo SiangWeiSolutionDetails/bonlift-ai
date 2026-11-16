@@ -36,12 +36,17 @@
   },
   "dialog": {
     "title": "Run all calculations?",
-    "description": "Every calculation below starts now for this brand, using the windows from its calculation schedule.",
+    "description": "Every calculation below starts now for this brand. The dates default to the brand's calculation schedule; changes apply to this run only.",
     "window_one": "Last {{count}} day, to {{date}}",
     "window_other": "Last {{count}} days, to {{date}}",
     "skipNote": "Outlets and calculations that are already running, or have no orders in their window, are skipped.",
     "submit": "Run All",
-    "submitting": "Starting…"
+    "submitting": "Starting…",
+    "from": "From",
+    "to": "To",
+    "scheduleDefault": "Schedule: {{window}}",
+    "resetDefaults": "Reset to schedule defaults",
+    "invalidRange": "The start date must be on or before the end date."
   },
   "result": {
     "started_one": "Started {{count}} run.",

@@ -108,6 +108,52 @@ describe("startBrandCalculations (integration)", () => {
     expect(outcome.queued).toBe(2);
   });
 
+  it("stores override windows and falls back to the schedule for calculations left out", async () => {
+    const pool = getPool();
+    const brandId = await createBrandFixture(pool);
+    await outletWithOrders(brandId);
+    const compact = (day: string) => day.replaceAll("-", "");
+    const weekAgo = await daysAgo(7);
+    const scheduleFrom = await daysAgo(90);
+
+    await startBrandCalculations(pool, fakeQueues().queues, brandId, {
+      ...MANUAL,
+      windows: {
+        outlet_item_scores: { from: compact(weekAgo), to: compact(yesterday) },
+        item_affinity: { from: compact(yesterday), to: compact(yesterday) },
+      },
+    });
+
+    const result = await pool.query(
+      `
+      SELECT job_type, input_window_from::text AS from, input_window_to::text AS to
+      FROM computation_runs
+      WHERE brand_id = $1
+      ORDER BY job_type;
+      `,
+      [brandId],
+    );
+    expect(result.rows).toEqual([
+      { job_type: "customer_item_scores", from: scheduleFrom, to: yesterday },
+      { job_type: "item_affinity", from: yesterday, to: yesterday },
+      { job_type: "outlet_item_scores", from: weekAgo, to: yesterday },
+    ]);
+  });
+
+  it("skips a scope whose override window has no order snapshots", async () => {
+    const pool = getPool();
+    const brandId = await createBrandFixture(pool);
+    await outletWithOrders(brandId);
+    const monthAgo = (await daysAgo(30)).replaceAll("-", "");
+
+    const outcome = await startBrandCalculations(pool, fakeQueues().queues, brandId, {
+      ...MANUAL,
+      windows: { outlet_item_scores: { from: monthAgo, to: monthAgo } },
+    });
+
+    expect(outcome.runs.map((run) => run.jobType).sort()).toEqual(["customer_item_scores", "item_affinity"]);
+  });
+
   it("skips an outlet without order snapshots in its window", async () => {
     const pool = getPool();
     const brandId = await createBrandFixture(pool);

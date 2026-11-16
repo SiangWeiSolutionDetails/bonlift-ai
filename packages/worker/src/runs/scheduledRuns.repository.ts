@@ -18,6 +18,8 @@ export interface BrandRunOptions {
   triggeredBy: string;
   // Manual Run all starts runs with the schedule switched off; the nightly scheduler does not.
   requireEnabledSchedule: boolean;
+  // Inclusive YYYYMMDD; a calculation left out uses its schedule window.
+  windows?: Partial<Record<CalculationJobTypeSchemaType, { from: string; to: string }>>;
 }
 
 export const SCHEDULED_RUN_OPTIONS: BrandRunOptions = {
@@ -43,7 +45,8 @@ export interface ScheduleOutcome {
 }
 
 // $1 = brand id, $2..$4 = algorithm versions (outlet, customer, affinity), $5 = trigger type, $6 = triggered by,
-// $7 = whether a disabled schedule creates nothing.
+// $7 = whether a disabled schedule creates nothing, $8..$13 = optional window overrides (from, to) for outlet,
+// customer and affinity; a NULL bound falls back to the schedule's window.
 // One statement creates the brand's runs: one per live outlet for outlet item scores, one each for customer item
 // scores and item affinity. Windows and time zone come from the brand's schedule row at run time, so changing a
 // window needs no rescheduling. Windows are inclusive and end yesterday in the schedule's time zone. A non-live brand
@@ -60,10 +63,18 @@ brand AS (
     AND b.deleted_at IS NULL
 ),
 schedule AS (
-  SELECT s.brand_id, s.outlet_window_days, s.customer_window_days, s.affinity_window_days,
-         (now() AT TIME ZONE s.time_zone)::date AS today,
-         (now() AT TIME ZONE s.time_zone)::date - 1 AS window_to
+  SELECT s.brand_id, d.today,
+         COALESCE($8::date, d.window_to - (s.outlet_window_days - 1)) AS outlet_from,
+         COALESCE($9::date, d.window_to) AS outlet_to,
+         COALESCE($10::date, d.window_to - (s.customer_window_days - 1)) AS customer_from,
+         COALESCE($11::date, d.window_to) AS customer_to,
+         COALESCE($12::date, d.window_to - (s.affinity_window_days - 1)) AS affinity_from,
+         COALESCE($13::date, d.window_to) AS affinity_to
   FROM brand_calculation_schedules s
+  CROSS JOIN LATERAL (
+    SELECT (now() AT TIME ZONE s.time_zone)::date AS today,
+           (now() AT TIME ZONE s.time_zone)::date - 1 AS window_to
+  ) d
   JOIN brand b
     ON b.id = s.brand_id
   WHERE b.is_active
@@ -81,7 +92,7 @@ outlet_runs AS (
     input_window_from, input_window_to, trigger_type, triggered_by, status
   )
   SELECT s.brand_id, o.id, 'outlet_item_scores', s.today, $2, c.id,
-         s.window_to - (s.outlet_window_days - 1), s.window_to, $5, $6, 'running'
+         s.outlet_from, s.outlet_to, $5, $6, 'running'
   FROM schedule s
   JOIN outlets o
     ON o.brand_id = s.brand_id
@@ -93,7 +104,7 @@ outlet_runs AS (
       SELECT 1
       FROM order_snapshots os
       WHERE os.outlet_id = o.id
-        AND os.order_date BETWEEN s.window_to - (s.outlet_window_days - 1) AND s.window_to
+        AND os.order_date BETWEEN s.outlet_from AND s.outlet_to
     )
   ON CONFLICT (outlet_id, job_type) WHERE status = 'running' DO NOTHING
   RETURNING id, job_type, outlet_id
@@ -105,12 +116,12 @@ brand_runs AS (
     input_window_from, input_window_to, trigger_type, triggered_by, status
   )
   SELECT s.brand_id, NULL, j.job_type, s.today, j.algorithm_version, c.id,
-         s.window_to - (j.window_days - 1), s.window_to, $5, $6, 'running'
+         j.window_from, j.window_to, $5, $6, 'running'
   FROM schedule s
   CROSS JOIN LATERAL (
-    VALUES ('customer_item_scores', $3, s.customer_window_days),
-           ('item_affinity', $4, s.affinity_window_days)
-  ) AS j(job_type, algorithm_version, window_days)
+    VALUES ('customer_item_scores', $3, s.customer_from, s.customer_to),
+           ('item_affinity', $4, s.affinity_from, s.affinity_to)
+  ) AS j(job_type, algorithm_version, window_from, window_to)
   JOIN latest_config c
     ON c.job_type = j.job_type
   WHERE EXISTS (
@@ -120,7 +131,7 @@ brand_runs AS (
       ON os.outlet_id = o.id
     WHERE o.brand_id = s.brand_id
       AND o.deleted_at IS NULL
-      AND os.order_date BETWEEN s.window_to - (j.window_days - 1) AND s.window_to
+      AND os.order_date BETWEEN j.window_from AND j.window_to
   )
   ON CONFLICT (brand_id, job_type) WHERE status = 'running' AND outlet_id IS NULL DO NOTHING
   RETURNING id, job_type, outlet_id
@@ -140,6 +151,12 @@ function toBrandStatus(rows: any[]): BrandStatus {
   return rows[0].is_active ? "active" : "inactive";
 }
 
+const WINDOW_JOB_ORDER: CalculationJobTypeSchemaType[] = ["outlet_item_scores", "customer_item_scores", "item_affinity"];
+
+function windowParams(windows: BrandRunOptions["windows"] = {}): (string | null)[] {
+  return WINDOW_JOB_ORDER.flatMap((jobType) => [windows[jobType]?.from ?? null, windows[jobType]?.to ?? null]);
+}
+
 export async function createBrandRuns(
   pool: Pool,
   brandId: string,
@@ -153,6 +170,7 @@ export async function createBrandRuns(
     options.triggerType,
     options.triggeredBy,
     options.requireEnabledSchedule,
+    ...windowParams(options.windows),
   ]);
 
   return {

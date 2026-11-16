@@ -5,6 +5,7 @@ import { itemAffinityKeys } from "../item-affinity/queries";
 import { outletItemScoresKeys } from "../outlet-item-scores/queries";
 import { getCalculationsOverview, startAllCalculations } from "./api";
 import { shouldPollOverview } from "./overview";
+import type { StartAllBody } from "./windows";
 
 const RUNNING_POLL_MS = 3000;
 
@@ -25,9 +26,10 @@ export function useCalculationsOverview(brandId: string | undefined, trackedRunI
 export function useStartAllCalculations() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (brandId: string) => startAllCalculations(brandId),
+    mutationFn: ({ brandId, body }: { brandId: string; body: StartAllBody }) =>
+      startAllCalculations(brandId, body),
     // Awaited, so the overview already holds the new runs when the caller starts tracking them
-    onSuccess: (data, brandId) => {
+    onSuccess: (data, { brandId }) => {
       const outletIds = new Set(data.runs.flatMap((run) => (run.outletId ? [run.outletId] : [])));
       return Promise.all([
         queryClient.invalidateQueries({ queryKey: calculationsOverviewKeys.overview(brandId) }),
@@ -39,7 +41,7 @@ export function useStartAllCalculations() {
       ]);
     },
     // A 503 still records the runs it could not queue as failed
-    onError: (_error, brandId) =>
+    onError: (_error, { brandId }) =>
       queryClient.invalidateQueries({ queryKey: calculationsOverviewKeys.overview(brandId) }),
   });
 }

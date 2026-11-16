@@ -1,5 +1,6 @@
 import { apiRequest } from "@/lib/api-client";
 import type { CalculationsOverview, StartAllResponse } from "./type";
+import type { StartAllBody } from "./windows";
 
 export async function getCalculationsOverview(brandId: string, signal: AbortSignal) {
   return apiRequest<CalculationsOverview>(
@@ -8,8 +9,9 @@ export async function getCalculationsOverview(brandId: string, signal: AbortSign
   );
 }
 
-export async function startAllCalculations(brandId: string) {
+export async function startAllCalculations(brandId: string, body: StartAllBody) {
   return apiRequest<StartAllResponse>(`/calculate/all/${encodeURIComponent(brandId)}`, {
     method: "POST",
+    body,
   });
 }

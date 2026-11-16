@@ -6,6 +6,7 @@ import {
 } from "@bonlift-ai/worker";
 import { getPool } from "@bonlift-ai/db";
 import {
+  BrandCalculationsStartBodySchemaType,
   BrandCalculationsStartResponseSchema,
   BrandParamsSchema,
   BrandParamsSchemaType,
@@ -33,7 +34,8 @@ const QUEUES = {
 };
 
 export async function calculationRoutes(app: FastifyInstance) {
-  app.post<{ Params: BrandParamsSchemaType }>(
+  // The body is optional, so it is validated in the service (BrandCalculationsStartBodySchema), not by the route.
+  app.post<{ Params: BrandParamsSchemaType; Body: BrandCalculationsStartBodySchemaType | undefined }>(
     "/calculate/all/:brandId",
     {
       schema: {
@@ -46,6 +48,7 @@ export async function calculationRoutes(app: FastifyInstance) {
         getPool(),
         QUEUES,
         request.params.brandId,
+        request.body ?? {},
         { type: "manual", by: "api" },
       );
       reply.status(202);

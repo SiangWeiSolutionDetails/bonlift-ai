@@ -1,4 +1,6 @@
 import {
+  BrandCalculationsStartBodySchema,
+  BrandCalculationsStartBodySchemaType,
   BrandCalculationsStartResponseSchemaType,
   BrandParamsSchema,
   CalculationTriggerTypeSchemaType,
@@ -6,7 +8,19 @@ import {
 import { BrandCalculationsOutcome, QueueByJobType, startBrandCalculations } from "@bonlift-ai/worker";
 import { Pool } from "pg";
 import { NotFoundError, ServiceUnavailableError, ValidationError } from "../errors.js";
-import { assertValid } from "../utils/validate.js";
+import { assertValid, assertValidDate } from "../utils/validate.js";
+
+function assertValidWindows(body: BrandCalculationsStartBodySchemaType): void {
+  assertValid(BrandCalculationsStartBodySchema, body);
+  for (const [jobType, window] of Object.entries(body.windows ?? {})) {
+    if (!window) continue;
+    assertValidDate(window.from, "YYYYMMDD");
+    assertValidDate(window.to, "YYYYMMDD");
+    if (window.from > window.to) {
+      throw new ValidationError(`${jobType}: from must not be later than to.`);
+    }
+  }
+}
 
 function assertStarted(outcome: BrandCalculationsOutcome): void {
   if (outcome.brandStatus === "not_found") {
@@ -25,14 +39,17 @@ export async function startAllBrandCalculations(
   pool: Pool,
   queues: QueueByJobType,
   brandId: string,
+  body: BrandCalculationsStartBodySchemaType,
   trigger: { type: CalculationTriggerTypeSchemaType; by: string },
 ): Promise<BrandCalculationsStartResponseSchemaType> {
   assertValid(BrandParamsSchema, { brandId });
+  assertValidWindows(body);
 
   const outcome = await startBrandCalculations(pool, queues, brandId, {
     triggerType: trigger.type,
     triggeredBy: trigger.by,
     requireEnabledSchedule: false,
+    windows: body.windows,
   });
   assertStarted(outcome);
 

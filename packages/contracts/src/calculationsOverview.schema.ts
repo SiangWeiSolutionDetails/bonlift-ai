@@ -6,6 +6,33 @@ const Count = Type.Integer({ minimum: 0 });
 const NullableString = Type.Union([Type.String(), Type.Null()]);
 const NullableDateTime = Type.Union([Type.String({ format: "date-time" }), Type.Null()]);
 
+const CompactDate = Type.String({ pattern: "^[0-9]{8}$" });
+
+// Inclusive YYYYMMDD dates, like the single-calculation routes.
+export const CalculationWindowSchema = Type.Object(
+  { from: CompactDate, to: CompactDate },
+  { additionalProperties: false },
+);
+export type CalculationWindowSchemaType = Static<typeof CalculationWindowSchema>;
+
+// A calculation left out uses its window from the brand's schedule (the last N days, ending yesterday).
+export const BrandCalculationsStartBodySchema = Type.Object(
+  {
+    windows: Type.Optional(
+      Type.Object(
+        {
+          outlet_item_scores: Type.Optional(CalculationWindowSchema),
+          customer_item_scores: Type.Optional(CalculationWindowSchema),
+          item_affinity: Type.Optional(CalculationWindowSchema),
+        },
+        { additionalProperties: false },
+      ),
+    ),
+  },
+  { additionalProperties: false },
+);
+export type BrandCalculationsStartBodySchemaType = Static<typeof BrandCalculationsStartBodySchema>;
+
 // POST /calculate/all/:brandId — one run per live outlet with data for outlet item scores, one each for the
 // brand-level calculations. Scopes already running or without order snapshots in their window are skipped.
 export const BrandCalculationsStartedRunSchema = Type.Object(

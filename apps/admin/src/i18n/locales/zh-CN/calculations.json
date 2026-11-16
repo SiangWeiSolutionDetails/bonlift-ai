@@ -36,12 +36,17 @@
   },
   "dialog": {
     "title": "运行全部计算？",
-    "description": "以下所有计算将立即为该品牌开始运行，使用其计算计划中的时间窗口。",
+    "description": "以下所有计算将立即为该品牌开始。日期默认取自品牌的计算排程，修改仅对本次运行生效。",
     "window_one": "最近 {{count}} 天，截至 {{date}}",
     "window_other": "最近 {{count}} 天，截至 {{date}}",
     "skipNote": "已在运行中、或时间窗口内没有订单的门店和计算将被跳过。",
     "submit": "全部运行",
-    "submitting": "启动中…"
+    "submitting": "启动中…",
+    "from": "开始日期",
+    "to": "结束日期",
+    "scheduleDefault": "排程：{{window}}",
+    "resetDefaults": "恢复排程默认值",
+    "invalidRange": "开始日期不能晚于结束日期。"
   },
   "result": {
     "started_one": "已启动 {{count}} 个运行。",

@@ -238,14 +238,14 @@ describe("deriveInsights", () => {
 });
 
 describe("summarizeOverview", () => {
-  it("adds up running and failed runs and takes the oldest published results", () => {
+  it("adds up failed runs and takes the oldest published results", () => {
     const data = overview([
       entry({ jobType: "outlet_item_scores", scope: "outlet", runningRuns: 2, failedRunsLast7Days: 1, resultsAgeDays: 3 }),
       entry({ jobType: "customer_item_scores", runningRuns: 1, resultsAgeDays: 0 }),
       entry({ jobType: "item_affinity", failedRunsLast7Days: 2, resultsAgeDays: null }),
     ]);
 
-    expect(summarizeOverview(data)).toEqual({ runningRuns: 3, failedRunsLast7Days: 3, oldestResultsAgeDays: 3 });
+    expect(summarizeOverview(data)).toEqual({ failedRunsLast7Days: 3, oldestResultsAgeDays: 3 });
   });
 
   it("has no oldest age when nothing is published", () => {

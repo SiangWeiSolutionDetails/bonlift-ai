@@ -158,7 +158,6 @@ export function latestFinishedRun(entry: CalculationEntry) {
 }
 
 export type OverviewTotals = {
-  runningRuns: number;
   failedRunsLast7Days: number;
   // Oldest published results across calculations; null when nothing is published anywhere
   oldestResultsAgeDays: number | null;
@@ -168,7 +167,6 @@ export function summarizeOverview(overview: CalculationsOverview): OverviewTotal
   const entries = joinCalculations(overview.calculations).map(({ entry }) => entry);
   const ages = entries.flatMap((entry) => (entry.resultsAgeDays === null ? [] : [entry.resultsAgeDays]));
   return {
-    runningRuns: entries.reduce((sum, entry) => sum + entry.runningRuns, 0),
     failedRunsLast7Days: entries.reduce((sum, entry) => sum + entry.failedRunsLast7Days, 0),
     oldestResultsAgeDays: ages.length > 0 ? Math.max(...ages) : null,
   };

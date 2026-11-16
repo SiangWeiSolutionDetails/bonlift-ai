@@ -125,7 +125,6 @@
   "totals": {
     "attention": "Needs attention",
     "allGood": "All good",
-    "running": "Running now",
     "failedLast7Days": "Failed in last 7 days",
     "oldestResults": "Oldest results"
   }

@@ -125,7 +125,6 @@
   "totals": {
     "attention": "需要关注",
     "allGood": "一切正常",
-    "running": "正在运行",
     "failedLast7Days": "近 7 天失败",
     "oldestResults": "最旧结果"
   }

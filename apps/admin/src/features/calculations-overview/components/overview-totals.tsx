@@ -3,7 +3,6 @@ import {
   CircleCheckIcon,
   CircleXIcon,
   ClockIcon,
-  LoaderCircleIcon,
   TriangleAlertIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -14,7 +13,6 @@ import type { OverviewTotals } from "../overview";
 // Same solid icon tiles as the recommendation feedback and usage summaries; full class names so Tailwind finds them.
 const TONES = {
   neutral: "bg-slate-400 text-white dark:bg-slate-500",
-  info: "bg-blue-500 text-white",
   good: "bg-green-500 text-white",
   warn: "bg-amber-500 text-white",
   bad: "bg-red-500 text-white",
@@ -29,7 +27,7 @@ export function OverviewTotalsStrip({ totals, attentionCount }: OverviewTotalsPr
   const age = totals.oldestResultsAgeDays;
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-4 sm:grid-cols-3">
       <TotalTile
         icon={attentionCount > 0 ? TriangleAlertIcon : CircleCheckIcon}
         tone={attentionCount > 0 ? "warn" : "good"}
@@ -37,15 +35,8 @@ export function OverviewTotalsStrip({ totals, attentionCount }: OverviewTotalsPr
         value={attentionCount > 0 ? attentionCount : t("totals.allGood")}
       />
       <TotalTile
-        icon={LoaderCircleIcon}
-        tone={totals.runningRuns > 0 ? "info" : "neutral"}
-        label={t("totals.running")}
-        value={totals.runningRuns}
-        spin={totals.runningRuns > 0}
-      />
-      <TotalTile
         icon={CircleXIcon}
-        tone={totals.failedRunsLast7Days > 0 ? "bad" : "neutral"}
+        tone="bad"
         label={t("totals.failedLast7Days")}
         value={totals.failedRunsLast7Days}
       />
@@ -76,15 +67,14 @@ type TotalTileProps = {
   tone: Tone;
   label: string;
   value: ReactNode;
-  spin?: boolean;
 };
 
-function TotalTile({ icon: Icon, tone, label, value, spin = false }: TotalTileProps) {
+function TotalTile({ icon: Icon, tone, label, value }: TotalTileProps) {
   return (
     <div className="flex flex-col gap-3 rounded-xl bg-card p-5 shadow-panel">
       <div className="flex items-center gap-3">
         <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl shadow-sm", TONES[tone])}>
-          <Icon className={cn("size-4", spin && "animate-spin")} />
+          <Icon className="size-4" />
         </span>
         <span className="text-sm font-medium text-muted-foreground">{label}</span>
       </div>

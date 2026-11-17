@@ -6,6 +6,7 @@ import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { FluidBackdrop } from "@/features/auth/components/fluid-backdrop";
 
 const KNOWN_ERROR_CODES = ["ACCOUNT_NOT_APPROVED", "SIGN_IN_FAILED"] as const;
 
@@ -27,30 +28,6 @@ function GoogleMark() {
       <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z" />
       <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z" />
     </svg>
-  );
-}
-
-const LIQUID_BLOBS = [
-  { color: "#4285F4", position: "top-[-15%] left-[5%]", size: "size-160", flow: "login-flow-a 24s" },
-  { color: "#9B72CB", position: "top-[15%] right-[-5%]", size: "size-144", flow: "login-flow-b 28s" },
-  { color: "#D96570", position: "bottom-[-20%] left-[25%]", size: "size-136", flow: "login-flow-c 32s" },
-  { color: "#24C1E0", position: "bottom-[0%] right-[15%]", size: "size-96", flow: "login-flow-b 20s" },
-];
-
-function GradientBackdrop() {
-  return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-      {LIQUID_BLOBS.map((blob, index) => (
-        <div
-          key={blob.color}
-          className={`login-blob absolute ${blob.position} ${blob.size} opacity-30 blur-[90px] dark:opacity-40`}
-          style={{
-            backgroundColor: blob.color,
-            animation: `login-morph ${14 + index * 3}s ease-in-out infinite, ${blob.flow} ease-in-out infinite`,
-          }}
-        />
-      ))}
-    </div>
   );
 }
 
@@ -129,7 +106,7 @@ function SignInCard() {
 export function LoginPage() {
   return (
     <div className="relative isolate flex min-h-svh flex-col bg-background">
-      <GradientBackdrop />
+      <FluidBackdrop />
       <LoginHeader />
       <main className="relative flex flex-1 flex-col items-center justify-center gap-8 px-4 pb-16">
         <BrandMark />

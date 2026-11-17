@@ -34,13 +34,8 @@ import {
 } from "./plugins/servingAuth.js";
 import { createServingUsageHook } from "./plugins/servingUsage.js";
 import { registerApiDocs } from "./plugins/apiDocs.js";
-import { createAdminAuthHook } from "./plugins/adminAuth.js";
-import {
-  areDevRoutesEnabled,
-  readAdminToken,
-  readAuthConfig,
-  readCustomerIdSecret,
-} from "./config/env.js";
+import { createAdminSessionHook } from "./plugins/adminAuth.js";
+import { areDevRoutesEnabled, readAuthConfig, readCustomerIdSecret } from "./config/env.js";
 
 const CALLBACK_PATH_PREFIX = "/auth/callback/";
 
@@ -60,7 +55,6 @@ function serializeRequest(request: FastifyRequest) {
 }
 
 export function buildApp(): FastifyInstance {
-  const adminToken = readAdminToken();
   // Read at start so a missing secret stops the API instead of failing the first upload or /v1 call.
   readCustomerIdSecret();
   const authConfig = readAuthConfig();
@@ -97,9 +91,10 @@ export function buildApp(): FastifyInstance {
   app.register(healthRoutes);
   app.register(authRoutes);
 
-  // Admin surface: the admin token hook is encapsulated to this scope only.
+  // Admin surface: the session hook is encapsulated to this scope only.
   app.register(async (admin) => {
-    admin.addHook("onRequest", createAdminAuthHook(adminToken));
+    admin.decorateRequest("user", null);
+    admin.addHook("onRequest", createAdminSessionHook(getPool));
     admin.register(tenantRoutes);
     admin.register(brandRoutes);
     admin.register(outletRoutes);

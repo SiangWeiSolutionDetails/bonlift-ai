@@ -23,7 +23,7 @@ import {
 } from "@/features/item-affinity/queries";
 import type { ItemAffinitySearch } from "@/features/item-affinity/search";
 
-const routeApi = getRouteApi("/item-affinity");
+const routeApi = getRouteApi("/_app/item-affinity");
 
 export function ItemAffinityPage() {
   const { t } = useTranslation("itemAffinity");

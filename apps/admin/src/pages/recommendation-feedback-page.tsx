@@ -24,7 +24,7 @@ import type { RecommendationFeedbackSearch } from "@/features/recommendation-fee
 import type { FeedbackFilters as Filters } from "@/features/recommendation-feedback/type";
 import { toIsoDate } from "@/lib/date-format";
 
-const routeApi = getRouteApi("/recommendation-feedback");
+const routeApi = getRouteApi("/_app/recommendation-feedback");
 const DEFAULT_RANGE_DAYS = 30;
 
 function defaultRange() {

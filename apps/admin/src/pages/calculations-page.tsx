@@ -19,7 +19,7 @@ import { useRunAllToast } from "@/features/calculations-overview/components/run-
 import { useCalculationsOverview } from "@/features/calculations-overview/queries";
 import type { StartAllResponse } from "@/features/calculations-overview/type";
 
-const routeApi = getRouteApi("/calculations");
+const routeApi = getRouteApi("/_app/calculations");
 
 export function CalculationsPage() {
   const { t } = useTranslation("calculations");

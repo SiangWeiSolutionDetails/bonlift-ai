@@ -23,7 +23,7 @@ import {
 } from "@/features/customer-item-scores/queries";
 import type { CustomerScoresSearch } from "@/features/customer-item-scores/search";
 
-const routeApi = getRouteApi("/customer-scores");
+const routeApi = getRouteApi("/_app/customer-scores");
 
 export function CustomerScoresPage() {
   const { t } = useTranslation("customerScores");

@@ -3,7 +3,9 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  Outlet,
   redirect,
+  type ParsedLocation,
 } from "@tanstack/react-router";
 import {
   BarChart3Icon,
@@ -19,6 +21,8 @@ import {
   ThumbsUpIcon,
 } from "lucide-react";
 import App from "@/App";
+import { meQueryOptions } from "@/features/auth/queries";
+import { validateLoginSearch } from "@/features/auth/search";
 import { validateApiKeysSearch } from "@/features/brand-api-keys/search";
 import { validateUsageSearch } from "@/features/brand-usage/search";
 import { validateCalculationsSearch } from "@/features/calculations-overview/search";
@@ -28,11 +32,14 @@ import { validateSnapshotsSearch } from "@/features/order-snapshots/search";
 import { validateResultsSearch } from "@/features/outlet-item-scores/search";
 import { validateRecommendationFeedbackSearch } from "@/features/recommendation-feedback/search";
 import type enCommon from "@/i18n/locales/en/common.json";
+import { ApiError } from "@/lib/api-client";
+import { queryClient } from "@/lib/query-client";
 import { ApiKeysPage } from "@/pages/api-keys-page";
 import { BrandsPage } from "@/pages/brands-page";
 import { CalculationsPage } from "@/pages/calculations-page";
 import { CustomerScoresPage } from "@/pages/customer-scores-page";
 import { ItemAffinityPage } from "@/pages/item-affinity-page";
+import { LoginPage } from "@/pages/login-page";
 import { OrderSnapshotsPage } from "@/pages/order-snapshots-page";
 import { OutletsPage } from "@/pages/outlets-page";
 import { RecommendationFeedbackPage } from "@/pages/recommendation-feedback-page";
@@ -40,10 +47,43 @@ import { ResultsPage } from "@/pages/results-page";
 import { TenantsPage } from "@/pages/tenants-page";
 import { UsagePage } from "@/pages/usage-page";
 
-const rootRoute = createRootRoute({ component: App });
+function isUnauthorized(error: unknown) {
+  return error instanceof ApiError && error.status === 401;
+}
+
+async function requireSession(location: ParsedLocation) {
+  try {
+    await queryClient.ensureQueryData(meQueryOptions);
+  } catch (error) {
+    if (!isUnauthorized(error)) throw error;
+    throw redirect({ to: "/login", search: { returnTo: location.href } });
+  }
+}
+
+async function redirectIfSignedIn() {
+  const user = await queryClient.ensureQueryData(meQueryOptions).catch(() => null);
+  if (user) throw redirect({ to: "/", replace: true });
+}
+
+const rootRoute = createRootRoute({ component: Outlet });
+
+const loginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/login",
+  component: LoginPage,
+  validateSearch: validateLoginSearch,
+  beforeLoad: redirectIfSignedIn,
+});
+
+const appLayoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  id: "_app",
+  component: App,
+  beforeLoad: ({ location }) => requireSession(location),
+});
 
 const indexRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appLayoutRoute,
   path: "/",
   beforeLoad: () => {
     throw redirect({ to: "/tenants", replace: true });
@@ -51,28 +91,28 @@ const indexRoute = createRoute({
 });
 
 const tenantsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appLayoutRoute,
   path: "/tenants",
   component: TenantsPage,
   staticData: { titleKey: "nav.tenants", groupKey: "nav.management", icon: <Building2Icon /> },
 });
 
 const brandsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appLayoutRoute,
   path: "/brands",
   component: BrandsPage,
   staticData: { titleKey: "nav.brands", groupKey: "nav.management", icon: <TagIcon /> },
 });
 
 const outletsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appLayoutRoute,
   path: "/outlets",
   component: OutletsPage,
   staticData: { titleKey: "nav.outlets", groupKey: "nav.management", icon: <StoreIcon /> },
 });
 
 const snapshotsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appLayoutRoute,
   path: "/snapshots",
   component: OrderSnapshotsPage,
   validateSearch: validateSnapshotsSearch,
@@ -80,7 +120,7 @@ const snapshotsRoute = createRoute({
 });
 
 const calculationsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appLayoutRoute,
   path: "/calculations",
   component: CalculationsPage,
   validateSearch: validateCalculationsSearch,
@@ -88,7 +128,7 @@ const calculationsRoute = createRoute({
 });
 
 const resultsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appLayoutRoute,
   path: "/results",
   component: ResultsPage,
   validateSearch: validateResultsSearch,
@@ -96,7 +136,7 @@ const resultsRoute = createRoute({
 });
 
 const customerScoresRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appLayoutRoute,
   path: "/customer-scores",
   component: CustomerScoresPage,
   validateSearch: validateCustomerScoresSearch,
@@ -104,7 +144,7 @@ const customerScoresRoute = createRoute({
 });
 
 const itemAffinityRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appLayoutRoute,
   path: "/item-affinity",
   component: ItemAffinityPage,
   validateSearch: validateItemAffinitySearch,
@@ -112,7 +152,7 @@ const itemAffinityRoute = createRoute({
 });
 
 const apiKeysRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appLayoutRoute,
   // Not "/api-keys": the dev proxy (and any production proxy) forwards every path starting with "/api" to the API.
   path: "/brand-api-keys",
   component: ApiKeysPage,
@@ -121,7 +161,7 @@ const apiKeysRoute = createRoute({
 });
 
 const usageRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appLayoutRoute,
   path: "/usage",
   component: UsagePage,
   validateSearch: validateUsageSearch,
@@ -129,7 +169,7 @@ const usageRoute = createRoute({
 });
 
 const recommendationFeedbackRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appLayoutRoute,
   path: "/recommendation-feedback",
   component: RecommendationFeedbackPage,
   validateSearch: validateRecommendationFeedbackSearch,
@@ -141,7 +181,7 @@ const recommendationFeedbackRoute = createRoute({
 });
 
 // Order here is the sidebar order; routes with a staticData icon and groupKey appear in the sidebar.
-const routeTree = rootRoute.addChildren([
+const appRoutes = appLayoutRoute.addChildren([
   indexRoute,
   tenantsRoute,
   brandsRoute,
@@ -155,6 +195,8 @@ const routeTree = rootRoute.addChildren([
   usageRoute,
   recommendationFeedbackRoute,
 ]);
+
+const routeTree = rootRoute.addChildren([loginRoute, appRoutes]);
 
 export const router = createRouter({ routeTree });
 

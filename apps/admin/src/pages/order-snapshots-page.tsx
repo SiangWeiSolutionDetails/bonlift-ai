@@ -5,7 +5,7 @@ import { OrderSnapshotsCard } from "@/features/order-snapshots/components/order-
 import type { SnapshotsSearch } from "@/features/order-snapshots/search";
 import { OutletPicker } from "@/features/outlet-item-scores/components/outlet-picker";
 
-const routeApi = getRouteApi("/snapshots");
+const routeApi = getRouteApi("/_app/snapshots");
 
 export function OrderSnapshotsPage() {
   const { t } = useTranslation("snapshots");

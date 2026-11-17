@@ -13,23 +13,14 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 
-// This is sample data.
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-}
-
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const { t } = useTranslation()
-  const { routeTree } = useRouter()
+  const { routesById } = useRouter()
   const activePath = useMatches({ select: (matches) => matches.at(-1)?.fullPath })
 
   type GroupKey = NonNullable<StaticDataRouteOption["groupKey"]>
   const navGroups = new Map<GroupKey, React.ComponentProps<typeof NavMain>["items"]>()
-  for (const route of routeTree.children ?? []) {
+  for (const route of routesById["/_app"].children ?? []) {
     const { titleKey, groupKey, icon } = route.options.staticData ?? {}
     if (!titleKey || !groupKey || !icon) continue
     const items = navGroups.get(groupKey) ?? []
@@ -50,7 +41,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
         ))}
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

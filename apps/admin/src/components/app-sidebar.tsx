@@ -5,11 +5,9 @@ import { useMatches, useRouter, type StaticDataRouteOption } from "@tanstack/rea
 import { useTranslation } from "react-i18next"
 
 import { NavMain } from "@/components/nav-main"
-import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarRail,
 } from "@/components/ui/sidebar"
 
@@ -40,9 +38,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
           <NavMain key={groupKey} label={t(groupKey)} items={items} />
         ))}
       </SidebarContent>
-      <SidebarFooter>
-        <NavUser />
-      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   )

@@ -200,9 +200,10 @@ interface StatusFlags {
 
 const brandCountOf = (alias: string) => `
   (SELECT count(*)
-   FROM user_brand_roles ubr
-   JOIN brands b ON b.id = ubr.brand_id
-   WHERE ubr.user_id = ${alias}.id AND b.deleted_at IS NULL)`;
+   FROM user_brand_roles cbr
+   JOIN brands cb ON cb.id = cbr.brand_id AND cb.deleted_at IS NULL
+   JOIN tenants ct ON ct.id = cb.tenant_id AND ct.deleted_at IS NULL
+   WHERE cbr.user_id = ${alias}.id)`;
 
 const userRecordColumns = (userAlias: string, roleAlias: string) => `
   ${userAlias}.id, ${userAlias}.email, ${userAlias}.display_name, ${userAlias}.display_name_source,
@@ -210,8 +211,8 @@ const userRecordColumns = (userAlias: string, roleAlias: string) => `
   ${roleAlias}.id AS role_id, ${roleAlias}.name AS role_name, ${roleAlias}.is_builtin AS role_is_builtin,
   ${brandCountOf(userAlias)} AS brand_count`;
 
-// Removals lock the user first, so two removals running at once can't both take their last role.
-export const lockedUser = (userIdParam: string) => `(SELECT * FROM users WHERE id = ${userIdParam} FOR UPDATE) u`;
+// Removals lock the user first so they serialise instead of deadlocking on each other's role rows.
+export const lockedUser = (userIdParam: string) => `(SELECT * FROM users WHERE id = ${userIdParam} FOR NO KEY UPDATE) u`;
 
 const isAdminUser = (alias: string) => `EXISTS (
   SELECT 1 FROM user_console_roles ucr JOIN roles r ON r.id = ucr.role_id

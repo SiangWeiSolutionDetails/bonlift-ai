@@ -558,6 +558,18 @@ describe("updateUser (integration)", () => {
     expect(user.brandCount).toBe(1);
   });
 
+  it("counts only brands that are not soft-deleted and whose tenant is not soft-deleted", async () => {
+    const actor = await adminActor("admin@x.com");
+    const target = await userNamed("bob@x.com");
+    await insertBrandRole(target);
+    await softDeleteBrand(await insertBrandRole(target));
+    await softDeleteTenantOf(await insertBrandRole(target));
+
+    const user = await updateUser(getTestPool(), actor, target, { displayName: "Bob" });
+
+    expect(user.brandCount).toBe(1);
+  });
+
   it("refuses and keeps the name when the target became an Admin after the non-Admin's snapshot", async () => {
     const actor = await actorWithRole("editor@x.com", ["users.view", "users.edit"]);
     const target = await userNamed("bob@x.com");

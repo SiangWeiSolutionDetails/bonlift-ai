@@ -33,3 +33,61 @@ export function readCustomerIdSecret(): string {
 export function areDevRoutesEnabled(): boolean {
   return process.env.ENABLE_DEV_ROUTES === "true";
 }
+
+export interface AuthConfig {
+  appBaseUrl: string;
+  cookieSecret: string;
+  secureCookies: boolean;
+  google: { clientId: string; clientSecret: string };
+}
+
+let authConfig: AuthConfig | undefined;
+
+export function resetAuthConfigCache(): void {
+  authConfig = undefined;
+}
+
+function readRequired(name: string): string {
+  const value = process.env[name]?.trim() ?? "";
+  if (!value) throw new Error(`${name} must be set.`);
+  return value;
+}
+
+function readSessionCookieSecret(): string {
+  const secret = process.env.SESSION_COOKIE_SECRET?.trim() ?? "";
+  if (!ADMIN_TOKEN_PATTERN.test(secret) || secret.includes(PLACEHOLDER_MARKER)) {
+    throw new Error(
+      `SESSION_COOKIE_SECRET must be set to a generated secret of at least 32 characters (letters, digits, "-" or "_"), not the .env.example placeholder. ` +
+        `Generate one with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`,
+    );
+  }
+  return secret;
+}
+
+// Comparing with the parsed origin rejects any path, query, trailing slash or credentials in one check.
+function readAppBaseUrl(): string {
+  const value = readRequired("APP_BASE_URL");
+  const parsed = URL.canParse(value) ? new URL(value) : undefined;
+  const isHttp = parsed?.protocol === "http:" || parsed?.protocol === "https:";
+  if (!parsed || !isHttp || parsed.origin !== value) {
+    throw new Error(
+      `APP_BASE_URL must be an http(s) origin with no path or trailing slash, e.g. http://localhost:5173.`,
+    );
+  }
+  return value;
+}
+
+export function readAuthConfig(): AuthConfig {
+  if (authConfig !== undefined) return authConfig;
+  const appBaseUrl = readAppBaseUrl();
+  authConfig = {
+    appBaseUrl,
+    cookieSecret: readSessionCookieSecret(),
+    secureCookies: appBaseUrl.startsWith("https://"),
+    google: {
+      clientId: readRequired("GOOGLE_CLIENT_ID"),
+      clientSecret: readRequired("GOOGLE_CLIENT_SECRET"),
+    },
+  };
+  return authConfig;
+}

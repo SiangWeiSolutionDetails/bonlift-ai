@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { meQueryOptions } from "@/features/auth/queries";
 import { createRole, deleteRole, listRoles, updateRole } from "./api";
 import type { RoleKindType, UpdateRoleInput } from "./type";
 
@@ -17,7 +18,10 @@ export function useRoles(kind: RoleKindType) {
 // Role actions also feed /auth/me, so a change can alter what the current user sees
 function useInvalidateRoles() {
   const queryClient = useQueryClient();
-  return () => queryClient.invalidateQueries();
+  return () => {
+    void queryClient.invalidateQueries({ queryKey: roleKeys.all });
+    void queryClient.invalidateQueries({ queryKey: meQueryOptions.queryKey });
+  };
 }
 
 export function useCreateRole() {

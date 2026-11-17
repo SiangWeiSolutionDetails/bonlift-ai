@@ -30,6 +30,8 @@ export function RolesPage() {
   const [kind, setKind] = useState<RoleKindType>("console");
   const [dialogTarget, setDialogTarget] = useState<RoleDialogTarget | null>(null);
   const [roleToDelete, setRoleToDelete] = useState<Role | null>(null);
+  // Not cleared on close, so the title doesn't lose the name while the dialog animates out
+  const [deleteTitleName, setDeleteTitleName] = useState("");
   const { data: roles, error, isPending } = useRoles(kind);
   const deleteMutation = useDeleteRole();
 
@@ -79,6 +81,7 @@ export function RolesPage() {
           canManage
             ? (role) => {
                 deleteMutation.reset();
+                setDeleteTitleName(role.name);
                 setRoleToDelete(role);
               }
             : undefined
@@ -87,7 +90,7 @@ export function RolesPage() {
 
       <ConfirmDialog
         open={roleToDelete !== null}
-        title={t("delete.title", { name: roleToDelete?.name })}
+        title={t("delete.title", { name: deleteTitleName })}
         description={t("delete.description")}
         confirmLabel={tCommon("actions.delete")}
         onCancel={() => setRoleToDelete(null)}

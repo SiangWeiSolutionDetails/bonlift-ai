@@ -22,6 +22,7 @@ interface GuardFlags {
   found: boolean;
   builtin: boolean;
   actor_holds: boolean;
+  current_subset?: boolean;
   kind_matches?: boolean;
 }
 
@@ -33,6 +34,16 @@ const assignmentCountOf = (alias: string) => `
 const ACTOR_HOLDS = `(
   EXISTS (SELECT 1 FROM user_console_roles ucr WHERE ucr.user_id = $2 AND ucr.role_id = r.id)
   OR EXISTS (SELECT 1 FROM user_brand_roles ubr WHERE ubr.user_id = $2 AND ubr.role_id = r.id)
+)`;
+
+// A non-Admin can't touch a console role broader than their own console actions.
+const currentSubset = (isAdminParam: string, actionsParam: string) => `(
+  ${isAdminParam}::boolean
+  OR r.kind <> 'console'
+  OR NOT EXISTS (
+    SELECT action FROM role_permissions WHERE role_id = r.id
+    EXCEPT SELECT unnest(${actionsParam}::text[])
+  )
 )`;
 
 function actionKindOf(key: string): RoleKind | null {
@@ -79,6 +90,7 @@ function assertGuardsPass(flags: GuardFlags): void {
   if (!flags.found) throw new NotFoundError("Role does not exist.");
   if (flags.builtin) throw new ForbiddenError("A built-in role cannot be changed.");
   if (flags.actor_holds) throw new ForbiddenError("You cannot change a role you hold.");
+  if (flags.current_subset === false) throw new ForbiddenError("The role holds console actions you lack.");
   if (flags.kind_matches === false) throw new ValidationError("The actions do not match the role's kind.");
 }
 
@@ -154,19 +166,20 @@ const REPLACE_PERMISSIONS = `,
     DELETE FROM role_permissions rp
     USING updated u
     WHERE rp.role_id = u.id
-      AND rp.action <> ALL($5::text[])
+      AND rp.action <> ALL($7::text[])
   ),
   added AS (
     INSERT INTO role_permissions (role_id, action)
-    SELECT u.id, a.action FROM updated u CROSS JOIN unnest($5::text[]) AS a(action)
+    SELECT u.id, a.action FROM updated u CROSS JOIN unnest($7::text[]) AS a(action)
     ON CONFLICT DO NOTHING
   )`;
 
 function updateRoleSql(replacesActions: boolean): string {
-  const kindMatches = replacesActions ? "($4::text IS NULL OR r.kind = $4)" : "true";
+  const kindMatches = replacesActions ? "($6::text IS NULL OR r.kind = $6)" : "true";
   return `
     WITH target AS (
-      SELECT r.id, r.is_builtin, ${kindMatches} AS kind_matches, ${ACTOR_HOLDS} AS actor_holds
+      SELECT r.id, r.is_builtin, ${kindMatches} AS kind_matches, ${ACTOR_HOLDS} AS actor_holds,
+             ${currentSubset("$4", "$5")} AS current_subset
       FROM roles r
       WHERE r.id = $1
     ),
@@ -178,6 +191,7 @@ function updateRoleSql(replacesActions: boolean): string {
         AND NOT t.is_builtin
         AND t.kind_matches
         AND NOT t.actor_holds
+        AND t.current_subset
       RETURNING r.id, r.name, r.kind, r.is_builtin
     )${replacesActions ? REPLACE_PERMISSIONS : ""}
     SELECT
@@ -185,6 +199,7 @@ function updateRoleSql(replacesActions: boolean): string {
       COALESCE(t.is_builtin, false) AS builtin,
       COALESCE(t.kind_matches, false) AS kind_matches,
       COALESCE(t.actor_holds, false) AS actor_holds,
+      COALESCE(t.current_subset, false) AS current_subset,
       u.id, u.name, u.kind, u.is_builtin,
       COALESCE((SELECT array_agg(rp.action) FROM role_permissions rp WHERE rp.role_id = u.id), '{}') AS current_actions,
       ${assignmentCountOf("u")} AS assignment_count
@@ -193,8 +208,8 @@ function updateRoleSql(replacesActions: boolean): string {
     LEFT JOIN updated u ON true`;
 }
 
-function updateRoleParams(roleId: string, actorId: string, body: UpdateRoleBodySchemaType, kind: RoleKind | null) {
-  const params: unknown[] = [roleId, actorId, body.name ?? null];
+function updateRoleParams(roleId: string, actor: RequestAccess, body: UpdateRoleBodySchemaType, kind: RoleKind | null) {
+  const params: unknown[] = [roleId, actor.user.id, body.name ?? null, actor.isAdmin, actor.consoleActions];
   return body.actions === undefined ? params : [...params, kind, body.actions];
 }
 
@@ -212,7 +227,7 @@ export async function updateRole(
   try {
     const result = await db.query(
       updateRoleSql(body.actions !== undefined),
-      updateRoleParams(roleId, actor.user.id, body, kind),
+      updateRoleParams(roleId, actor, body, kind),
     );
     const row = result.rows[0];
     assertGuardsPass(row);
@@ -231,7 +246,8 @@ export async function deleteRole(db: Queryable, actor: RequestAccess, roleId: st
     const result = await db.query(
       `
       WITH target AS (
-        SELECT r.id, r.is_builtin, ${ACTOR_HOLDS} AS actor_holds
+        SELECT r.id, r.is_builtin, ${ACTOR_HOLDS} AS actor_holds,
+               ${currentSubset("$3", "$4")} AS current_subset
         FROM roles r
         WHERE r.id = $1
       ),
@@ -241,14 +257,16 @@ export async function deleteRole(db: Queryable, actor: RequestAccess, roleId: st
         WHERE r.id = t.id
           AND NOT t.is_builtin
           AND NOT t.actor_holds
+          AND t.current_subset
       )
       SELECT
         t.id IS NOT NULL AS found,
         COALESCE(t.is_builtin, false) AS builtin,
-        COALESCE(t.actor_holds, false) AS actor_holds
+        COALESCE(t.actor_holds, false) AS actor_holds,
+        COALESCE(t.current_subset, false) AS current_subset
       FROM (VALUES (1)) AS one (x)
       LEFT JOIN target t ON true`,
-      [roleId, actor.user.id],
+      [roleId, actor.user.id, actor.isAdmin, actor.consoleActions],
     );
 
     assertGuardsPass(result.rows[0]);

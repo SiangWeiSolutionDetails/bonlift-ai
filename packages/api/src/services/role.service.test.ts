@@ -146,7 +146,15 @@ describe("updateRole", () => {
       actions: ["outlets.view", "results.view"],
       assignmentCount: 2,
     });
-    expect(queryMock.mock.calls[0][1]).toEqual([ROLE_ID, USER_ID, "Reader", "brand", ["results.view", "outlets.view"]]);
+    expect(queryMock.mock.calls[0][1]).toEqual([
+      ROLE_ID,
+      USER_ID,
+      "Reader",
+      false,
+      roleManager.consoleActions,
+      "brand",
+      ["results.view", "outlets.view"],
+    ]);
   });
 
   it("keeps the current actions on a rename only", async () => {
@@ -155,7 +163,7 @@ describe("updateRole", () => {
     const role = await updateRole(fakePool, roleManager, ROLE_ID, { name: "Reader" });
 
     expect(role.actions).toEqual(["outlets.view"]);
-    expect(queryMock.mock.calls[0][1]).toEqual([ROLE_ID, USER_ID, "Reader"]);
+    expect(queryMock.mock.calls[0][1]).toEqual([ROLE_ID, USER_ID, "Reader", false, roleManager.consoleActions]);
   });
 
   it("rejects actions of mixed kinds", async () => {
@@ -203,6 +211,26 @@ describe("updateRole", () => {
     await expect(deleteRole(fakePool, roleManager, ROLE_ID)).rejects.toBeInstanceOf(ForbiddenError);
   });
 
+  it("refuses a non-Admin renaming, narrowing or clearing a console role broader than their own", async () => {
+    const broader = flagsRow({ current_subset: false, id: null, kind: "console" });
+    queryMock.mockResolvedValue(pgResult([broader]));
+
+    await expect(updateRole(fakePool, roleManager, ROLE_ID, { name: "Lesser" })).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(
+      updateRole(fakePool, roleManager, ROLE_ID, { actions: ["roles.view"] }),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(updateRole(fakePool, roleManager, ROLE_ID, { actions: [] })).rejects.toBeInstanceOf(ForbiddenError);
+    expect(queryMock.mock.calls[2][1]).toEqual([ROLE_ID, USER_ID, null, false, roleManager.consoleActions, null, []]);
+  });
+
+  it("passes the actor's Admin flag so an Admin may edit any console role", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([flagsRow({ kind: "console", current_actions: ["roles.manage"] })]));
+
+    await updateRole(fakePool, admin, ROLE_ID, { name: "Grantor" });
+
+    expect(queryMock.mock.calls[0][1].slice(3)).toEqual([true, admin.consoleActions]);
+  });
+
   it("rejects actions of the other kind than the role's", async () => {
     queryMock.mockResolvedValueOnce(pgResult([flagsRow({ kind_matches: false, id: null })]));
 
@@ -224,7 +252,15 @@ describe("deleteRole", () => {
 
     await deleteRole(fakePool, roleManager, ROLE_ID);
 
-    expect(queryMock.mock.calls[0][1]).toEqual([ROLE_ID, USER_ID]);
+    expect(queryMock.mock.calls[0][1]).toEqual([ROLE_ID, USER_ID, false, roleManager.consoleActions]);
+  });
+
+  it("refuses a non-Admin deleting a console role broader than their own", async () => {
+    queryMock.mockResolvedValueOnce(
+      pgResult([{ found: true, builtin: false, actor_holds: false, current_subset: false }]),
+    );
+
+    await expect(deleteRole(fakePool, roleManager, ROLE_ID)).rejects.toBeInstanceOf(ForbiddenError);
   });
 
   it("returns 404 for an unknown role", async () => {

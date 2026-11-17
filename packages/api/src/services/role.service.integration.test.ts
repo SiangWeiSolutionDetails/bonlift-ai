@@ -64,6 +64,60 @@ async function assignConsoleRole(userId: string, roleId: string) {
   await getTestPool().query(`INSERT INTO user_console_roles (user_id, role_id) VALUES ($1, $2)`, [userId, roleId]);
 }
 
+const ROLE_MANAGER_ACTIONS: RequestAccess["consoleActions"] = ["roles.view", "roles.manage"];
+
+async function roleManagerFor(email: string): Promise<RequestAccess> {
+  const id = await userNamed(email);
+  await assignConsoleRole(id, await insertRole("console", `${email} role`, ROLE_MANAGER_ACTIONS));
+  return { user: { id, email, displayName: null }, isAdmin: false, consoleActions: ROLE_MANAGER_ACTIONS };
+}
+
+const BROADER_ACTIONS = ["roles.manage", "roles.view", "users.assignConsoleRoles"];
+
+describe("console roles broader than a non-Admin actor (integration)", () => {
+  it("refuses narrowing, clearing or renaming one and writes nothing", async () => {
+    const actor = await roleManagerFor("lead@x.com");
+    const roleId = await insertRole("console", "Grantor", BROADER_ACTIONS);
+
+    await expect(updateRole(getTestPool(), actor, roleId, { actions: ["roles.view"] })).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+    await expect(updateRole(getTestPool(), actor, roleId, { actions: [] })).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(updateRole(getTestPool(), actor, roleId, { name: "Lesser" })).rejects.toBeInstanceOf(ForbiddenError);
+
+    expect(await storedRole(roleId)).toEqual({ name: "Grantor", actions: BROADER_ACTIONS });
+  });
+
+  it("refuses deleting one and keeps it", async () => {
+    const actor = await roleManagerFor("lead@x.com");
+    const roleId = await insertRole("console", "Grantor", BROADER_ACTIONS);
+
+    await expect(deleteRole(getTestPool(), actor, roleId)).rejects.toBeInstanceOf(ForbiddenError);
+
+    expect(await storedRole(roleId)).toEqual({ name: "Grantor", actions: BROADER_ACTIONS });
+  });
+
+  it("still lets the actor edit and delete console roles within their actions", async () => {
+    const actor = await roleManagerFor("lead@x.com");
+    const roleId = await insertRole("console", "Reader", ["roles.view"]);
+
+    await updateRole(getTestPool(), actor, roleId, { name: "Viewer", actions: [] });
+    expect(await storedRole(roleId)).toEqual({ name: "Viewer", actions: [] });
+
+    await deleteRole(getTestPool(), actor, roleId);
+    expect(await storedRole(roleId)).toBeNull();
+  });
+
+  it("leaves brand roles to the actor's roles.manage", async () => {
+    const actor = await roleManagerFor("lead@x.com");
+    const roleId = await insertRole("brand", "Owner", ["outlets.view", "customerScores.view"]);
+
+    await updateRole(getTestPool(), actor, roleId, { actions: [] });
+
+    expect(await storedRole(roleId)).toEqual({ name: "Owner", actions: [] });
+  });
+});
+
 describe("updateRole (integration)", () => {
   it("replaces the actions exactly and renames", async () => {
     const actor = await actorFor("admin@x.com");

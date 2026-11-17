@@ -138,8 +138,8 @@ function AssignedUsers({ roleId, kind }: { roleId: string; kind: RoleKindType })
             <Table containerClassName="max-h-48 overflow-auto">
               <TableHeader className="sticky top-0 z-10 bg-background">
                 <TableRow>
-                  <TableHead>{t("dialog.assignedName")}</TableHead>
                   <TableHead>{t("dialog.assignedEmail")}</TableHead>
+                  <TableHead>{t("dialog.assignedName")}</TableHead>
                   <TableHead>{t("dialog.assignedStatus")}</TableHead>
                   {isBrand && <TableHead>{t("dialog.assignedBrand")}</TableHead>}
                 </TableRow>
@@ -148,14 +148,14 @@ function AssignedUsers({ roleId, kind }: { roleId: string; kind: RoleKindType })
                 {filtered?.length ? (
                   filtered.map((assignment) => (
                     <TableRow key={`${assignment.userId}-${assignment.brandId ?? ""}`}>
+                      <TableCell className="max-w-36 truncate font-medium" title={assignment.email}>
+                        {assignment.email}
+                      </TableCell>
                       <TableCell
-                        className="max-w-24 truncate font-medium"
+                        className="max-w-24 truncate"
                         title={assignment.displayName ?? undefined}
                       >
                         {assignment.displayName ?? "-"}
-                      </TableCell>
-                      <TableCell className="max-w-36 truncate" title={assignment.email}>
-                        {assignment.email}
                       </TableCell>
                       <TableCell>
                         <UserStatusBadge status={assignment.status} />

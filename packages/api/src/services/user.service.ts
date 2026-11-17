@@ -1,8 +1,10 @@
 import {
   InviteUserBodySchema,
   SetConsoleRoleBodySchema,
+  UpdateUserBodySchema,
   UserParamsSchema,
   type InviteUserBodySchemaType,
+  type UpdateUserBodySchemaType,
   type UserRecordSchemaType,
 } from "@bonlift-ai/contracts";
 import type { Pool, PoolClient } from "pg";
@@ -295,6 +297,31 @@ const DISABLE_USER_SQL = statusChangeSql(
 
 const REINVITE_USER_SQL = statusChangeSql("invited", "= 'disabled'");
 
+// $1 is the target, $2 the new name (NULL clears it), $3 whether the actor is an Admin.
+const UPDATE_USER_SQL = `
+  WITH target AS (
+    SELECT u.id, ${isAdminUser("u")} AS target_is_admin
+    FROM users u
+    WHERE u.id = $1
+  ),
+  changed AS (
+    UPDATE users u
+    SET display_name = $2, updated_at = now()
+    FROM target t
+    WHERE u.id = t.id
+      AND ($3::boolean OR NOT t.target_is_admin)
+    RETURNING u.id, u.email, u.display_name, u.status, u.last_login_at
+  )
+  SELECT
+    t.id IS NOT NULL AS target_found,
+    COALESCE(t.target_is_admin, false) AS target_is_admin,
+    ${userRecordColumns("c", "cr")}
+  FROM (VALUES (1)) AS one (x)
+  LEFT JOIN target t ON true
+  LEFT JOIN changed c ON true
+  LEFT JOIN user_console_roles ucr ON ucr.user_id = c.id
+  LEFT JOIN roles cr ON cr.id = ucr.role_id`;
+
 function toUserRecord(row: any): UserRecordSchemaType {
   return {
     id: row.id,
@@ -365,6 +392,23 @@ export async function inviteUser(db: Queryable, body: InviteUserBodySchemaType):
   } catch (error) {
     throw toInviteError(error, email) ?? error;
   }
+}
+
+export async function updateUser(
+  db: Queryable,
+  actor: RequestAccess,
+  userId: string,
+  body: UpdateUserBodySchemaType,
+): Promise<UserRecordSchemaType> {
+  assertValid(UserParamsSchema, { userId });
+  assertValid(UpdateUserBodySchema, body);
+  const displayName = body.displayName?.trim() || null;
+
+  const result = await db.query(UPDATE_USER_SQL, [userId, displayName, actor.isAdmin]);
+  const row = result.rows[0];
+  if (!row.target_found) throw new NotFoundError("User does not exist.");
+  if (row.target_is_admin && !actor.isAdmin) throw new ForbiddenError(ADMIN_TARGET_ERROR);
+  return toUserRecord(row);
 }
 
 export async function setConsoleRole(

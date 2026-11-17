@@ -8,6 +8,8 @@ import {
   UserListSchema,
   UserParamsSchema,
   UserParamsSchemaType,
+  UpdateUserBodySchema,
+  UpdateUserBodySchemaType,
   UserRecordSchema,
 } from "@bonlift-ai/contracts";
 import {
@@ -17,6 +19,7 @@ import {
   listUsers,
   reinviteUser,
   setConsoleRole,
+  updateUser,
 } from "../services/user.service.js";
 
 export async function userRoutes(app: FastifyInstance) {
@@ -48,6 +51,19 @@ export async function userRoutes(app: FastifyInstance) {
       reply.status(201);
       return user;
     },
+  );
+
+  app.patch<{ Params: UserParamsSchemaType; Body: UpdateUserBodySchemaType }>(
+    "/users/:userId",
+    {
+      config: { access: { console: "users.edit" } },
+      schema: {
+        params: UserParamsSchema,
+        body: UpdateUserBodySchema,
+        response: { 200: UserRecordSchema },
+      },
+    },
+    (request) => updateUser(getPool(), request.access!, request.params.userId, request.body),
   );
 
   app.post<{ Params: UserParamsSchemaType }>(

@@ -50,6 +50,14 @@ export const InviteUserBodySchema = Type.Object(
 );
 export type InviteUserBodySchemaType = Static<typeof InviteUserBodySchema>;
 
+export const UpdateUserBodySchema = Type.Object(
+  {
+    displayName: Type.Union([Type.String({ maxLength: 200 }), Type.Null()]),
+  },
+  { additionalProperties: false },
+);
+export type UpdateUserBodySchemaType = Static<typeof UpdateUserBodySchema>;
+
 export const SetConsoleRoleBodySchema = Type.Object(
   {
     roleId: Type.String({ format: "uuid" }),

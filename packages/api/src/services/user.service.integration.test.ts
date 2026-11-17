@@ -1,10 +1,10 @@
 import { CONSOLE_ACTIONS } from "@bonlift-ai/contracts";
 import { randomBytes } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { ConflictError, ForbiddenError } from "../errors.js";
+import { ConflictError, ForbiddenError, NotFoundError } from "../errors.js";
 import { getTestPool } from "../testing/testDb.js";
 import type { RequestAccess } from "./authorization.service.js";
-import { clearConsoleRole, disableUser, setConsoleRole } from "./user.service.js";
+import { clearConsoleRole, disableUser, setConsoleRole, updateUser } from "./user.service.js";
 
 async function userNamed(email: string, status = "active"): Promise<string> {
   const result = await getTestPool().query(`INSERT INTO users (email, status) VALUES ($1, $2) RETURNING id`, [
@@ -300,5 +300,73 @@ describe("disableUser (integration)", () => {
     const target = await userNamed("bob@x.com", "disabled");
 
     await expect(disableUser(getTestPool(), actor, target)).rejects.toBeInstanceOf(ConflictError);
+  });
+});
+
+async function storedUser(userId: string) {
+  const result = await getTestPool().query(
+    `SELECT display_name, status, last_login_at, updated_at FROM users WHERE id = $1`,
+    [userId],
+  );
+  return result.rows[0];
+}
+
+describe("updateUser (integration)", () => {
+  it("renames the user and bumps updated_at only", async () => {
+    const actor = await actorWithRole("editor@x.com", ["users.view", "users.edit"]);
+    const target = await userNamed("bob@x.com");
+    const before = await storedUser(target);
+
+    const user = await updateUser(getTestPool(), actor, target, { displayName: "  Bobby  " });
+
+    const after = await storedUser(target);
+    expect(user.displayName).toBe("Bobby");
+    expect(after.display_name).toBe("Bobby");
+    expect(after.updated_at.getTime()).toBeGreaterThan(before.updated_at.getTime());
+    expect(after.status).toBe(before.status);
+    expect(after.last_login_at).toEqual(before.last_login_at);
+  });
+
+  it("stores an empty name as NULL", async () => {
+    const actor = await adminActor("admin@x.com");
+    const target = await userNamed("bob@x.com");
+    await updateUser(getTestPool(), actor, target, { displayName: "Bob" });
+
+    const user = await updateUser(getTestPool(), actor, target, { displayName: "" });
+
+    expect(user.displayName).toBeNull();
+    expect((await storedUser(target)).display_name).toBeNull();
+  });
+
+  it("refuses a non-Admin editing an Admin and writes nothing", async () => {
+    const actor = await actorWithRole("editor@x.com", ["users.view", "users.edit"]);
+    const target = await userNamed("boss@x.com");
+    await assignConsoleRole(target, await adminRoleId());
+    const before = await storedUser(target);
+
+    await expect(updateUser(getTestPool(), actor, target, { displayName: "Hacked" })).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+
+    expect(await storedUser(target)).toEqual(before);
+  });
+
+  it("lets an Admin edit an Admin", async () => {
+    const actor = await adminActor("admin@x.com");
+    const target = await userNamed("boss@x.com");
+    await assignConsoleRole(target, await adminRoleId());
+
+    const user = await updateUser(getTestPool(), actor, target, { displayName: "Boss" });
+
+    expect(user.displayName).toBe("Boss");
+    expect(user.consoleRole?.isBuiltin).toBe(true);
+  });
+
+  it("returns 404 for an unknown user", async () => {
+    const actor = await adminActor("admin@x.com");
+
+    await expect(
+      updateUser(getTestPool(), actor, "99999999-9999-9999-9999-999999999999", { displayName: "X" }),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 });

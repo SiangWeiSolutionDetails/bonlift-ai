@@ -33,6 +33,7 @@
   "users": {
     "view": "View users",
     "invite": "Invite users",
+    "edit": "Edit users",
     "disable": "Disable users",
     "assignConsoleRoles": "Assign console roles",
     "assignBrandRoles": "Assign brand roles"

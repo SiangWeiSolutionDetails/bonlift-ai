@@ -14,6 +14,7 @@ export const PERMISSIONS = [
   consoleEntry("brands", "brands.delete"),
   consoleEntry("users", "users.view"),
   consoleEntry("users", "users.invite"),
+  consoleEntry("users", "users.edit"),
   consoleEntry("users", "users.disable"),
   consoleEntry("users", "users.assignConsoleRoles"),
   consoleEntry("users", "users.assignBrandRoles"),

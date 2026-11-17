@@ -18,6 +18,7 @@ import {
   reinviteUser,
   resolveUserFromIdentity,
   setConsoleRole,
+  updateUser,
   type VerifiedIdentity,
 } from "./user.service.js";
 
@@ -540,5 +541,70 @@ describe("Admin targets", () => {
 
     expect(user.status).toBe("disabled");
     expect(poolQueryMock.mock.calls[0][1]).toEqual([TARGET_ID, true]);
+  });
+});
+
+describe("updateUser", () => {
+  const editor = actorWith(["users.view", "users.edit"]);
+
+  it("trims the name and returns the user", async () => {
+    poolQueryMock.mockResolvedValueOnce(pgResult([statusFlags({ display_name: "Bobby" })]));
+
+    const user = await updateUser(fakePool, editor, TARGET_ID, { displayName: "  Bobby  " });
+
+    expect(user).toEqual({ ...expectedUser, displayName: "Bobby" });
+    expect(poolQueryMock.mock.calls[0][1]).toEqual([TARGET_ID, "Bobby", false]);
+  });
+
+  it("stores an empty name as null", async () => {
+    poolQueryMock.mockResolvedValueOnce(pgResult([statusFlags({ display_name: null })]));
+
+    await updateUser(fakePool, editor, TARGET_ID, { displayName: "   " });
+
+    expect(poolQueryMock.mock.calls[0][1]).toEqual([TARGET_ID, null, false]);
+  });
+
+  it("stores null as null", async () => {
+    poolQueryMock.mockResolvedValueOnce(pgResult([statusFlags({ display_name: null })]));
+
+    await updateUser(fakePool, editor, TARGET_ID, { displayName: null });
+
+    expect(poolQueryMock.mock.calls[0][1]).toEqual([TARGET_ID, null, false]);
+  });
+
+  it("refuses a non-Admin editing an Admin", async () => {
+    poolQueryMock.mockResolvedValueOnce(pgResult([statusFlags({ target_is_admin: true, id: null })]));
+
+    await expect(updateUser(fakePool, editor, TARGET_ID, { displayName: "X" })).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("lets an Admin edit an Admin", async () => {
+    poolQueryMock.mockResolvedValueOnce(pgResult([statusFlags({ target_is_admin: true, display_name: "X" })]));
+
+    const user = await updateUser(fakePool, admin, TARGET_ID, { displayName: "X" });
+
+    expect(user.displayName).toBe("X");
+    expect(poolQueryMock.mock.calls[0][1]).toEqual([TARGET_ID, "X", true]);
+  });
+
+  it("returns 404 for an unknown user", async () => {
+    poolQueryMock.mockResolvedValueOnce(pgResult([statusFlags({ target_found: false, id: null })]));
+
+    await expect(updateUser(fakePool, editor, TARGET_ID, { displayName: "X" })).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("lets a user edit their own name", async () => {
+    poolQueryMock.mockResolvedValueOnce(pgResult([statusFlags({ id: ACTOR_ID })]));
+
+    await updateUser(fakePool, editor, ACTOR_ID, { displayName: "Me" });
+
+    expect(poolQueryMock.mock.calls[0][1]).toEqual([ACTOR_ID, "Me", false]);
+  });
+
+  it("rejects a name over 200 characters", async () => {
+    await expect(updateUser(fakePool, editor, TARGET_ID, { displayName: "x".repeat(201) })).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+    expect(poolQueryMock).not.toHaveBeenCalled();
   });
 });

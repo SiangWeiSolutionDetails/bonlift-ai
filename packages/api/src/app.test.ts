@@ -2,11 +2,11 @@ import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildApp } from "./app.js";
 import { resetAuthConfigCache } from "./config/env.js";
-import { findSessionUser } from "./services/session.service.js";
+import { authorizeRequest } from "./services/authorization.service.js";
 
-vi.mock("./services/session.service.js", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("./services/session.service.js")>()),
-  findSessionUser: vi.fn(),
+vi.mock("./services/authorization.service.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./services/authorization.service.js")>()),
+  authorizeRequest: vi.fn(),
 }));
 vi.mock("@bonlift-ai/db", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@bonlift-ai/db")>()),
@@ -19,7 +19,7 @@ const SESSION_USER = { id: PLACEHOLDER_ID, email: "alice@x.com", displayName: nu
 // Everything outside these prefixes is admin surface and must demand a session.
 const PUBLIC_PREFIXES = ["/health", "/docs", "/auth/", "/v1/"];
 
-type RouteEntry = { method: string; url: string };
+type RouteEntry = { method: string; url: string; access: unknown };
 
 let app: FastifyInstance;
 const routes: RouteEntry[] = [];
@@ -48,17 +48,21 @@ beforeAll(async () => {
   app = buildApp();
   app.addHook("onRoute", (route) => {
     const methods = Array.isArray(route.method) ? route.method : [route.method];
-    for (const method of methods) routes.push({ method, url: route.url });
+    for (const method of methods) routes.push({ method, url: route.url, access: route.config?.access });
   });
   await app.ready();
 });
 
 beforeEach(() => {
-  vi.mocked(findSessionUser).mockReset();
+  vi.mocked(authorizeRequest).mockReset();
 });
 
 function signIn() {
-  vi.mocked(findSessionUser).mockResolvedValue(SESSION_USER);
+  vi.mocked(authorizeRequest).mockResolvedValue({
+    access: { user: SESSION_USER, isAdmin: false, consoleActions: [] },
+    brandActions: null,
+    decision: "allow",
+  });
 }
 
 afterAll(async () => {
@@ -83,7 +87,14 @@ describe("admin route inventory", () => {
       if (res.statusCode !== 401) unguarded.push(`${route.method} ${route.url} -> ${res.statusCode}`);
     }
     expect(unguarded).toEqual([]);
-    expect(findSessionUser).not.toHaveBeenCalled();
+    expect(authorizeRequest).not.toHaveBeenCalled();
+  });
+
+  it("declares access on every admin route", () => {
+    const undeclared = adminRoutes()
+      .filter((route) => route.access === undefined)
+      .map((route) => `${route.method} ${route.url}`);
+    expect(undeclared).toEqual([]);
   });
 
   it("lets a valid session through to validation", async () => {

@@ -22,6 +22,7 @@ export async function outletItemScoresCalculationConfigVersionRoutes(
   app.get<{ Params: BrandParamsSchemaType }>(
     PATH,
     {
+      config: { access: { brand: "configs.view", from: "params.brandId" } },
       schema: {
         params: BrandParamsSchema,
         response: { 200: OutletItemScoresCalculationConfigVersionRecordSchema },
@@ -39,6 +40,7 @@ export async function outletItemScoresCalculationConfigVersionRoutes(
   app.get<{ Params: BrandParamsSchemaType }>(
     `${PATH}/versions`,
     {
+      config: { access: { brand: "configs.view", from: "params.brandId" } },
       schema: {
         params: BrandParamsSchema,
         response: { 200: OutletItemScoresCalculationConfigVersionsSchema },
@@ -59,6 +61,7 @@ export async function outletItemScoresCalculationConfigVersionRoutes(
   }>(
     PATH,
     {
+      config: { access: { brand: "configs.edit", from: "params.brandId" } },
       schema: {
         params: BrandParamsSchema,
         body: CreateOutletItemScoresCalculationConfigVersionBodySchema,

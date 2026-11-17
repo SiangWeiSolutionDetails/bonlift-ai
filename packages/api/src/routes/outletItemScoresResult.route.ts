@@ -26,6 +26,7 @@ export async function outletItemScoresResultRoutes(app: FastifyInstance) {
   }>(
     "/outlets/:outletId/runs/outlet-item-scores",
     {
+      config: { access: { brand: "results.view", from: "params.outletId" } },
       schema: {
         params: OutletParamsSchema,
         querystring: OutletItemScoresRunListQuerySchema,
@@ -50,6 +51,7 @@ export async function outletItemScoresResultRoutes(app: FastifyInstance) {
   }>(
     "/outlets/:outletId/published-runs/outlet-item-scores",
     {
+      config: { access: { brand: "calculations.publish", from: "params.outletId" } },
       schema: {
         params: OutletParamsSchema,
         body: PublishOutletItemScoresRunBodySchema,
@@ -69,6 +71,7 @@ export async function outletItemScoresResultRoutes(app: FastifyInstance) {
   app.get<{ Params: RunParamsSchemaType }>(
     "/runs/:runId/outlet-item-scores",
     {
+      config: { access: { brand: "results.view", from: "params.runId" } },
       schema: {
         params: RunParamsSchema,
         response: { 200: OutletItemScoresRunResultSchema },

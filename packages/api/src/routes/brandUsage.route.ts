@@ -9,11 +9,11 @@ import { getPool } from "@bonlift-ai/db";
 import { FastifyInstance } from "fastify";
 import { getBrandUsage } from "../services/brandUsage.service.js";
 
-// Requires a signed-in session like every admin route, but has no per-brand permission check yet.
 export async function brandUsageRoutes(app: FastifyInstance) {
   app.get<{ Params: BrandParamsSchemaType; Querystring: BrandUsageQuerySchemaType }>(
     "/brands/:brandId/usage",
     {
+      config: { access: { brand: "usage.view", from: "params.brandId" } },
       schema: {
         params: BrandParamsSchema,
         querystring: BrandUsageQuerySchema,

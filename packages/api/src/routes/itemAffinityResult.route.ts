@@ -31,6 +31,7 @@ export async function itemAffinityResultRoutes(app: FastifyInstance) {
   }>(
     "/brands/:brandId/runs/item-affinity",
     {
+      config: { access: { brand: "itemAffinity.view", from: "params.brandId" } },
       schema: {
         params: BrandParamsSchema,
         querystring: ItemAffinityRunListQuerySchema,
@@ -55,6 +56,7 @@ export async function itemAffinityResultRoutes(app: FastifyInstance) {
   }>(
     "/brands/:brandId/published-runs/item-affinity",
     {
+      config: { access: { brand: "calculations.publish", from: "params.brandId" } },
       schema: {
         params: BrandParamsSchema,
         body: PublishItemAffinityRunBodySchema,
@@ -70,6 +72,7 @@ export async function itemAffinityResultRoutes(app: FastifyInstance) {
   app.get<{ Params: RunParamsSchemaType }>(
     "/runs/:runId/item-affinity",
     {
+      config: { access: { brand: "itemAffinity.view", from: "params.runId" } },
       schema: {
         params: RunParamsSchema,
         response: { 200: ItemAffinityRunRecordSchema },
@@ -84,6 +87,7 @@ export async function itemAffinityResultRoutes(app: FastifyInstance) {
   app.get<{ Params: RunParamsSchemaType }>(
     "/runs/:runId/item-affinity/items",
     {
+      config: { access: { brand: "itemAffinity.view", from: "params.runId" } },
       schema: {
         params: RunParamsSchema,
         response: { 200: ItemAffinityItemListSchema },
@@ -98,6 +102,7 @@ export async function itemAffinityResultRoutes(app: FastifyInstance) {
   app.get<{ Params: ItemAffinityItemParamsSchemaType }>(
     "/runs/:runId/item-affinity/items/:itemId",
     {
+      config: { access: { brand: "itemAffinity.view", from: "params.runId" } },
       schema: {
         params: ItemAffinityItemParamsSchema,
         response: { 200: ItemAffinityItemResultSchema },

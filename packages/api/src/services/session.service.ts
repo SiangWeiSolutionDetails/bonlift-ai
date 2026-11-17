@@ -22,8 +22,12 @@ export function createSessionToken(): { token: string; idHash: Buffer } {
   return { token, idHash: sha256(token) };
 }
 
+export function isSessionToken(token: string): boolean {
+  return SESSION_TOKEN_PATTERN.test(token);
+}
+
 export function hashSessionToken(token: string): Buffer | null {
-  return SESSION_TOKEN_PATTERN.test(token) ? sha256(token) : null;
+  return isSessionToken(token) ? sha256(token) : null;
 }
 
 function sha256(value: string): Buffer {

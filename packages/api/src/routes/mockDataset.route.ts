@@ -40,6 +40,7 @@ export async function mockDatasetRoutes(app: FastifyInstance) {
   app.get<{ Params: MockDatasetParamsSchemaType }>(
     "/mock-dataset/:name",
     {
+      config: { access: "signedIn" },
       schema: {
         params: MockDatasetParamsSchema,
       },

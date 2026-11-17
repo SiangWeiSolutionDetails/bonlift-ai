@@ -22,6 +22,7 @@ export async function itemAffinityCalculationConfigVersionRoutes(
   app.get<{ Params: BrandParamsSchemaType }>(
     PATH,
     {
+      config: { access: { brand: "configs.view", from: "params.brandId" } },
       schema: {
         params: BrandParamsSchema,
         response: { 200: ItemAffinityCalculationConfigVersionRecordSchema },
@@ -39,6 +40,7 @@ export async function itemAffinityCalculationConfigVersionRoutes(
   app.get<{ Params: BrandParamsSchemaType }>(
     `${PATH}/versions`,
     {
+      config: { access: { brand: "configs.view", from: "params.brandId" } },
       schema: {
         params: BrandParamsSchema,
         response: { 200: ItemAffinityCalculationConfigVersionsSchema },
@@ -59,6 +61,7 @@ export async function itemAffinityCalculationConfigVersionRoutes(
   }>(
     PATH,
     {
+      config: { access: { brand: "configs.edit", from: "params.brandId" } },
       schema: {
         params: BrandParamsSchema,
         body: CreateItemAffinityCalculationConfigVersionBodySchema,

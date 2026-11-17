@@ -16,6 +16,7 @@ export async function brandDataSourceRoutes(app: FastifyInstance) {
   app.get<{ Params: BrandParamsSchemaType }>(
     "/brands/:brandId/data-source",
     {
+      config: { access: { brand: "dataSource.view", from: "params.brandId" } },
       schema: {
         params: BrandParamsSchema,
         response: { 200: BrandDataSourceRecordSchema },
@@ -33,6 +34,7 @@ export async function brandDataSourceRoutes(app: FastifyInstance) {
   }>(
     "/brands/:brandId/data-source",
     {
+      config: { access: { brand: "dataSource.edit", from: "params.brandId" } },
       schema: {
         params: BrandParamsSchema,
         body: UpdateBrandDataSourceBodySchema,

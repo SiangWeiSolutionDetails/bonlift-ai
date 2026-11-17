@@ -29,6 +29,7 @@ export async function brandRoutes(app: FastifyInstance) {
   app.get<{ Querystring: BrandQuerySchemaType }>(
     "/brands",
     {
+      config: { access: "signedIn" },
       schema: {
         querystring: BrandQuerySchema,
         response: {
@@ -38,9 +39,12 @@ export async function brandRoutes(app: FastifyInstance) {
     },
     async (request) => {
       const pool = getPool();
-      const brands = await getBrands(pool, {
-        tenantId: request.query.tenantId,
-      });
+      const access = request.access!;
+      const brands = await getBrands(
+        pool,
+        { tenantId: request.query.tenantId },
+        { userId: access.user.id, all: access.consoleActions.includes("brands.view") },
+      );
       return {
         brands,
       };
@@ -50,6 +54,7 @@ export async function brandRoutes(app: FastifyInstance) {
   app.get<{ Params: BrandParamsSchemaType }>(
     "/brands/:brandId",
     {
+      config: { access: { anyOf: [{ console: "brands.view" }, { brandMember: "params.brandId" }] } },
       schema: {
         params: BrandParamsSchema,
         response: { 200: BrandRecordSchema },
@@ -64,6 +69,7 @@ export async function brandRoutes(app: FastifyInstance) {
   app.post<{ Body: CreateBrandBodySchemaType }>(
     "/brands",
     {
+      config: { access: { console: "brands.create" } },
       schema: {
         body: CreateBrandBodySchema,
         response: { 201: BrandRecordSchema },
@@ -87,6 +93,7 @@ export async function brandRoutes(app: FastifyInstance) {
   }>(
     "/brands/:brandId",
     {
+      config: { access: { console: "brands.edit" } },
       schema: {
         params: BrandParamsSchema,
         body: UpdateBrandBodySchema,
@@ -103,6 +110,7 @@ export async function brandRoutes(app: FastifyInstance) {
   app.delete<{ Params: BrandParamsSchemaType }>(
     "/brands/:brandId",
     {
+      config: { access: { console: "brands.delete" } },
       schema: {
         params: BrandParamsSchema,
       },

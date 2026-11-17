@@ -15,11 +15,11 @@ import {
   listRecommendationServes,
 } from "../services/recommendationFeedbackReport.service.js";
 
-// Requires a signed-in session like every admin route, but has no per-brand permission check yet.
 export async function recommendationFeedbackReportRoutes(app: FastifyInstance) {
   app.get<{ Params: BrandParamsSchemaType; Querystring: RecommendationFeedbackReportQuerySchemaType }>(
     "/brands/:brandId/recommendation-feedback",
     {
+      config: { access: { brand: "feedback.view", from: "params.brandId" } },
       schema: {
         params: BrandParamsSchema,
         querystring: RecommendationFeedbackReportQuerySchema,
@@ -35,6 +35,7 @@ export async function recommendationFeedbackReportRoutes(app: FastifyInstance) {
   app.get<{ Params: BrandParamsSchemaType; Querystring: RecommendationServesQuerySchemaType }>(
     "/brands/:brandId/recommendation-serves",
     {
+      config: { access: { brand: "feedback.view", from: "params.brandId" } },
       schema: {
         params: BrandParamsSchema,
         querystring: RecommendationServesQuerySchema,

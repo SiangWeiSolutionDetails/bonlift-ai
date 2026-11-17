@@ -17,6 +17,7 @@ export async function brandCalculationScheduleRoutes(app: FastifyInstance) {
   app.get<{ Params: BrandParamsSchemaType }>(
     "/brands/:brandId/calculation-schedule",
     {
+      config: { access: { brand: "calculations.view", from: "params.brandId" } },
       schema: {
         params: BrandParamsSchema,
         response: { 200: BrandCalculationScheduleRecordSchema },
@@ -34,6 +35,7 @@ export async function brandCalculationScheduleRoutes(app: FastifyInstance) {
   }>(
     "/brands/:brandId/calculation-schedule",
     {
+      config: { access: { brand: "calculations.editSchedule", from: "params.brandId" } },
       schema: {
         params: BrandParamsSchema,
         body: UpdateBrandCalculationScheduleBodySchema,

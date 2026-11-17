@@ -20,6 +20,7 @@ export async function brandChannelRoutes(app: FastifyInstance) {
   app.get<{ Params: BrandParamsSchemaType }>(
     "/brands/:brandId/channels",
     {
+      config: { access: { brand: "channels.view", from: "params.brandId" } },
       schema: {
         params: BrandParamsSchema,
         response: { 200: BrandChannelListSchema },
@@ -37,6 +38,7 @@ export async function brandChannelRoutes(app: FastifyInstance) {
   }>(
     "/brands/:brandId/channels/:channelId",
     {
+      config: { access: { brand: "channels.edit", from: "params.brandId" } },
       schema: {
         params: BrandChannelParamsSchema,
         body: UpdateBrandChannelBodySchema,

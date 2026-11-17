@@ -16,7 +16,7 @@ import {
 export type BrandRef = "params.brandId" | "params.outletId" | "params.runId" | "body.brandId";
 export type BrandCheck = { brand: BrandAction; from: BrandRef } | { brandMember: BrandRef };
 type ConsoleCheck = { console: ConsoleAction };
-type AccessCheck = ConsoleCheck | BrandCheck;
+export type AccessCheck = ConsoleCheck | BrandCheck;
 export type RouteAccess = "signedIn" | AccessCheck | { anyOf: AccessCheck[] };
 export type RequestAccess = { user: SessionUser; isAdmin: boolean; consoleActions: ConsoleAction[] };
 export type Decision = "allow" | "forbidden" | "notFound";
@@ -117,7 +117,7 @@ function buildSql(ref: BrandRef | null): string {
     `;
 }
 
-function checksOf(access: RouteAccess): AccessCheck[] {
+export function checksOf(access: RouteAccess): AccessCheck[] {
   if (access === "signedIn") return [];
   return "anyOf" in access ? access.anyOf : [access];
 }
@@ -128,7 +128,7 @@ function brandRefOf(check: AccessCheck): BrandRef | null {
   return null;
 }
 
-function resolveBrandRef(access: RouteAccess): BrandRef | null {
+export function resolveBrandRef(access: RouteAccess): BrandRef | null {
   const refs = new Set(checksOf(access).map(brandRefOf).filter((ref) => ref !== null));
   if (refs.size > 1) {
     throw new Error(`Route access declares more than one brand ref: ${[...refs].join(", ")}`);

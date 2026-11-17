@@ -38,6 +38,7 @@ export async function calculationRoutes(app: FastifyInstance) {
   app.post<{ Params: BrandParamsSchemaType; Body: BrandCalculationsStartBodySchemaType | undefined }>(
     "/calculate/all/:brandId",
     {
+      config: { access: { brand: "calculations.trigger", from: "params.brandId" } },
       schema: {
         params: BrandParamsSchema,
         response: { 202: BrandCalculationsStartResponseSchema },
@@ -62,6 +63,7 @@ export async function calculationRoutes(app: FastifyInstance) {
   }>(
     "/calculate/outlet-item-scores/:outletId",
     {
+      config: { access: { brand: "calculations.trigger", from: "params.outletId" } },
       schema: {
         params: OutletParamsSchema,
         querystring: OutletItemScoresCalculationQuerySchema,
@@ -88,6 +90,7 @@ export async function calculationRoutes(app: FastifyInstance) {
   }>(
     "/calculate/customer-item-scores/:brandId",
     {
+      config: { access: { brand: "calculations.trigger", from: "params.brandId" } },
       schema: {
         params: BrandParamsSchema,
         querystring: CustomerItemScoresCalculationQuerySchema,
@@ -114,6 +117,7 @@ export async function calculationRoutes(app: FastifyInstance) {
   }>(
     "/calculate/item-affinity/:brandId",
     {
+      config: { access: { brand: "calculations.trigger", from: "params.brandId" } },
       schema: {
         params: BrandParamsSchema,
         querystring: ItemAffinityCalculationQuerySchema,

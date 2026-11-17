@@ -15,6 +15,9 @@ const BRAND_ID = "11111111-1111-1111-1111-111111111111";
 const OTHER_BRAND_ID = "22222222-2222-2222-2222-222222222222";
 const TENANT_ID = "44444444-4444-4444-4444-444444444444";
 const INVALID_ID = "invalid-id";
+const USER_ID = "55555555-5555-5555-5555-555555555555";
+const ALL_BRANDS = { userId: USER_ID, all: true };
+const MEMBER_BRANDS = { userId: USER_ID, all: false };
 
 const DEFAULT_BRAND: BrandRecordSchemaType = {
   id: BRAND_ID,
@@ -58,7 +61,7 @@ beforeEach(() => {
 
 describe("getBrands", () => {
   it("throws ValidationError when the tenant id filter is invalid", async () => {
-    await expect(getBrands(fakePool, { tenantId: INVALID_ID })).rejects.toThrow(
+    await expect(getBrands(fakePool, { tenantId: INVALID_ID }, ALL_BRANDS)).rejects.toThrow(
       ValidationError,
     );
     expect(queryMock).not.toHaveBeenCalled();
@@ -75,7 +78,7 @@ describe("getBrands", () => {
       pgResult([fakeBrandRow(), fakeBrandRow(inactiveBrand)]),
     );
 
-    const result = await getBrands(fakePool);
+    const result = await getBrands(fakePool, {}, ALL_BRANDS);
 
     expect(queryMock).toHaveBeenCalledWith(
       expect.stringContaining("WHERE b.deleted_at IS NULL\n"),
@@ -87,7 +90,7 @@ describe("getBrands", () => {
   it("filters brands by tenant id", async () => {
     queryMock.mockResolvedValueOnce(pgResult([fakeBrandRow()]));
 
-    const result = await getBrands(fakePool, { tenantId: TENANT_ID });
+    const result = await getBrands(fakePool, { tenantId: TENANT_ID }, ALL_BRANDS);
 
     expect(queryMock).toHaveBeenCalledWith(
       expect.stringContaining(
@@ -98,10 +101,31 @@ describe("getBrands", () => {
     expect(result).toStrictEqual([DEFAULT_BRAND]);
   });
 
+  it("limits the list to brands where the user holds a role when all is false", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([fakeBrandRow()]));
+
+    await getBrands(fakePool, { tenantId: TENANT_ID }, MEMBER_BRANDS);
+
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "WHERE b.deleted_at IS NULL AND b.tenant_id = $1 AND b.id IN (SELECT brand_id FROM user_brand_roles WHERE user_id = $2)",
+      ),
+      [TENANT_ID, USER_ID],
+    );
+  });
+
+  it("omits the role filter when all is true", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([]));
+
+    await getBrands(fakePool, {}, ALL_BRANDS);
+
+    expect(queryMock).toHaveBeenCalledWith(expect.not.stringContaining("user_brand_roles"), []);
+  });
+
   it("orders brands by name, then id", async () => {
     queryMock.mockResolvedValueOnce(pgResult([]));
 
-    await getBrands(fakePool);
+    await getBrands(fakePool, {}, ALL_BRANDS);
 
     expect(queryMock).toHaveBeenCalledWith(
       expect.stringContaining("ORDER BY b.name, b.id"),
@@ -112,7 +136,7 @@ describe("getBrands", () => {
   it("returns an empty array when there are no brands", async () => {
     queryMock.mockResolvedValueOnce(pgResult([]));
 
-    const result = await getBrands(fakePool);
+    const result = await getBrands(fakePool, {}, ALL_BRANDS);
 
     expect(result).toStrictEqual([]);
   });

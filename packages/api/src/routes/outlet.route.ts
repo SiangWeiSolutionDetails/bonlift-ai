@@ -24,6 +24,7 @@ export async function outletRoutes(app: FastifyInstance) {
   app.get<{ Querystring: OutletQuerySchemaType }>(
     "/outlets",
     {
+      config: { access: "signedIn" },
       schema: {
         querystring: OutletQuerySchema,
         response: { 200: OutletListSchema },
@@ -31,10 +32,11 @@ export async function outletRoutes(app: FastifyInstance) {
     },
     async (request) => {
       const pool = getPool();
-      const outlets = await getOutlets(pool, {
-        tenantId: request.query.tenantId,
-        brandId: request.query.brandId,
-      });
+      const outlets = await getOutlets(
+        pool,
+        { tenantId: request.query.tenantId, brandId: request.query.brandId },
+        { userId: request.access!.user.id },
+      );
       return {
         outlets,
       };
@@ -44,6 +46,7 @@ export async function outletRoutes(app: FastifyInstance) {
   app.get<{ Params: OutletParamsSchemaType }>(
     "/outlets/:outletId",
     {
+      config: { access: { brand: "outlets.view", from: "params.outletId" } },
       schema: {
         params: OutletParamsSchema,
         response: { 200: OutletRecordSchema },
@@ -60,6 +63,7 @@ export async function outletRoutes(app: FastifyInstance) {
   }>(
     "/outlets",
     {
+      config: { access: { brand: "outlets.create", from: "body.brandId" } },
       schema: {
         body: CreateOutletBodySchema,
         response: { 201: OutletRecordSchema },
@@ -79,6 +83,7 @@ export async function outletRoutes(app: FastifyInstance) {
   }>(
     "/outlets/:outletId",
     {
+      config: { access: { brand: "outlets.edit", from: "params.outletId" } },
       schema: {
         params: OutletParamsSchema,
         body: UpdateOutletBodySchema,
@@ -95,6 +100,7 @@ export async function outletRoutes(app: FastifyInstance) {
   app.delete<{ Params: OutletParamsSchemaType }>(
     "/outlets/:outletId",
     {
+      config: { access: { brand: "outlets.delete", from: "params.outletId" } },
       schema: {
         params: OutletParamsSchema,
       },

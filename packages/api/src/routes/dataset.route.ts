@@ -15,6 +15,7 @@ export async function datasetRoutes(app: FastifyInstance) {
     "/outlets/:outletId/dataset",
     {
       bodyLimit: 15 * 1024 * 1024,
+      config: { access: { brand: "snapshots.upload", from: "params.outletId" } },
       schema: {
         params: OutletParamsSchema,
         body: DatasetSchema,

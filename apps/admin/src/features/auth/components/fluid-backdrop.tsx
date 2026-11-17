@@ -27,6 +27,12 @@ const PUSH_STRENGTH = 420;
 const FLUID_SPRING = { stiffness: 35, damping: 14, mass: 1.4 };
 const GLOW_SPRING = { stiffness: 12, damping: 14, mass: 2.5 };
 const GLOW_FADE = { stiffness: 8, damping: 12 };
+const CURSOR_COLOR = "#9B72CB";
+
+// A pre-softened edge instead of filter: blur, so frames never repaint or re-blur.
+function softGlow(color: string) {
+  return `radial-gradient(closest-side, ${color}cc 0%, ${color}80 25%, ${color}33 55%, ${color}0d 80%, transparent 100%)`;
+}
 
 type Center = { x: number; y: number };
 
@@ -110,9 +116,9 @@ export function FluidBackdrop() {
           style={{ x: pushes[index].springX, y: pushes[index].springY }}
         >
           <div
-            className="login-blob size-full opacity-30 blur-[90px] dark:opacity-40"
+            className="login-blob absolute -inset-1/3 opacity-50 dark:opacity-75"
             style={{
-              backgroundColor: blob.color,
+              backgroundImage: softGlow(blob.color),
               animation: `login-morph ${blob.morph} ease-in-out infinite, ${blob.flow} ease-in-out infinite`,
             }}
           />
@@ -124,8 +130,8 @@ export function FluidBackdrop() {
           style={{ x: glowSpringX, y: glowSpringY, opacity: glowOpacity }}
         >
           <div
-            className="login-blob size-full bg-[#9B72CB] opacity-20 blur-[120px] dark:opacity-30"
-            style={{ animation: "login-morph 11s ease-in-out infinite" }}
+            className="login-blob absolute -inset-1/4 opacity-25 dark:opacity-40"
+            style={{ backgroundImage: softGlow(CURSOR_COLOR), animation: "login-morph 11s ease-in-out infinite" }}
           />
         </motion.div>
       )}

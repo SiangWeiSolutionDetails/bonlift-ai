@@ -151,28 +151,29 @@
     }
 }
 
-/* Login backdrop: liquid colour blobs that morph and flow */
+/* Login backdrop: liquid colour blobs. Only compositor properties (scale, translate, rotate)
+   are animated, so frames need no repaint. */
 @keyframes login-morph {
-  0%, 100% { border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%; }
-  33% { border-radius: 70% 30% 46% 54% / 30% 29% 71% 70%; }
-  66% { border-radius: 30% 70% 35% 65% / 62% 38% 62% 38%; }
+  0%, 100% { scale: 1.15 0.9; }
+  33% { scale: 0.85 1.2; }
+  66% { scale: 1.25 1; }
 }
 
 @keyframes login-flow-a {
-  0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); }
-  33% { transform: translate(18%, 12%) rotate(60deg) scale(1.15); }
-  66% { transform: translate(-8%, 20%) rotate(120deg) scale(0.9); }
+  0%, 100% { translate: 0 0; rotate: 0deg; }
+  33% { translate: 18% 12%; rotate: 60deg; }
+  66% { translate: -8% 20%; rotate: 120deg; }
 }
 
 @keyframes login-flow-b {
-  0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); }
-  33% { transform: translate(-20%, 10%) rotate(-70deg) scale(1.1); }
-  66% { transform: translate(-6%, -16%) rotate(-140deg) scale(0.95); }
+  0%, 100% { translate: 0 0; rotate: 0deg; }
+  33% { translate: -20% 10%; rotate: -70deg; }
+  66% { translate: -6% -16%; rotate: -140deg; }
 }
 
 @keyframes login-flow-c {
-  0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); }
-  50% { transform: translate(14%, -22%) rotate(90deg) scale(1.2); }
+  0%, 100% { translate: 0 0; rotate: 0deg; }
+  50% { translate: 14% -22%; rotate: 90deg; }
 }
 
 @media (prefers-reduced-motion: reduce) {

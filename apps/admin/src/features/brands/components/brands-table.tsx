@@ -16,6 +16,7 @@ import { getErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
 import type { Tenant } from "@/features/tenants/type";
 import type { Brand } from "../type";
+import { CopyBrandIdButton } from "./copy-brand-id-button";
 
 const COLUMN_COUNT = 4;
 const SKELETON_ROW_COUNT = 5;
@@ -42,7 +43,7 @@ export function BrandsTable(props: BrandsTableProps) {
             <TableHead>{t("table.name")}</TableHead>
             <TableHead>{t("table.tenant")}</TableHead>
             <TableHead className="w-32">{t("table.status")}</TableHead>
-            <TableHead className="w-40 text-right">
+            <TableHead className="w-64 text-right">
               <span className="sr-only">{t("table.actions")}</span>
             </TableHead>
           </TableRow>
@@ -101,6 +102,7 @@ function BrandsTableRows({
         </Badge>
       </TableCell>
       <TableCell className="text-right">
+        <CopyBrandIdButton brand={brand} />
         <Button
           variant="ghost"
           size="sm"

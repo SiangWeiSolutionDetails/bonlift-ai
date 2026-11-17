@@ -15,7 +15,10 @@
     "empty": "暂无品牌。",
     "editBrand": "编辑 {{name}}",
     "viewBrand": "查看 {{name}}",
-    "deleteBrand": "删除 {{name}}"
+    "deleteBrand": "删除 {{name}}",
+    "copyBrandId": "复制 {{name}} 的品牌 ID",
+    "copyId": "复制 ID",
+    "copied": "已复制"
   },
   "create": {
     "title": "新建品牌",

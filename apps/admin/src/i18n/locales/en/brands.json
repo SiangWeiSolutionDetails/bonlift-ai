@@ -15,7 +15,10 @@
     "empty": "No brands yet.",
     "editBrand": "Edit {{name}}",
     "viewBrand": "View {{name}}",
-    "deleteBrand": "Delete {{name}}"
+    "deleteBrand": "Delete {{name}}",
+    "copyBrandId": "Copy brand ID of {{name}}",
+    "copyId": "Copy ID",
+    "copied": "Copied"
   },
   "create": {
     "title": "New Brand",

@@ -4,7 +4,7 @@ import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from ".
 import { pgResult } from "../utils/pg.test-helpers.js";
 import { FOREIGN_KEY_VIOLATION, UNIQUE_VIOLATION } from "../utils/pgErrors.js";
 import type { RequestAccess } from "./authorization.service.js";
-import { createRole, deleteRole, listRoles, updateRole } from "./role.service.js";
+import { createRole, deleteRole, listRoleAssignments, listRoles, updateRole } from "./role.service.js";
 
 const ROLE_ID = "11111111-1111-1111-1111-111111111111";
 const USER_ID = "22222222-2222-2222-2222-222222222222";
@@ -273,5 +273,44 @@ describe("deleteRole", () => {
     queryMock.mockRejectedValueOnce({ code: FOREIGN_KEY_VIOLATION, constraint: "user_brand_roles_role_fkey" });
 
     await expect(deleteRole(fakePool, admin, ROLE_ID)).rejects.toBeInstanceOf(ConflictError);
+  });
+});
+
+describe("listRoleAssignments", () => {
+  it("refuses an actor without users.view before querying", async () => {
+    const actor = actorWith(["roles.view"]);
+
+    await expect(listRoleAssignments(fakePool, actor, ROLE_ID)).rejects.toBeInstanceOf(ForbiddenError);
+
+    expect(queryMock).not.toHaveBeenCalled();
+  });
+
+  it("throws NotFound for an unknown role", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([{ found: false, user_id: null }]));
+
+    await expect(listRoleAssignments(fakePool, roleManager, ROLE_ID)).rejects.toBeInstanceOf(NotFoundError);
+    expect(queryMock.mock.calls[0][1]).toEqual([ROLE_ID]);
+  });
+
+  it("returns an empty list for a role nobody holds", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([{ found: true, user_id: null }]));
+
+    expect(await listRoleAssignments(fakePool, roleManager, ROLE_ID)).toEqual([]);
+  });
+
+  it("maps console and brand rows", async () => {
+    queryMock.mockResolvedValueOnce(
+      pgResult([
+        { found: true, user_id: USER_ID, email: "a@x.com", display_name: null, status: "active", brand_id: null, brand_name: null, tenant_name: null },
+        { found: true, user_id: ROLE_ID, email: "b@x.com", display_name: "Bea", status: "invited", brand_id: USER_ID, brand_name: "Alpha", tenant_name: "Group" },
+      ]),
+    );
+
+    const rows = await listRoleAssignments(fakePool, roleManager, ROLE_ID);
+
+    expect(rows).toEqual([
+      { userId: USER_ID, email: "a@x.com", displayName: null, status: "active", brandId: null, brandName: null, tenantName: null },
+      { userId: ROLE_ID, email: "b@x.com", displayName: "Bea", status: "invited", brandId: USER_ID, brandName: "Alpha", tenantName: "Group" },
+    ]);
   });
 });

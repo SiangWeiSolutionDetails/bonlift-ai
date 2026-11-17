@@ -3,6 +3,7 @@ import { FastifyInstance } from "fastify";
 import {
   CreateRoleBodySchema,
   CreateRoleBodySchemaType,
+  RoleAssignmentListSchema,
   RoleListSchema,
   RoleParamsSchema,
   RoleParamsSchemaType,
@@ -12,7 +13,7 @@ import {
   UpdateRoleBodySchema,
   UpdateRoleBodySchemaType,
 } from "@bonlift-ai/contracts";
-import { createRole, deleteRole, listRoles, updateRole } from "../services/role.service.js";
+import { createRole, deleteRole, listRoleAssignments, listRoles, updateRole } from "../services/role.service.js";
 
 export async function roleRoutes(app: FastifyInstance) {
   app.get<{ Querystring: RoleQuerySchemaType }>(
@@ -28,6 +29,18 @@ export async function roleRoutes(app: FastifyInstance) {
       const roles = await listRoles(getPool(), request.query.kind);
       return { roles };
     },
+  );
+
+  app.get<{ Params: RoleParamsSchemaType }>(
+    "/roles/:roleId/assignments",
+    {
+      config: { access: { console: "roles.view" } },
+      schema: {
+        params: RoleParamsSchema,
+        response: { 200: RoleAssignmentListSchema },
+      },
+    },
+    (request) => listRoleAssignments(getPool(), request.access!, request.params.roleId),
   );
 
   app.post<{ Body: CreateRoleBodySchemaType }>(

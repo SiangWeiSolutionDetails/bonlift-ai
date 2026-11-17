@@ -1,10 +1,10 @@
 import { CONSOLE_ACTIONS } from "@bonlift-ai/contracts";
 import { describe, expect, it } from "vitest";
-import { ConflictError, ForbiddenError } from "../errors.js";
+import { ConflictError, ForbiddenError, NotFoundError } from "../errors.js";
 import { getTestPool } from "../testing/testDb.js";
 import type { RequestAccess } from "./authorization.service.js";
 import { createBrand } from "./brand.service.js";
-import { deleteRole, updateRole } from "./role.service.js";
+import { deleteRole, listRoleAssignments, updateRole } from "./role.service.js";
 import { createTenant } from "./tenant.service.js";
 
 async function userNamed(email: string): Promise<string> {
@@ -241,5 +241,75 @@ describe("deleteRole (integration)", () => {
     await expect(deleteRole(getTestPool(), actor, roleId)).rejects.toBeInstanceOf(ForbiddenError);
 
     expect(await storedRole(roleId)).toEqual({ name: "Viewer", actions: ["outlets.view"] });
+  });
+});
+
+describe("listRoleAssignments (integration)", () => {
+  it("lists only the holders of a console role", async () => {
+    const actor = await actorFor("admin@x.com");
+    const roleId = await insertRole("console", "Support", ["users.view"]);
+    const otherRoleId = await insertRole("console", "Other", ["users.view"]);
+    await assignConsoleRole(await userNamed("bob@x.com"), roleId);
+    await assignConsoleRole(await userNamed("cat@x.com"), otherRoleId);
+
+    const rows = await listRoleAssignments(getTestPool(), actor, roleId);
+
+    expect(rows).toEqual([
+      expect.objectContaining({ email: "bob@x.com", status: "active", brandId: null, brandName: null, tenantName: null }),
+    ]);
+  });
+
+  it("lists one row per brand and leaves out a soft-deleted brand", async () => {
+    const actor = await actorFor("admin@x.com");
+    const roleId = await insertRole("brand", "Viewer", ["outlets.view"]);
+    const userId = await userNamed("bob@x.com");
+    const alphaId = await brandNamed("Alpha");
+    const betaId = await brandNamed("Beta");
+    const goneId = await brandNamed("Gone");
+    for (const brandId of [alphaId, betaId, goneId]) await assignBrandRole(userId, brandId, roleId);
+    await getTestPool().query(`UPDATE brands SET deleted_at = now() WHERE id = $1`, [goneId]);
+
+    const rows = await listRoleAssignments(getTestPool(), actor, roleId);
+
+    expect(rows.map((row) => [row.brandName, row.tenantName])).toEqual([
+      ["Alpha", "Alpha Group"],
+      ["Beta", "Beta Group"],
+    ]);
+    expect(rows[0]).toMatchObject({ userId, email: "bob@x.com", brandId: alphaId });
+  });
+
+  it("orders by email, then tenant, then brand", async () => {
+    const actor = await actorFor("admin@x.com");
+    const roleId = await insertRole("brand", "Viewer", ["outlets.view"]);
+    const zed = await userNamed("zed@x.com");
+    const amy = await userNamed("amy@x.com");
+    const alpha = await brandNamed("Alpha");
+    const beta = await brandNamed("Beta");
+    await assignBrandRole(zed, alpha, roleId);
+    await assignBrandRole(amy, beta, roleId);
+    await assignBrandRole(amy, alpha, roleId);
+
+    const rows = await listRoleAssignments(getTestPool(), actor, roleId);
+
+    expect(rows.map((row) => [row.email, row.brandName])).toEqual([
+      ["amy@x.com", "Alpha"],
+      ["amy@x.com", "Beta"],
+      ["zed@x.com", "Alpha"],
+    ]);
+  });
+
+  it("returns an empty list for an unused role", async () => {
+    const actor = await actorFor("admin@x.com");
+    const roleId = await insertRole("brand", "Viewer", ["outlets.view"]);
+
+    expect(await listRoleAssignments(getTestPool(), actor, roleId)).toEqual([]);
+  });
+
+  it("throws NotFound for an unknown role", async () => {
+    const actor = await actorFor("admin@x.com");
+
+    await expect(
+      listRoleAssignments(getTestPool(), actor, "99999999-9999-9999-9999-999999999999"),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 });

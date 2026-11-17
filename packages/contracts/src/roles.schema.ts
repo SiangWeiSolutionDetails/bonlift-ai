@@ -55,3 +55,20 @@ export const UpdateRoleBodySchema = Type.Object(
   { additionalProperties: false, minProperties: 1 },
 );
 export type UpdateRoleBodySchemaType = Static<typeof UpdateRoleBodySchema>;
+
+export const RoleAssignmentRecordSchema = Type.Object(
+  {
+    userId: Type.String({ format: "uuid" }),
+    email: Type.String(),
+    displayName: Type.Union([Type.String(), Type.Null()]),
+    status: Type.Union([Type.Literal("invited"), Type.Literal("active"), Type.Literal("disabled")]),
+    brandId: Type.Union([Type.String({ format: "uuid" }), Type.Null()]),
+    brandName: Type.Union([Type.String(), Type.Null()]),
+    tenantName: Type.Union([Type.String(), Type.Null()]),
+  },
+  { additionalProperties: false },
+);
+export type RoleAssignmentRecordSchemaType = Static<typeof RoleAssignmentRecordSchema>;
+
+export const RoleAssignmentListSchema = Type.Array(RoleAssignmentRecordSchema);
+export type RoleAssignmentListSchemaType = Static<typeof RoleAssignmentListSchema>;

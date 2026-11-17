@@ -8,6 +8,7 @@ import {
   RoleParamsSchema,
   UpdateRoleBodySchema,
   type CreateRoleBodySchemaType,
+  type RoleAssignmentRecordSchemaType,
   type RoleKind,
   type RoleRecordSchemaType,
   type UpdateRoleBodySchemaType,
@@ -274,4 +275,54 @@ export async function deleteRole(db: Queryable, actor: RequestAccess, roleId: st
     if (isForeignKeyViolation(error)) throw new ConflictError("Role is in use.");
     throw error;
   }
+}
+
+// One row per holder (per brand for brand roles); a role with no holders still returns one row with a null user_id.
+const ROLE_ASSIGNMENTS_SQL = `
+  WITH role AS (
+    SELECT id FROM roles WHERE id = $1
+  ),
+  holders AS (
+    SELECT u.id AS user_id, u.email, u.display_name, u.status,
+           NULL::uuid AS brand_id, NULL::text AS brand_name, NULL::text AS tenant_name
+    FROM role
+    JOIN user_console_roles ucr ON ucr.role_id = role.id
+    JOIN users u ON u.id = ucr.user_id
+    UNION ALL
+    SELECT u.id, u.email, u.display_name, u.status, b.id, b.name, t.name
+    FROM role
+    JOIN user_brand_roles ubr ON ubr.role_id = role.id
+    JOIN users u ON u.id = ubr.user_id
+    JOIN brands b ON b.id = ubr.brand_id AND b.deleted_at IS NULL
+    JOIN tenants t ON t.id = b.tenant_id AND t.deleted_at IS NULL
+  )
+  SELECT EXISTS (SELECT 1 FROM role) AS found, h.*
+  FROM (VALUES (1)) AS one (x)
+  LEFT JOIN holders h ON true
+  ORDER BY h.email, h.tenant_name, h.brand_name`;
+
+function mapAssignmentRow(row: any): RoleAssignmentRecordSchemaType {
+  return {
+    userId: row.user_id,
+    email: row.email,
+    displayName: row.display_name,
+    status: row.status,
+    brandId: row.brand_id,
+    brandName: row.brand_name,
+    tenantName: row.tenant_name,
+  };
+}
+
+export async function listRoleAssignments(
+  db: Queryable,
+  actor: RequestAccess,
+  roleId: string,
+): Promise<RoleAssignmentRecordSchemaType[]> {
+  assertValid(RoleParamsSchema, { roleId });
+  if (!actor.consoleActions.includes("users.view")) throw new ForbiddenError("You cannot view users.");
+
+  const result = await db.query(ROLE_ASSIGNMENTS_SQL, [roleId]);
+  if (!result.rows[0].found) throw new NotFoundError("Role does not exist.");
+
+  return result.rows.filter((row) => row.user_id !== null).map(mapAssignmentRow);
 }

@@ -1,5 +1,6 @@
 import type {
   InviteUserBodySchemaType,
+  UpdateUserBodySchemaType,
   UserBrandRoleRecordSchemaType,
   UserRecordSchemaType,
 } from "@bonlift-ai/contracts";
@@ -7,3 +8,4 @@ import type {
 export type UserRecord = UserRecordSchemaType;
 export type UserBrandRole = UserBrandRoleRecordSchemaType;
 export type InviteUserInput = InviteUserBodySchemaType;
+export type UpdateUserInput = UpdateUserBodySchemaType;

@@ -14,13 +14,12 @@
     "empty": "暂无用户。",
     "noRole": "无",
     "ownRow": "你不能更改自己的权限。",
-    "consoleRoleFor": "{{email}} 的后台角色",
-    "brandRoles": "品牌角色",
-    "brandRolesFor": "{{email}} 的品牌角色",
     "reinvite": "重新邀请",
     "reinviteUser": "重新邀请 {{email}}",
     "disable": "停用",
-    "disableUser": "停用 {{email}}"
+    "disableUser": "停用 {{email}}",
+    "editUser": "编辑 {{email}}",
+    "viewUser": "查看 {{email}}"
   },
   "status": {
     "invited": "已邀请",
@@ -40,16 +39,31 @@
   },
   "brandRoles": {
     "title": "品牌角色",
-    "loading": "加载中…",
     "empty": "尚未分配品牌角色。",
     "roleFor": "{{brand}} 的角色",
     "removeFrom": "移除 {{brand}} 的权限",
     "remove": "移除",
-    "addTitle": "添加品牌角色",
     "brand": "品牌",
     "brandPlaceholder": "选择品牌",
     "role": "角色",
     "rolePlaceholder": "选择角色",
-    "add": "添加"
+    "add": "添加",
+    "undo": "撤销",
+    "undoFor": "保留 {{brand}} 的权限"
+  },
+  "edit": {
+    "loading": "加载中…",
+    "displayName": "显示名称",
+    "displayNameHint": "留空即可清除，下次通过 Google 登录时会重新填入。",
+    "consoleRole": "后台角色",
+    "adminLocked": "只有管理员可以更改管理员的名称或后台角色。",
+    "steps": {
+      "name": "名称",
+      "consoleRole": "后台角色",
+      "brandRole": "{{brand}} 的品牌角色"
+    },
+    "listSeparator": "、",
+    "savedSummary": "已保存：{{items}}。",
+    "notSavedSummary": "未保存：{{item}} — {{reason}}"
   }
 }

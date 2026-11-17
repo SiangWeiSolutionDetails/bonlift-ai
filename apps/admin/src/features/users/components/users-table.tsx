@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { EyeIcon, PencilIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,6 @@ import { formatDateTime } from "@/lib/date-format";
 import { getErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
 import type { UserRecord } from "../type";
-import { ConsoleRoleSelect } from "./console-role-select";
 
 const COLUMN_COUNT = 7;
 const SKELETON_ROW_COUNT = 3;
@@ -28,11 +28,11 @@ type UsersTableProps = {
   currentUserIsAdmin: boolean;
   canInvite: boolean;
   canDisable: boolean;
-  canAssignConsoleRole: boolean;
+  canEdit: boolean;
+  isBusy: boolean;
+  onEdit: (user: UserRecord) => void;
   onReinvite: (user: UserRecord) => void;
   onDisable: (user: UserRecord) => void;
-  onBrandRoles: (user: UserRecord) => void;
-  onActionError: (error: Error | null) => void;
 };
 
 export function UsersTable(props: UsersTableProps) {
@@ -70,11 +70,11 @@ function UsersTableRows({
   currentUserIsAdmin,
   canInvite,
   canDisable,
-  canAssignConsoleRole,
+  canEdit,
+  isBusy,
+  onEdit,
   onReinvite,
   onDisable,
-  onBrandRoles,
-  onActionError,
 }: UsersTableProps) {
   const { t } = useTranslation("users");
   const { t: tCommon } = useTranslation();
@@ -110,29 +110,24 @@ function UsersTableRows({
             {t(`status.${user.status}`)}
           </Badge>
         </TableCell>
-        <TableCell>
-          {canAssignConsoleRole ? (
-            <ConsoleRoleSelect user={user} disabled={isLocked} onError={onActionError} />
-          ) : (
-            (user.consoleRole?.name ?? t("table.noRole"))
-          )}
-        </TableCell>
+        <TableCell>{user.consoleRole?.name ?? t("table.noRole")}</TableCell>
         <TableCell>{user.brandCount}</TableCell>
         <TableCell>{user.lastLoginAt ? formatDateTime(user.lastLoginAt) : "-"}</TableCell>
         <TableCell className="text-right">
           <Button
             variant="ghost"
             size="sm"
-            aria-label={t("table.brandRolesFor", { email: user.email })}
-            onClick={() => onBrandRoles(user)}
+            aria-label={t(canEdit ? "table.editUser" : "table.viewUser", { email: user.email })}
+            onClick={() => onEdit(user)}
           >
-            {t("table.brandRoles")}
+            {canEdit ? <PencilIcon data-icon="inline-start" /> : <EyeIcon data-icon="inline-start" />}
+            {tCommon(canEdit ? "actions.edit" : "actions.view")}
           </Button>
           {canInvite && user.status === "disabled" && (
             <Button
               variant="ghost"
               size="sm"
-              disabled={isLocked}
+              disabled={isLocked || isBusy}
               title={lockHint}
               aria-label={t("table.reinviteUser", { email: user.email })}
               onClick={() => onReinvite(user)}
@@ -145,7 +140,7 @@ function UsersTableRows({
               variant="ghost"
               size="sm"
               className="text-destructive hover:text-destructive"
-              disabled={isLocked}
+              disabled={isLocked || isBusy}
               title={lockHint}
               aria-label={t("table.disableUser", { email: user.email })}
               onClick={() => onDisable(user)}

@@ -14,13 +14,12 @@
     "empty": "No users yet.",
     "noRole": "None",
     "ownRow": "You can't change your own access.",
-    "consoleRoleFor": "Console role for {{email}}",
-    "brandRoles": "Brand roles",
-    "brandRolesFor": "Brand roles for {{email}}",
     "reinvite": "Reinvite",
     "reinviteUser": "Reinvite {{email}}",
     "disable": "Disable",
-    "disableUser": "Disable {{email}}"
+    "disableUser": "Disable {{email}}",
+    "editUser": "Edit {{email}}",
+    "viewUser": "View {{email}}"
   },
   "status": {
     "invited": "Invited",
@@ -40,16 +39,31 @@
   },
   "brandRoles": {
     "title": "Brand roles",
-    "loading": "Loading…",
     "empty": "No brand roles assigned.",
     "roleFor": "Role on {{brand}}",
     "removeFrom": "Remove access to {{brand}}",
     "remove": "Remove",
-    "addTitle": "Add a brand role",
     "brand": "Brand",
     "brandPlaceholder": "Select a brand",
     "role": "Role",
     "rolePlaceholder": "Select a role",
-    "add": "Add"
+    "add": "Add",
+    "undo": "Undo",
+    "undoFor": "Keep access to {{brand}}"
+  },
+  "edit": {
+    "loading": "Loading…",
+    "displayName": "Display name",
+    "displayNameHint": "Leave empty to clear it. Google fills it in again at the next sign-in.",
+    "consoleRole": "Console role",
+    "adminLocked": "Only an Admin can change an Admin's name or console role.",
+    "steps": {
+      "name": "name",
+      "consoleRole": "console role",
+      "brandRole": "brand role on {{brand}}"
+    },
+    "listSeparator": ", ",
+    "savedSummary": "Saved: {{items}}.",
+    "notSavedSummary": "Not saved: {{item}} — {{reason}}"
   }
 }

@@ -351,6 +351,38 @@ describe("updateUser (integration)", () => {
     expect(await storedUser(target)).toEqual(before);
   });
 
+  it("returns the real brand count", async () => {
+    const actor = await adminActor("admin@x.com");
+    const target = await userNamed("bob@x.com");
+    const role = await getTestPool().query(`INSERT INTO roles (name, kind) VALUES ('Owner', 'brand') RETURNING id`);
+    const tenant = await getTestPool().query(`INSERT INTO tenants (name) VALUES ('T') RETURNING id`);
+    const brand = await getTestPool().query(`INSERT INTO brands (tenant_id, name) VALUES ($1, 'B') RETURNING id`, [
+      tenant.rows[0].id,
+    ]);
+    await getTestPool().query(`INSERT INTO user_brand_roles (user_id, brand_id, role_id) VALUES ($1, $2, $3)`, [
+      target,
+      brand.rows[0].id,
+      role.rows[0].id,
+    ]);
+
+    const user = await updateUser(getTestPool(), actor, target, { displayName: "Bob" });
+
+    expect(user.brandCount).toBe(1);
+  });
+
+  it("refuses and keeps the name when the target became an Admin after the non-Admin's snapshot", async () => {
+    const actor = await actorWithRole("editor@x.com", ["users.view", "users.edit"]);
+    const target = await userNamed("bob@x.com");
+    await assignConsoleRole(target, await insertRole("Viewer", ["users.view"]));
+    const adminId = await adminRoleId();
+
+    await expect(
+      racingRoleChange(target, adminId, () => updateUser(getTestPool(), actor, target, { displayName: "Hacked" })),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+
+    expect((await storedUser(target)).display_name).toBeNull();
+  });
+
   it("lets an Admin edit an Admin", async () => {
     const actor = await adminActor("admin@x.com");
     const target = await userNamed("boss@x.com");

@@ -298,10 +298,19 @@ const DISABLE_USER_SQL = statusChangeSql(
 const REINVITE_USER_SQL = statusChangeSql("invited", "= 'disabled'");
 
 // $1 is the target, $2 the new name (NULL clears it), $3 whether the actor is an Admin.
+// FOR SHARE makes a concurrent change of the target's existing console role finish first, so the Admin check sees it;
+// a role row inserted concurrently for a user who had none is not covered (as in disable/reinvite).
 const UPDATE_USER_SQL = `
   WITH target AS (
-    SELECT u.id, ${isAdminUser("u")} AS target_is_admin
+    SELECT u.id, COALESCE(r.is_builtin, false) AS target_is_admin
     FROM users u
+    LEFT JOIN (
+      SELECT ucr.user_id, ucr.role_id
+      FROM user_console_roles ucr
+      WHERE ucr.user_id = $1
+      FOR SHARE
+    ) cr ON cr.user_id = u.id
+    LEFT JOIN roles r ON r.id = cr.role_id
     WHERE u.id = $1
   ),
   changed AS (

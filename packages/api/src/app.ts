@@ -127,6 +127,8 @@ export function buildApp(): FastifyInstance {
       serving.decorateRequest("servingBrandId", null);
       serving.decorateRequest("servingApiKeyId", null);
       serving.decorateRequest("servingChannel", null);
+      // Set by both /v1/recommendations and /v1/item-affinity, recorded by their onResponse hook.
+      serving.decorateRequest("recommendationServe", null);
       serving.addHook(
         "onRequest",
         createServingAuthHook(createServingKeyAuthenticator({ getPool })),

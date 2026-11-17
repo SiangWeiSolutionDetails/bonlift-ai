@@ -7,6 +7,7 @@ export const FEEDBACK_REASONS = [
   "frequently_ordered",
   "popular_at_outlet",
   "related_to_favourite",
+  "often_ordered_with",
 ] as const;
 export type FeedbackReason = (typeof FEEDBACK_REASONS)[number];
 

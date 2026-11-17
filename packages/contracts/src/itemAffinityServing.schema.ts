@@ -48,6 +48,27 @@ export const ItemAffinityRequestSchema = Type.Object(
         description: "Maximum number of items to return. Defaults to every matching item.",
       }),
     ),
+    // Needed with customerId to record the serve for feedback; it does not change which items are returned.
+    outletId: Type.Optional(
+      Type.String({
+        format: "uuid",
+        description:
+          "The outlet the order is placed at. Must belong to the brand of the API key. Optional: it does not change " +
+          "which items are returned, but without it the response cannot receive feedback.",
+        examples: ["3f6c2a9e-8d1b-4c57-9a0e-2b7d4f1e6c35"],
+      }),
+    ),
+    // Same shape and checks as the recommendations customerId; missing, null or blank is anonymous: nothing is
+    // filtered or recorded.
+    customerId: Type.Optional(
+      Type.Union([Type.String(), Type.Null()], {
+        description:
+          "The customer's mobile number with its country dial code and no \"+\" (e.g. 6591234567), or their email " +
+          "address, exactly as in the order data you send us. Any other value is rejected with 400. Items this " +
+          "customer rejected recently are not returned. Missing, null or blank means an anonymous customer.",
+        examples: ["6591234567"],
+      }),
+    ),
     channel: Type.Optional(ServingChannelSchema),
   },
   {
@@ -80,6 +101,14 @@ export type ItemAffinityItemSchemaType = Static<typeof ItemAffinityItemSchema>;
 
 export const ItemAffinityResponseSchema = Type.Object(
   {
+    recommendationId: Type.Union([Type.String({ format: "uuid" }), Type.Null()], {
+      description:
+        "Identifies this response. Send it back with feedback on the items it returned, to " +
+        "`POST /v1/recommendations/{recommendationId}/feedback`. Null unless both `outletId` and `customerId` were " +
+        "sent, the outlet is an active outlet of your brand, and items are returned: only identified customers can " +
+        "give feedback.",
+      examples: ["7b1f3c2a-5d4e-4f6a-8b9c-0d1e2f3a4b5c"],
+    }),
     runId: Type.Union([Type.String({ format: "uuid" }), Type.Null()], {
       description: "Opaque id of the results served. Quote it when reporting an issue. Null when none exist.",
     }),

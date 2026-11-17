@@ -38,6 +38,7 @@ describe("isKnownReason", () => {
     expect(isKnownReason("frequently_ordered")).toBe(true);
     expect(isKnownReason("popular_at_outlet")).toBe(true);
     expect(isKnownReason("related_to_favourite")).toBe(true);
+    expect(isKnownReason("often_ordered_with")).toBe(true);
     expect(isKnownReason("goes_with_cart")).toBe(false);
   });
 });

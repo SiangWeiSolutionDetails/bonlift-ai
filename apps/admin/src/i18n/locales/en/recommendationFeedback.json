@@ -23,7 +23,8 @@
   "reasons": {
     "frequently_ordered": "Frequently Ordered",
     "popular_at_outlet": "Popular at Outlet",
-    "related_to_favourite": "Related to Favourite"
+    "related_to_favourite": "Related to Favourite",
+    "often_ordered_with": "Often Ordered With"
   },
   "dayparts": {
     "allDay": "All Day"

@@ -18,7 +18,8 @@ import { getRecommendations } from "../services/recommendation.service.js";
 import { recordRecommendationFeedback } from "../services/recommendationFeedback.service.js";
 
 const FEEDBACK_DESCRIPTION =
-  "Tells us what the customer did with an item from a recommendations response. Send `accepted` when the customer " +
+  "Tells us what the customer did with an item from a recommendations or item affinity response. Send `accepted` " +
+  "when the customer " +
   "adds a suggested item to the cart and `rejected` when they dismiss it: one call per action, within the brand's " +
   "feedback window (2 hours by default) of the recommendation, using the response's `recommendationId`. Feedback " +
   "sent later, or for an item that was not in that response, is ignored.\n\n" +
@@ -34,8 +35,6 @@ const FEEDBACK_DESCRIPTION =
   "your API key is never exposed.";
 
 export async function recommendationRoutes(app: FastifyInstance) {
-  app.decorateRequest("recommendationServe", null);
-
   app.post<{ Body: RecommendationRequestSchemaType }>(
     "/recommendations",
     {

@@ -7,7 +7,7 @@ import { ErrorResponseSchema } from "./error.schema.js";
 export const RecommendationFeedbackParamsSchema = Type.Object({
   recommendationId: Type.String({
     format: "uuid",
-    description: "The `recommendationId` of the recommendations response the item was in.",
+    description: "The `recommendationId` of the recommendations or item affinity response the item was in.",
     examples: ["7b1f3c2a-5d4e-4f6a-8b9c-0d1e2f3a4b5c"],
   }),
 });
@@ -37,10 +37,10 @@ export const RecommendationFeedbackBodySchema = Type.Object(
     // Required: only identified customers give feedback. Blank is rejected by the service, after trimming.
     customerId: Type.String({
       description:
-        "Required. The same `customerId` you sent with the recommendations request, in the same format: a mobile " +
-        "number with its country dial code and no \"+\", or an email address. A missing, blank or malformed value " +
-        "is rejected with 400 and nothing is recorded: only identified customers can give feedback. A rejected " +
-        "item is not recommended to this customer again for a while, and accepting it later lifts that.",
+        "Required. The same `customerId` you sent with the recommendations or item affinity request, in the same " +
+        "format: a mobile number with its country dial code and no \"+\", or an email address. A missing, blank or " +
+        "malformed value is rejected with 400 and nothing is recorded: only identified customers can give feedback. " +
+        "A rejected item is not recommended to this customer again for a while, and accepting it later lifts that.",
       examples: ["6591234567"],
     }),
   },

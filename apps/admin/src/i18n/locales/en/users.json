@@ -78,6 +78,7 @@
     },
     "consoleRole": "Console role",
     "adminLocked": "Only an Admin can change an Admin's name or console role.",
+    "keepOneRole": "A user must keep at least one role.",
     "steps": {
       "name": "name",
       "consoleRole": "console role",

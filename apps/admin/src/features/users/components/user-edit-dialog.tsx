@@ -19,7 +19,7 @@ import { getErrorMessage } from "@/lib/error-message";
 import { runSaveStep } from "../api";
 import { userKeys, useUserBrandRoles } from "../queries";
 import type { UserBrandRole, UserRecord } from "../type";
-import { applySaveStep, planUserSave, type SaveStep, type UserEditState } from "../user-save-plan";
+import { applySaveStep, keepsAnyRole, planUserSave, type SaveStep, type UserEditState } from "../user-save-plan";
 import { ConsoleRoleSelect } from "./console-role-select";
 import { UserBrandRolesField, type BrandRoleEntry } from "./user-brand-roles-field";
 
@@ -196,6 +196,7 @@ function UserEditForm({
       .map(({ brandId, roleId }) => ({ brandId, roleId })),
   };
   const steps = planUserSave(baseline, staged);
+  const lastRoleRemoved = keepsAnyRole(baseline) && !keepsAnyRole(staged);
 
   function stepLabel(step: SaveStep) {
     if (step.kind === "name") return t("edit.steps.name");
@@ -302,6 +303,10 @@ function UserEditForm({
         )}
       </section>
 
+      {lastRoleRemoved && (
+        <p className="text-sm text-muted-foreground">{t("edit.keepOneRole")}</p>
+      )}
+
       {report && <SaveReportLine report={report} />}
 
       <DialogFooter>
@@ -309,7 +314,7 @@ function UserEditForm({
           {isReadOnly ? tCommon("actions.close") : tCommon("actions.cancel")}
         </Button>
         {!isReadOnly && (
-          <Button type="submit" disabled={saving || steps.length === 0}>
+          <Button type="submit" disabled={saving || steps.length === 0 || lastRoleRemoved}>
             {tCommon(saving ? "actions.saving" : "actions.save")}
           </Button>
         )}

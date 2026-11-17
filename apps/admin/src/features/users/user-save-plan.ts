@@ -1,3 +1,5 @@
+import { hasAnyRole } from "./invite-request";
+
 export type BrandRoleAssignment = { brandId: string; roleId: string };
 
 export type UserEditState = {
@@ -25,18 +27,22 @@ export function diffBrandRoles(baseline: BrandRoleAssignment[], staged: BrandRol
   };
 }
 
-// Order matters: removals free brands before changes and additions run, and the API is called in this order
+export function keepsAnyRole(staged: UserEditState) {
+  return hasAnyRole(staged);
+}
+
+// Order matters: additions run before removals so a swap never passes through zero roles
 export function planUserSave(baseline: UserEditState, staged: UserEditState): SaveStep[] {
   const steps: SaveStep[] = [];
   const name = staged.displayName.trim();
   if (name !== baseline.displayName) steps.push({ kind: "name", displayName: name || null });
+  const { removals, changes, additions } = diffBrandRoles(baseline.brandRoles, staged.brandRoles);
+  for (const { brandId, roleId } of additions) steps.push({ kind: "addBrandRole", brandId, roleId });
+  for (const { brandId, roleId } of changes) steps.push({ kind: "changeBrandRole", brandId, roleId });
   if (staged.consoleRoleId !== baseline.consoleRoleId) {
     steps.push({ kind: "consoleRole", roleId: staged.consoleRoleId });
   }
-  const { removals, changes, additions } = diffBrandRoles(baseline.brandRoles, staged.brandRoles);
   for (const brandId of removals) steps.push({ kind: "removeBrandRole", brandId });
-  for (const { brandId, roleId } of changes) steps.push({ kind: "changeBrandRole", brandId, roleId });
-  for (const { brandId, roleId } of additions) steps.push({ kind: "addBrandRole", brandId, roleId });
   return steps;
 }
 

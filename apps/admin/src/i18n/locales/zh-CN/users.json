@@ -78,6 +78,7 @@
     },
     "consoleRole": "后台角色",
     "adminLocked": "只有管理员可以更改管理员的名称或后台角色。",
+    "keepOneRole": "用户必须至少保留一个角色。",
     "steps": {
       "name": "名称",
       "consoleRole": "后台角色",

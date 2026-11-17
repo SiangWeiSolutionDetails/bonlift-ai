@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applySaveStep, diffBrandRoles, planUserSave, type UserEditState } from "./user-save-plan";
+import { applySaveStep, diffBrandRoles, keepsAnyRole, planUserSave, type UserEditState } from "./user-save-plan";
 
 const ROLE_A = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 const ROLE_B = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
@@ -44,7 +44,7 @@ describe("planUserSave", () => {
     expect(planUserSave(baseline, { ...baseline, displayName: "  Bob " })).toEqual([]);
   });
 
-  it("orders name, console role, removals, changes, then additions", () => {
+  it("orders name, additions, changes, console role, then removals", () => {
     const staged: UserEditState = {
       displayName: "Robert",
       consoleRoleId: ROLE_B,
@@ -56,10 +56,37 @@ describe("planUserSave", () => {
 
     expect(planUserSave(baseline, staged)).toEqual([
       { kind: "name", displayName: "Robert" },
+      { kind: "addBrandRole", brandId: BRAND_3, roleId: ROLE_B },
+      { kind: "changeBrandRole", brandId: BRAND_2, roleId: ROLE_B },
       { kind: "consoleRole", roleId: ROLE_B },
       { kind: "removeBrandRole", brandId: BRAND_1 },
-      { kind: "changeBrandRole", brandId: BRAND_2, roleId: ROLE_B },
-      { kind: "addBrandRole", brandId: BRAND_3, roleId: ROLE_B },
+    ]);
+  });
+
+  it("plans the addition before the removal when swapping one brand for another", () => {
+    const before: UserEditState = {
+      displayName: "Bob",
+      consoleRoleId: null,
+      brandRoles: [{ brandId: BRAND_1, roleId: ROLE_A }],
+    };
+    const staged = { ...before, brandRoles: [{ brandId: BRAND_2, roleId: ROLE_A }] };
+
+    expect(planUserSave(before, staged)).toEqual([
+      { kind: "addBrandRole", brandId: BRAND_2, roleId: ROLE_A },
+      { kind: "removeBrandRole", brandId: BRAND_1 },
+    ]);
+  });
+
+  it("plans the console role before removing the last brand role", () => {
+    const before: UserEditState = {
+      displayName: "Bob",
+      consoleRoleId: null,
+      brandRoles: [{ brandId: BRAND_1, roleId: ROLE_A }],
+    };
+
+    expect(planUserSave(before, { ...before, consoleRoleId: ROLE_B, brandRoles: [] })).toEqual([
+      { kind: "consoleRole", roleId: ROLE_B },
+      { kind: "removeBrandRole", brandId: BRAND_1 },
     ]);
   });
 
@@ -76,14 +103,24 @@ describe("planUserSave", () => {
       consoleRoleId: ROLE_B,
       brandRoles: [{ brandId: BRAND_3, roleId: ROLE_A }],
     };
-    const [nameStep, consoleStep] = planUserSave(baseline, staged);
-    const refreshed = applySaveStep(applySaveStep(baseline, nameStep), consoleStep);
+    const [nameStep, addStep, consoleStep] = planUserSave(baseline, staged);
+    const refreshed = [nameStep, addStep, consoleStep].reduce(applySaveStep, baseline);
 
     expect(planUserSave(refreshed, staged)).toEqual([
       { kind: "removeBrandRole", brandId: BRAND_1 },
       { kind: "removeBrandRole", brandId: BRAND_2 },
-      { kind: "addBrandRole", brandId: BRAND_3, roleId: ROLE_A },
     ]);
+  });
+});
+
+describe("keepsAnyRole", () => {
+  it("is true with only a console role or only a brand role", () => {
+    expect(keepsAnyRole({ ...baseline, brandRoles: [] })).toBe(true);
+    expect(keepsAnyRole({ ...baseline, consoleRoleId: null })).toBe(true);
+  });
+
+  it("is false with neither", () => {
+    expect(keepsAnyRole({ ...baseline, consoleRoleId: null, brandRoles: [] })).toBe(false);
   });
 });
 

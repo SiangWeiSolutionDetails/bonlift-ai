@@ -18,6 +18,8 @@
     "reinviteUser": "重新邀请 {{email}}",
     "disable": "停用",
     "disableUser": "停用 {{email}}",
+    "delete": "删除",
+    "deleteUser": "删除 {{email}}",
     "editUser": "编辑 {{email}}",
     "viewUser": "查看 {{email}}"
   },
@@ -36,6 +38,14 @@
   "disable": {
     "title": "停用 {{email}}？",
     "description": "该用户将立即退出登录，重新邀请前无法登录。"
+  },
+  "reinviteConfirm": {
+    "title": "重新邀请 {{email}}？",
+    "description": "该用户将从已停用变为已邀请，并可使用同一 Google 账号重新登录。"
+  },
+  "delete": {
+    "title": "删除 {{email}}？",
+    "description": "该账号、登录链接、会话和角色将被永久删除。之后可将此人作为新账号重新邀请。"
   },
   "brandRoles": {
     "title": "品牌角色",

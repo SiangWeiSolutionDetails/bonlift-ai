@@ -18,6 +18,8 @@
     "reinviteUser": "Reinvite {{email}}",
     "disable": "Disable",
     "disableUser": "Disable {{email}}",
+    "delete": "Delete",
+    "deleteUser": "Delete {{email}}",
     "editUser": "Edit {{email}}",
     "viewUser": "View {{email}}"
   },
@@ -36,6 +38,14 @@
   "disable": {
     "title": "Disable {{email}}?",
     "description": "This user is signed out immediately and can't sign in until reinvited."
+  },
+  "reinviteConfirm": {
+    "title": "Reinvite {{email}}?",
+    "description": "This user moves from disabled to invited and can sign in again with the same Google account."
+  },
+  "delete": {
+    "title": "Delete {{email}}?",
+    "description": "The account, its sign-in link, sessions and roles are removed permanently. The person can be invited again later as a new account."
   },
   "brandRoles": {
     "title": "Brand roles",

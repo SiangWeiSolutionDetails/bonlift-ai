@@ -1,5 +1,13 @@
 import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { disableUser, inviteUser, listUserBrandRoles, listUsers, reinviteUser } from "./api";
+import { roleKeys } from "@/features/roles/queries";
+import {
+  deleteUser,
+  disableUser,
+  inviteUser,
+  listUserBrandRoles,
+  listUsers,
+  reinviteUser,
+} from "./api";
 
 export const userKeys = {
   all: ["users"] as const,
@@ -38,4 +46,16 @@ export function useReinviteUser() {
 export function useDisableUser() {
   const invalidate = useInvalidateUsers();
   return useMutation({ mutationFn: disableUser, onSuccess: invalidate });
+}
+
+export function useDeleteUser() {
+  const invalidateUsers = useInvalidateUsers();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteUser,
+    onSuccess: () => {
+      void invalidateUsers();
+      void queryClient.invalidateQueries({ queryKey: roleKeys.all });
+    },
+  });
 }

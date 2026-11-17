@@ -24,6 +24,10 @@ export async function disableUser(userId: string) {
   return await apiRequest<UserRecord>(`${userPath(userId)}/disable`, { method: "POST" });
 }
 
+export async function deleteUser(userId: string) {
+  return await apiRequest<void>(userPath(userId), { method: "DELETE" });
+}
+
 export async function updateUser(userId: string, input: UpdateUserInput) {
   return await apiRequest<UserRecord>(userPath(userId), { method: "PATCH", body: input });
 }

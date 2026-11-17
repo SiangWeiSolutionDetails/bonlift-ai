@@ -9,7 +9,12 @@ import { useCurrentUser } from "@/features/auth/queries";
 import { InviteUserDialog } from "@/features/users/components/invite-user-dialog";
 import { UserEditDialog } from "@/features/users/components/user-edit-dialog";
 import { UsersTable } from "@/features/users/components/users-table";
-import { useDisableUser, useReinviteUser, useUsers } from "@/features/users/queries";
+import {
+  useDeleteUser,
+  useDisableUser,
+  useReinviteUser,
+  useUsers,
+} from "@/features/users/queries";
 import type { UserRecord } from "@/features/users/type";
 import { getErrorMessage } from "@/lib/error-message";
 
@@ -27,15 +32,21 @@ export function UsersPage() {
   const [userToDisable, setUserToDisable] = useState<UserRecord | null>(null);
   // Not cleared on close, so the title doesn't lose the email while the dialog animates out
   const [disableTitleEmail, setDisableTitleEmail] = useState("");
+  const [userToReinvite, setUserToReinvite] = useState<UserRecord | null>(null);
+  const [reinviteTitleEmail, setReinviteTitleEmail] = useState("");
+  const [userToDelete, setUserToDelete] = useState<UserRecord | null>(null);
+  const [deleteTitleEmail, setDeleteTitleEmail] = useState("");
   const [userToEdit, setUserToEdit] = useState<UserRecord | null>(null);
   const { data: users, error, isPending } = useUsers();
   const reinviteMutation = useReinviteUser();
   const disableMutation = useDisableUser();
-  const shownError = reinviteMutation.error ?? disableMutation.error;
+  const deleteMutation = useDeleteUser();
+  const shownError = reinviteMutation.error ?? disableMutation.error ?? deleteMutation.error;
 
   function clearErrors() {
     reinviteMutation.reset();
     disableMutation.reset();
+    deleteMutation.reset();
   }
 
   return (
@@ -64,18 +75,40 @@ export function UsersPage() {
         currentUserIsAdmin={me.console?.isAdmin ?? false}
         canInvite={canInvite}
         canDisable={canConsole("users.disable")}
+        canDelete={canConsole("users.delete")}
         canEdit={canEdit}
-        isBusy={reinviteMutation.isPending || disableMutation.isPending}
+        isBusy={
+          reinviteMutation.isPending || disableMutation.isPending || deleteMutation.isPending
+        }
         onEdit={setUserToEdit}
         onReinvite={(user) => {
-          if (reinviteMutation.isPending) return;
           clearErrors();
-          reinviteMutation.mutate(user.id);
+          setReinviteTitleEmail(user.email);
+          setUserToReinvite(user);
         }}
         onDisable={(user) => {
           clearErrors();
           setDisableTitleEmail(user.email);
           setUserToDisable(user);
+        }}
+        onDelete={(user) => {
+          clearErrors();
+          setDeleteTitleEmail(user.email);
+          setUserToDelete(user);
+        }}
+      />
+
+      <ConfirmDialog
+        open={userToReinvite !== null}
+        title={t("reinviteConfirm.title", { email: reinviteTitleEmail })}
+        description={t("reinviteConfirm.description")}
+        confirmLabel={t("table.reinvite")}
+        onCancel={() => setUserToReinvite(null)}
+        onConfirm={() => {
+          if (userToReinvite && !reinviteMutation.isPending) {
+            reinviteMutation.mutate(userToReinvite.id);
+          }
+          setUserToReinvite(null);
         }}
       />
 
@@ -89,6 +122,19 @@ export function UsersPage() {
         onConfirm={() => {
           if (userToDisable && !disableMutation.isPending) disableMutation.mutate(userToDisable.id);
           setUserToDisable(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={userToDelete !== null}
+        title={t("delete.title", { email: deleteTitleEmail })}
+        description={t("delete.description")}
+        confirmLabel={t("table.delete")}
+        confirmMatch={userToDelete?.email}
+        onCancel={() => setUserToDelete(null)}
+        onConfirm={() => {
+          if (userToDelete && !deleteMutation.isPending) deleteMutation.mutate(userToDelete.id);
+          setUserToDelete(null);
         }}
       />
 

@@ -27,11 +27,13 @@ type UsersTableProps = {
   currentUserIsAdmin: boolean;
   canInvite: boolean;
   canDisable: boolean;
+  canDelete: boolean;
   canEdit: boolean;
   isBusy: boolean;
   onEdit: (user: UserRecord) => void;
   onReinvite: (user: UserRecord) => void;
   onDisable: (user: UserRecord) => void;
+  onDelete: (user: UserRecord) => void;
 };
 
 export function UsersTable(props: UsersTableProps) {
@@ -69,11 +71,13 @@ function UsersTableRows({
   currentUserIsAdmin,
   canInvite,
   canDisable,
+  canDelete,
   canEdit,
   isBusy,
   onEdit,
   onReinvite,
   onDisable,
+  onDelete,
 }: UsersTableProps) {
   const { t } = useTranslation("users");
   const { t: tCommon } = useTranslation();
@@ -99,6 +103,7 @@ function UsersTableRows({
   return users.map((user) => {
     const isSelf = user.id.toLowerCase() === currentUserId.toLowerCase();
     const isLocked = isSelf || (!!user.consoleRole?.isBuiltin && !currentUserIsAdmin);
+    const isDisabled = user.status === "disabled";
     const lockHint = isSelf ? t("table.ownRow") : undefined;
     return (
       <TableRow key={user.id}>
@@ -111,15 +116,17 @@ function UsersTableRows({
         <TableCell>{user.brandCount}</TableCell>
         <TableCell>{user.lastLoginAt ? formatDateTime(user.lastLoginAt) : "-"}</TableCell>
         <TableCell className="text-right">
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-label={t(canEdit ? "table.editUser" : "table.viewUser", { email: user.email })}
-            onClick={() => onEdit(user)}
-          >
-            {tCommon(canEdit ? "actions.edit" : "actions.view")}
-          </Button>
-          {canInvite && user.status === "disabled" && (
+          {!isDisabled && (
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label={t(canEdit ? "table.editUser" : "table.viewUser", { email: user.email })}
+              onClick={() => onEdit(user)}
+            >
+              {tCommon(canEdit ? "actions.edit" : "actions.view")}
+            </Button>
+          )}
+          {canInvite && isDisabled && (
             <Button
               variant="ghost"
               size="sm"
@@ -131,7 +138,7 @@ function UsersTableRows({
               {t("table.reinvite")}
             </Button>
           )}
-          {canDisable && user.status !== "disabled" && (
+          {canDisable && !isDisabled && (
             <Button
               variant="ghost"
               size="sm"
@@ -142,6 +149,19 @@ function UsersTableRows({
               onClick={() => onDisable(user)}
             >
               {t("table.disable")}
+            </Button>
+          )}
+          {canDelete && isDisabled && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive"
+              disabled={isLocked || isBusy}
+              title={lockHint}
+              aria-label={t("table.deleteUser", { email: user.email })}
+              onClick={() => onDelete(user)}
+            >
+              {t("table.delete")}
             </Button>
           )}
         </TableCell>

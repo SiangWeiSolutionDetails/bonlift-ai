@@ -6,5 +6,7 @@ export function safeReturnTo(value: unknown): string {
   if (typeof value !== "string" || !value.startsWith("/") || value.includes("\\")) return "/";
   const parsed = URL.canParse(value, PARSE_BASE) ? new URL(value, PARSE_BASE) : undefined;
   if (!parsed || parsed.origin !== PARSE_BASE) return "/";
-  return parsed.pathname + parsed.search + parsed.hash;
+  // Dot segments normalise away ("/.//evil.com" becomes "//evil.com"), so the output is checked as well.
+  const result = parsed.pathname + parsed.search + parsed.hash;
+  return result.startsWith("//") ? "/" : result;
 }

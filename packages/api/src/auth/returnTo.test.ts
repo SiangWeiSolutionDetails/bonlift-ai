@@ -19,6 +19,10 @@ describe("safeReturnTo", () => {
     ["undefined", undefined],
     ["a number", 42],
     ["a path without a leading slash", "brands"],
+    ["a dot segment before a double slash", "/.//evil.com"],
+    ["a parent segment before a double slash", "/..//evil.com"],
+    ["a resolved parent segment before a double slash", "/a/..//evil.com"],
+    ["an encoded dot segment before a double slash", "/%2e//evil.com"],
   ])("falls back to / for %s", (_label, value) => {
     expect(safeReturnTo(value)).toEqual("/");
   });

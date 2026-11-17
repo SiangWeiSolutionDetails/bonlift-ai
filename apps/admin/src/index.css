@@ -150,34 +150,3 @@
     cursor: pointer;
     }
 }
-
-/* Login backdrop: liquid colour blobs. Only compositor properties (scale, translate, rotate)
-   are animated, so frames need no repaint. */
-@keyframes login-morph {
-  0%, 100% { scale: 1.15 0.9; }
-  33% { scale: 0.85 1.2; }
-  66% { scale: 1.25 1; }
-}
-
-@keyframes login-flow-a {
-  0%, 100% { translate: 0 0; rotate: 0deg; }
-  33% { translate: 18% 12%; rotate: 60deg; }
-  66% { translate: -8% 20%; rotate: 120deg; }
-}
-
-@keyframes login-flow-b {
-  0%, 100% { translate: 0 0; rotate: 0deg; }
-  33% { translate: -20% 10%; rotate: -70deg; }
-  66% { translate: -6% -16%; rotate: -140deg; }
-}
-
-@keyframes login-flow-c {
-  0%, 100% { translate: 0 0; rotate: 0deg; }
-  50% { translate: 14% -22%; rotate: 90deg; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .login-blob {
-    animation: none !important;
-  }
-}

@@ -6,7 +6,6 @@ import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { FluidBackdrop } from "@/features/auth/components/fluid-backdrop";
 
 const KNOWN_ERROR_CODES = ["ACCOUNT_NOT_APPROVED", "SIGN_IN_FAILED"] as const;
 
@@ -45,7 +44,7 @@ function BrandMark() {
 
   return (
     <div className="flex flex-col items-center gap-4 text-center">
-      <span className="flex size-14 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#4285F4,#9B72CB,#D96570)] text-white shadow-[0_8px_30px_-6px_#9B72CB]">
+      <span className="flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
         <SparklesIcon className="size-6" />
       </span>
       <div className="flex flex-col gap-1">
@@ -78,7 +77,7 @@ function SignInCard() {
   const loginHref = `/api/auth/login/google?returnTo=${encodeURIComponent(returnTo ?? "/")}`;
 
   return (
-    <section className="grid w-full max-w-sm gap-6 rounded-2xl bg-card/80 p-6 text-card-foreground shadow-panel backdrop-blur-xl">
+    <section className="grid w-full max-w-sm gap-6 rounded-2xl bg-card p-6 text-card-foreground shadow-panel">
       <p className="text-center text-sm text-muted-foreground">{t("signInSubtitle")}</p>
       {error !== undefined && (
         <p
@@ -105,10 +104,9 @@ function SignInCard() {
 
 export function LoginPage() {
   return (
-    <div className="relative isolate flex min-h-svh flex-col bg-background">
-      <FluidBackdrop />
+    <div className="flex min-h-svh flex-col bg-background">
       <LoginHeader />
-      <main className="relative flex flex-1 flex-col items-center justify-center gap-8 px-4 pb-16">
+      <main className="flex flex-1 flex-col items-center justify-center gap-8 px-4 pb-16">
         <BrandMark />
         <SignInCard />
         <ModuleBadges />

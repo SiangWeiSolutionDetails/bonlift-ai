@@ -1,5 +1,5 @@
 import type { FastifyRequest } from "fastify";
-import { Pool } from "pg";
+import type { Pool } from "pg";
 import { UnauthorizedError } from "../errors.js";
 import { readSessionCookie } from "../routes/auth.route.js";
 import { findSessionUser, type SessionUser } from "../services/session.service.js";

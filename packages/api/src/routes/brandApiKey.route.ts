@@ -18,8 +18,8 @@ import {
   revokeBrandApiKeyById,
 } from "../services/brandApiKey.service.js";
 
-// Guarded by the shared admin token until admin login exists (H1): anyone holding that token can create a key
-// for any brand. The api-key command line script remains available for creating keys without the API.
+// Guarded by the admin session hook: any signed-in user can create a key for any brand until per-brand permissions
+// exist. The api-key command line script remains available for creating keys without the API.
 export async function brandApiKeyRoutes(app: FastifyInstance) {
   app.get<{ Params: BrandParamsSchemaType }>(
     "/brands/:brandId/api-keys",

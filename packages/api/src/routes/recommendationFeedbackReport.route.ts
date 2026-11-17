@@ -15,7 +15,7 @@ import {
   listRecommendationServes,
 } from "../services/recommendationFeedbackReport.service.js";
 
-// Open like every admin route until admin login (H1) adds a per-brand permission check here.
+// Requires a signed-in session like every admin route, but has no per-brand permission check yet.
 export async function recommendationFeedbackReportRoutes(app: FastifyInstance) {
   app.get<{ Params: BrandParamsSchemaType; Querystring: RecommendationFeedbackReportQuerySchemaType }>(
     "/brands/:brandId/recommendation-feedback",

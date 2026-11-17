@@ -79,10 +79,6 @@ export function UserBrandRolesField({
   );
 }
 
-function brandLabel(brandName: string, tenantName: string | null) {
-  return tenantName ? `${tenantName} · ${brandName}` : brandName;
-}
-
 type BrandRoleRowProps = {
   entry: BrandRoleEntry;
   roles: Role[];
@@ -229,14 +225,24 @@ function AddBrandRole({ assignedBrandIds, roles, disabled, onAdd }: AddBrandRole
     <div className="flex flex-wrap items-center gap-2 border-t pt-3">
       <Select value={brandId} onValueChange={setBrandId} disabled={disabled}>
         <SelectTrigger size="sm" className="min-w-0 max-w-full flex-1 basis-40" aria-label={t("brandRoles.brand")}>
-          <SelectValue placeholder={t("brandRoles.brandPlaceholder")} />
+          <SelectValue placeholder={t("brandRoles.brandPlaceholder")}>
+            {available.find((brand) => brand.id === brandId)?.name}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          {available.map((brand) => (
-            <SelectItem key={brand.id} value={brand.id}>
-              {brandLabel(brand.name, tenantNames.get(brand.tenantId) ?? null)}
-            </SelectItem>
-          ))}
+          {available.map((brand) => {
+            const tenantName = tenantNames.get(brand.tenantId);
+            return (
+              <SelectItem key={brand.id} value={brand.id} textValue={brand.name}>
+                <span className="grid min-w-0">
+                  <span className="truncate">{brand.name}</span>
+                  {tenantName && (
+                    <span className="truncate text-xs text-muted-foreground">{tenantName}</span>
+                  )}
+                </span>
+              </SelectItem>
+            );
+          })}
         </SelectContent>
       </Select>
       <RoleSelect

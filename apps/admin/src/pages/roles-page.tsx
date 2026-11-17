@@ -109,6 +109,7 @@ export function RolesPage() {
         title={t("delete.title", { name: deleteTitleName })}
         description={t("delete.description")}
         confirmLabel={tCommon("actions.delete")}
+        confirmMatch={roleToDelete?.name}
         onCancel={() => setRoleToDelete(null)}
         onConfirm={() => roleToDelete && deleteMutation.mutate(roleToDelete.id)}
       />

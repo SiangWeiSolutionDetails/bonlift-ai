@@ -267,6 +267,7 @@ function UserEditForm({
         editable={access.name}
         disabled={saving}
         hint={access.canName && access.adminLocked ? t("edit.adminLocked") : null}
+        source={user.displayNameSource}
         error={failure?.step.kind === "name" ? failure.message : null}
         onChange={edited(setDisplayName)}
       />
@@ -330,11 +331,12 @@ type DisplayNameFieldProps = {
   editable: boolean;
   disabled: boolean;
   hint: string | null;
+  source: UserRecord["displayNameSource"];
   error: string | null;
   onChange: (value: string) => void;
 };
 
-function DisplayNameField({ value, editable, disabled, hint, error, onChange }: DisplayNameFieldProps) {
+function DisplayNameField({ value, editable, disabled, hint, source, error, onChange }: DisplayNameFieldProps) {
   const { t } = useTranslation("users");
   return (
     <section className="grid min-w-0 gap-2">
@@ -348,6 +350,7 @@ function DisplayNameField({ value, editable, disabled, hint, error, onChange }: 
         onChange={(event) => onChange(event.target.value)}
       />
       {editable && <p className="text-xs text-muted-foreground">{t("edit.displayNameHint")}</p>}
+      {source && <p className="text-xs text-muted-foreground">{t(`edit.nameSource.${source}`)}</p>}
       {hint && <p className="text-sm text-muted-foreground">{hint}</p>}
       {error && <p className="text-sm text-destructive">{error}</p>}
     </section>

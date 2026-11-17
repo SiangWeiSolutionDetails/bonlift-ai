@@ -70,6 +70,7 @@ function InviteForm({ onDone }: { onDone: () => void }) {
           autoComplete="off"
           onChange={(event) => setDisplayName(event.target.value)}
         />
+        <p className="text-xs text-muted-foreground">{t("invite.displayNameHint")}</p>
       </div>
 
       {mutation.error && (

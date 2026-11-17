@@ -14,3 +14,9 @@ export function validateLoginSearch(search: Record<string, unknown>): LoginSearc
     returnTo: optionalString(search.returnTo),
   };
 }
+
+export type WelcomeSearch = { returnTo?: string };
+
+export function validateWelcomeSearch(search: Record<string, unknown>): WelcomeSearch {
+  return { returnTo: optionalString(search.returnTo) };
+}

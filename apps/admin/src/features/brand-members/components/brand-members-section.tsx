@@ -224,6 +224,7 @@ function AddMemberForm({ roles, mutation }: AddMemberFormProps) {
             autoComplete="off"
             onChange={(event) => setDisplayName(event.target.value)}
           />
+          <p className="text-xs text-muted-foreground">{t("members.displayNameHint")}</p>
         </div>
       </div>
       <Select value={roleId} onValueChange={setRoleId} disabled={mutation.isPending}>

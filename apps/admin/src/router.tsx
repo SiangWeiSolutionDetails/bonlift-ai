@@ -26,7 +26,8 @@ import {
 import App from "@/App";
 import { hasAccess, type RouteAccess } from "@/features/auth/permissions";
 import { meQueryOptions } from "@/features/auth/queries";
-import { validateLoginSearch } from "@/features/auth/search";
+import { nameConfirmationRedirect, WELCOME_PATH } from "@/features/auth/name-confirmation";
+import { validateLoginSearch, validateWelcomeSearch } from "@/features/auth/search";
 import { validateApiKeysSearch } from "@/features/brand-api-keys/search";
 import { validateUsageSearch } from "@/features/brand-usage/search";
 import { validateCalculationsSearch } from "@/features/calculations-overview/search";
@@ -53,6 +54,7 @@ import { RolesPage } from "@/pages/roles-page";
 import { UsersPage } from "@/pages/users-page";
 import { TenantsPage } from "@/pages/tenants-page";
 import { UsagePage } from "@/pages/usage-page";
+import { WelcomePage } from "@/pages/welcome-page";
 
 function isUnauthorized(error: unknown) {
   return error instanceof ApiError && error.status === 401;
@@ -65,6 +67,18 @@ async function requireSession(location: ParsedLocation) {
     if (!isUnauthorized(error)) throw error;
     throw redirect({ to: "/login", search: { returnTo: location.href } });
   }
+}
+
+async function requireConfirmedName(location: ParsedLocation) {
+  const me = await queryClient.ensureQueryData(meQueryOptions);
+  if (nameConfirmationRedirect(me, false) === WELCOME_PATH) {
+    throw redirect({ to: WELCOME_PATH, search: { returnTo: location.href }, replace: true });
+  }
+}
+
+async function requireUnconfirmedName() {
+  const me = await queryClient.ensureQueryData(meQueryOptions);
+  if (nameConfirmationRedirect(me, true) === "/") throw redirect({ to: "/", replace: true });
 }
 
 async function redirectIfSignedIn() {
@@ -102,11 +116,25 @@ const loginRoute = createRoute({
   beforeLoad: redirectIfSignedIn,
 });
 
+const welcomeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: WELCOME_PATH,
+  component: WelcomePage,
+  validateSearch: validateWelcomeSearch,
+  beforeLoad: async ({ location }) => {
+    await requireSession(location);
+    await requireUnconfirmedName();
+  },
+});
+
 const appLayoutRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: "_app",
   component: App,
-  beforeLoad: ({ location }) => requireSession(location),
+  beforeLoad: async ({ location }) => {
+    await requireSession(location);
+    await requireConfirmedName(location);
+  },
 });
 
 const indexRoute = createRoute({
@@ -305,7 +333,7 @@ const sidebarRoutes = [
 
 const appRoutes = appLayoutRoute.addChildren([indexRoute, noAccessRoute, ...sidebarRoutes]);
 
-const routeTree = rootRoute.addChildren([loginRoute, appRoutes]);
+const routeTree = rootRoute.addChildren([loginRoute, welcomeRoute, appRoutes]);
 
 export const router = createRouter({ routeTree });
 

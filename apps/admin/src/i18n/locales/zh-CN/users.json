@@ -36,6 +36,7 @@
     "title": "邀请用户",
     "email": "邮箱",
     "displayName": "名称（可选）",
+    "displayNameHint": "填写名称后，用户将无法自行修改。留空则由用户在首次登录时自行设置。",
     "submit": "邀请",
     "submitting": "邀请中…"
   },
@@ -68,7 +69,12 @@
   "edit": {
     "loading": "加载中…",
     "displayName": "显示名称",
-    "displayNameHint": "留空即可清除，下次通过 Google 登录时会重新填入。",
+    "displayNameHint": "留空即可清除，用户将在下次登录时自行设置名称。",
+    "nameSource": {
+      "staff": "由管理员设置，用户无法修改",
+      "provider": "来自 Google，用户仍可修改",
+      "self": "由用户自行设置"
+    },
     "consoleRole": "后台角色",
     "adminLocked": "只有管理员可以更改管理员的名称或后台角色。",
     "steps": {

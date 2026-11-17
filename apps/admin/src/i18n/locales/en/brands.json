@@ -50,6 +50,7 @@
     "addTitle": "Add a member",
     "email": "Email",
     "displayName": "Name (optional)",
+    "displayNameHint": "If you enter a name, the user can't change it. Leave it blank to let them choose their own when they first sign in.",
     "role": "Role",
     "rolePlaceholder": "Select a role",
     "add": "Add",

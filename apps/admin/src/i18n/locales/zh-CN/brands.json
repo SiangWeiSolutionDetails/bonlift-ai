@@ -50,6 +50,7 @@
     "addTitle": "添加成员",
     "email": "邮箱",
     "displayName": "名称（可选）",
+    "displayNameHint": "填写名称后，用户将无法自行修改。留空则由用户在首次登录时自行设置。",
     "role": "角色",
     "rolePlaceholder": "选择角色",
     "add": "添加",

@@ -36,6 +36,7 @@
     "title": "Invite User",
     "email": "Email",
     "displayName": "Name (optional)",
+    "displayNameHint": "If you enter a name, the user can't change it. Leave it blank to let them choose their own when they first sign in.",
     "submit": "Invite",
     "submitting": "Inviting…"
   },
@@ -68,7 +69,12 @@
   "edit": {
     "loading": "Loading…",
     "displayName": "Display name",
-    "displayNameHint": "Leave empty to clear it. Google fills it in again at the next sign-in.",
+    "displayNameHint": "Leave empty to clear it. The user then chooses their own name at their next sign-in.",
+    "nameSource": {
+      "staff": "Set by staff; the user can't change it",
+      "provider": "From Google; the user can still change it",
+      "self": "Chosen by the user"
+    },
     "consoleRole": "Console role",
     "adminLocked": "Only an Admin can change an Admin's name or console role.",
     "steps": {

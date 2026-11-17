@@ -9,3 +9,10 @@ export async function fetchMe(signal?: AbortSignal) {
 export async function logout() {
   return apiRequest<void>("/auth/logout", { method: "POST" });
 }
+
+export async function updateOwnName(displayName: string) {
+  return apiRequest<AuthMeResponseSchemaType>("/auth/me", {
+    method: "PATCH",
+    body: { displayName },
+  });
+}

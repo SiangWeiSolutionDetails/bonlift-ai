@@ -1,8 +1,17 @@
+import {
+  InviteUserBodySchema,
+  SetConsoleRoleBodySchema,
+  UserParamsSchema,
+  type InviteUserBodySchemaType,
+  type UserRecordSchemaType,
+} from "@bonlift-ai/contracts";
 import type { Pool, PoolClient } from "pg";
-import { AccountNotApprovedError } from "../errors.js";
-import { isUniqueViolationOf } from "../utils/pgErrors.js";
+import { AccountNotApprovedError, ConflictError, ForbiddenError, NotFoundError, ValidationError } from "../errors.js";
+import { isCheckViolationOf, isUniqueViolationOf } from "../utils/pgErrors.js";
 import { withTransaction } from "../utils/transaction.js";
-import type { SessionUser } from "./session.service.js";
+import { assertValid } from "../utils/validate.js";
+import type { RequestAccess } from "./authorization.service.js";
+import type { Queryable, SessionUser } from "./session.service.js";
 
 export interface VerifiedIdentity {
   provider: "google";
@@ -133,4 +142,253 @@ async function insertIdentity(
 
 function toSessionUser(row: { id: string; email: string; display_name: string | null }): SessionUser {
   return { id: row.id, email: row.email, displayName: row.display_name };
+}
+
+const ADMIN_TARGET_ERROR = "Only an Admin can change an Admin user.";
+const OWN_CONSOLE_ROLE_ERROR = "You cannot change your own console role.";
+
+interface ConsoleRoleFlags {
+  target_found: boolean;
+  target_is_admin: boolean;
+  current_subset: boolean;
+  role_found?: boolean;
+  role_builtin?: boolean;
+  new_subset?: boolean;
+}
+
+interface StatusFlags {
+  target_found: boolean;
+  target_is_admin: boolean;
+  id: string | null;
+}
+
+const brandCountOf = (alias: string) => `
+  (SELECT count(*)
+   FROM user_brand_roles ubr
+   JOIN brands b ON b.id = ubr.brand_id
+   WHERE ubr.user_id = ${alias}.id AND b.deleted_at IS NULL)`;
+
+const userRecordColumns = (userAlias: string, roleAlias: string) => `
+  ${userAlias}.id, ${userAlias}.email, ${userAlias}.display_name, ${userAlias}.status, ${userAlias}.last_login_at,
+  ${roleAlias}.id AS role_id, ${roleAlias}.name AS role_name, ${roleAlias}.is_builtin AS role_is_builtin,
+  ${brandCountOf(userAlias)} AS brand_count`;
+
+const isAdminUser = (alias: string) => `EXISTS (
+  SELECT 1 FROM user_console_roles ucr JOIN roles r ON r.id = ucr.role_id
+  WHERE ucr.user_id = ${alias}.id AND r.is_builtin
+)`;
+
+const isSubsetOf = (roleId: string, actionsParam: string) => `NOT EXISTS (
+  SELECT action FROM role_permissions WHERE role_id = ${roleId}
+  EXCEPT SELECT unnest(${actionsParam}::text[])
+)`;
+
+// $1 is the target user. With no console role, the current role is empty, so it is a subset.
+const consoleTargetCte = (actionsParam: string) => `
+  target AS (
+    SELECT u.id, u.email, u.display_name, u.status, u.last_login_at,
+           COALESCE(cr.is_builtin, false) AS target_is_admin,
+           ${isSubsetOf("ucr.role_id", actionsParam)} AS current_subset
+    FROM users u
+    LEFT JOIN user_console_roles ucr ON ucr.user_id = u.id
+    LEFT JOIN roles cr ON cr.id = ucr.role_id
+    WHERE u.id = $1
+  )`;
+
+const SET_CONSOLE_ROLE_SQL = `
+  WITH ${consoleTargetCte("$5")},
+  role AS (
+    SELECT r.id, r.name, r.is_builtin, ${isSubsetOf("r.id", "$5")} AS new_subset
+    FROM roles r
+    WHERE r.id = $2 AND r.kind = 'console'
+  ),
+  assigned AS (
+    INSERT INTO user_console_roles (user_id, role_id, granted_by)
+    SELECT t.id, ro.id, $3
+    FROM target t CROSS JOIN role ro
+    WHERE $4::boolean
+       OR (NOT ro.is_builtin AND NOT t.target_is_admin AND ro.new_subset AND t.current_subset)
+    ON CONFLICT (user_id) DO UPDATE
+    SET role_id = EXCLUDED.role_id, granted_by = EXCLUDED.granted_by, updated_at = now()
+    RETURNING user_id
+  )
+  SELECT
+    t.id IS NOT NULL AS target_found,
+    ro.id IS NOT NULL AS role_found,
+    COALESCE(ro.is_builtin, false) AS role_builtin,
+    COALESCE(t.target_is_admin, false) AS target_is_admin,
+    COALESCE(ro.new_subset, false) AS new_subset,
+    COALESCE(t.current_subset, false) AS current_subset,
+    ${userRecordColumns("t", "ro")}
+  FROM (VALUES (1)) AS one (x)
+  LEFT JOIN target t ON true
+  LEFT JOIN role ro ON true
+  LEFT JOIN assigned a ON true`;
+
+const CLEAR_CONSOLE_ROLE_SQL = `
+  WITH ${consoleTargetCte("$3")},
+  cleared AS (
+    DELETE FROM user_console_roles ucr
+    USING target t
+    WHERE ucr.user_id = t.id
+      AND ($2::boolean OR (NOT t.target_is_admin AND t.current_subset))
+  )
+  SELECT
+    t.id IS NOT NULL AS target_found,
+    COALESCE(t.target_is_admin, false) AS target_is_admin,
+    COALESCE(t.current_subset, false) AS current_subset
+  FROM (VALUES (1)) AS one (x)
+  LEFT JOIN target t ON true`;
+
+// $1 is the target, $2 whether the actor is an Admin. The update runs only from fromStatus.
+const statusChangeSql = (toStatus: string, fromStatus: string, afterChange = "") => `
+  WITH target AS (
+    SELECT u.id, ${isAdminUser("u")} AS target_is_admin
+    FROM users u
+    WHERE u.id = $1
+  ),
+  changed AS (
+    UPDATE users u
+    SET status = '${toStatus}', updated_at = now()
+    FROM target t
+    WHERE u.id = t.id
+      AND u.status ${fromStatus}
+      AND ($2::boolean OR NOT t.target_is_admin)
+    RETURNING u.id, u.email, u.display_name, u.status, u.last_login_at
+  )${afterChange}
+  SELECT
+    t.id IS NOT NULL AS target_found,
+    COALESCE(t.target_is_admin, false) AS target_is_admin,
+    ${userRecordColumns("c", "cr")}
+  FROM (VALUES (1)) AS one (x)
+  LEFT JOIN target t ON true
+  LEFT JOIN changed c ON true
+  LEFT JOIN user_console_roles ucr ON ucr.user_id = c.id
+  LEFT JOIN roles cr ON cr.id = ucr.role_id`;
+
+// The sessions go only when the update hits a row.
+const DISABLE_USER_SQL = statusChangeSql(
+  "disabled",
+  "<> 'disabled'",
+  `,
+  sessions AS (
+    DELETE FROM user_sessions s USING changed c WHERE s.user_id = c.id
+  )`,
+);
+
+const REINVITE_USER_SQL = statusChangeSql("invited", "= 'disabled'");
+
+function toUserRecord(row: any): UserRecordSchemaType {
+  return {
+    id: row.id,
+    email: row.email,
+    displayName: row.display_name,
+    status: row.status,
+    lastLoginAt: row.last_login_at?.toISOString() ?? null,
+    consoleRole: row.role_id ? { id: row.role_id, name: row.role_name, isBuiltin: row.role_is_builtin } : null,
+    brandCount: Number(row.brand_count ?? 0),
+  };
+}
+
+function assertNotSelf(actor: RequestAccess, userId: string, message: string): void {
+  if (actor.user.id === userId) throw new ForbiddenError(message);
+}
+
+function assertConsoleRoleGuards(actor: RequestAccess, flags: ConsoleRoleFlags): void {
+  if (!flags.target_found) throw new NotFoundError("User does not exist.");
+  if (flags.role_found === false) throw new NotFoundError("Role does not exist.");
+  if (actor.isAdmin) return;
+  if (flags.role_builtin) throw new ForbiddenError("Only an Admin can assign the Admin role.");
+  if (flags.target_is_admin) throw new ForbiddenError(ADMIN_TARGET_ERROR);
+  if (flags.new_subset === false) throw new ForbiddenError("A console role can only hold console actions you hold.");
+  if (!flags.current_subset) throw new ForbiddenError("The user's console role holds actions you lack.");
+}
+
+function assertStatusChanged(actor: RequestAccess, flags: StatusFlags, conflictMessage: string): void {
+  if (!flags.target_found) throw new NotFoundError("User does not exist.");
+  if (flags.target_is_admin && !actor.isAdmin) throw new ForbiddenError(ADMIN_TARGET_ERROR);
+  if (!flags.id) throw new ConflictError(conflictMessage);
+}
+
+function toInviteError(error: unknown, email: string): Error | null {
+  if (isUniqueViolationOf(error, "users_email_key")) return new ConflictError(`User ${email} already exists.`);
+  if (isCheckViolationOf(error, "users_email_check")) return new ValidationError("Invalid email.");
+  return null;
+}
+
+export async function listUsers(db: Queryable): Promise<UserRecordSchemaType[]> {
+  const result = await db.query(`
+    SELECT ${userRecordColumns("u", "r")}
+    FROM users u
+    LEFT JOIN user_console_roles ucr ON ucr.user_id = u.id
+    LEFT JOIN roles r ON r.id = ucr.role_id
+    ORDER BY u.email`);
+
+  return result.rows.map(toUserRecord);
+}
+
+export async function inviteUser(db: Queryable, body: InviteUserBodySchemaType): Promise<UserRecordSchemaType> {
+  assertValid(InviteUserBodySchema, body);
+  const email = body.email.toLowerCase();
+
+  try {
+    const result = await db.query(
+      `
+      INSERT INTO users (email, display_name) VALUES ($1, $2)
+      RETURNING id, email, display_name, status, last_login_at`,
+      [email, body.displayName ?? null],
+    );
+    return toUserRecord(result.rows[0]);
+  } catch (error) {
+    throw toInviteError(error, email) ?? error;
+  }
+}
+
+export async function setConsoleRole(
+  db: Queryable,
+  actor: RequestAccess,
+  userId: string,
+  roleId: string,
+): Promise<UserRecordSchemaType> {
+  assertValid(UserParamsSchema, { userId });
+  assertValid(SetConsoleRoleBodySchema, { roleId });
+  assertNotSelf(actor, userId, OWN_CONSOLE_ROLE_ERROR);
+
+  const result = await db.query(SET_CONSOLE_ROLE_SQL, [
+    userId,
+    roleId,
+    actor.user.id,
+    actor.isAdmin,
+    actor.consoleActions,
+  ]);
+  const row = result.rows[0];
+  assertConsoleRoleGuards(actor, row);
+  return toUserRecord(row);
+}
+
+export async function clearConsoleRole(db: Queryable, actor: RequestAccess, userId: string): Promise<void> {
+  assertValid(UserParamsSchema, { userId });
+  assertNotSelf(actor, userId, OWN_CONSOLE_ROLE_ERROR);
+
+  const result = await db.query(CLEAR_CONSOLE_ROLE_SQL, [userId, actor.isAdmin, actor.consoleActions]);
+  assertConsoleRoleGuards(actor, result.rows[0]);
+}
+
+export async function disableUser(db: Queryable, actor: RequestAccess, userId: string): Promise<UserRecordSchemaType> {
+  assertValid(UserParamsSchema, { userId });
+  assertNotSelf(actor, userId, "You cannot disable yourself.");
+
+  const result = await db.query(DISABLE_USER_SQL, [userId, actor.isAdmin]);
+  const row = result.rows[0];
+  assertStatusChanged(actor, row, "User is already disabled.");
+  return toUserRecord(row);
+}
+
+export async function reinviteUser(db: Queryable, actor: RequestAccess, userId: string): Promise<UserRecordSchemaType> {
+  assertValid(UserParamsSchema, { userId });
+
+  const result = await db.query(REINVITE_USER_SQL, [userId, actor.isAdmin]);
+  const row = result.rows[0];
+  assertStatusChanged(actor, row, "Only a disabled user can be reinvited.");
+  return toUserRecord(row);
 }

@@ -31,3 +31,4 @@ export * from "./customerId.js";
 export * from "./calculationsOverview.schema.js";
 export * from "./auth.schema.js";
 export * from "./permissions.js";
+export * from "./roles.schema.js";

@@ -26,6 +26,7 @@ import { authRoutes } from "./routes/auth.route.js";
 import { brandChannelRoutes } from "./routes/brandChannel.route.js";
 import { brandUsageRoutes } from "./routes/brandUsage.route.js";
 import { recommendationFeedbackReportRoutes } from "./routes/recommendationFeedbackReport.route.js";
+import { roleRoutes } from "./routes/role.route.js";
 import { getPool } from "@bonlift-ai/db";
 import {
   createServingAuthHook,
@@ -114,6 +115,7 @@ export function buildApp(): FastifyInstance {
     admin.register(recommendationFeedbackReportRoutes);
     admin.register(brandChannelRoutes);
     admin.register(brandApiKeyRoutes);
+    admin.register(roleRoutes);
 
     if (areDevRoutesEnabled()) {
       admin.register(mockDatasetRoutes);

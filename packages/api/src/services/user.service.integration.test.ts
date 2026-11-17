@@ -1,9 +1,12 @@
 import { CONSOLE_ACTIONS } from "@bonlift-ai/contracts";
 import { randomBytes } from "node:crypto";
+import type { PoolClient } from "pg";
 import { describe, expect, it } from "vitest";
 import { ConflictError, ForbiddenError, NotFoundError } from "../errors.js";
 import { getTestPool } from "../testing/testDb.js";
 import type { RequestAccess } from "./authorization.service.js";
+import { removeBrandMember } from "./brandMember.service.js";
+import type { Queryable } from "./session.service.js";
 import {
   clearConsoleRole,
   deleteUser,
@@ -224,6 +227,7 @@ describe("clearConsoleRole (integration)", () => {
     const actor = await actorWithRole("assigner@x.com", ASSIGNER_ACTIONS);
     const target = await userNamed("bob@x.com");
     await assignConsoleRole(target, await insertRole("Viewer", ["users.view"]));
+    await insertBrandRole(target);
 
     await clearConsoleRole(getTestPool(), actor, target);
 
@@ -265,13 +269,103 @@ describe("clearConsoleRole (integration)", () => {
     const actor = await actorWithRole("assigner@x.com", ASSIGNER_ACTIONS);
     const target = await userNamed("bob@x.com");
     await assignConsoleRole(target, await insertRole("Viewer", ["users.view"]));
+    await insertBrandRole(target);
     const adminId = await adminRoleId();
 
     await expect(
       racingRoleChange(target, adminId, () => clearConsoleRole(getTestPool(), actor, target)),
-    ).rejects.toBeInstanceOf(ConflictError);
+    ).rejects.toThrow(new ConflictError("The user's role changed; try again."));
 
     expect(await storedConsoleRole(target)).toEqual({ role_id: adminId, granted_by: null });
+  });
+
+  it("returns 409 for the user's last role and changes nothing", async () => {
+    const actor = await adminActor("admin@x.com");
+    const target = await userNamed("bob@x.com");
+    const viewer = await insertRole("Viewer", ["users.view"]);
+    await assignConsoleRole(target, viewer);
+
+    await expect(clearConsoleRole(getTestPool(), actor, target)).rejects.toThrow(
+      new ConflictError("A user must keep at least one role."),
+    );
+
+    expect(await storedConsoleRole(target)).toEqual({ role_id: viewer, granted_by: null });
+  });
+
+  it("does not count a brand role on a soft-deleted brand or a brand of a soft-deleted tenant", async () => {
+    const actor = await adminActor("admin@x.com");
+    const viewer = await insertRole("Viewer", ["users.view"]);
+
+    for (const [index, softDelete] of [softDeleteBrand, softDeleteTenantOf].entries()) {
+      const target = await userNamed(`bob${index}@x.com`);
+      await assignConsoleRole(target, viewer);
+      await softDelete(await insertBrandRole(target));
+
+      await expect(clearConsoleRole(getTestPool(), actor, target)).rejects.toThrow(
+        new ConflictError("A user must keep at least one role."),
+      );
+      expect(await storedConsoleRole(target)).toEqual({ role_id: viewer, granted_by: null });
+    }
+  });
+});
+
+async function softDeleteBrand(brandId: string): Promise<void> {
+  await getTestPool().query(`UPDATE brands SET deleted_at = now() WHERE id = $1`, [brandId]);
+}
+
+async function softDeleteTenantOf(brandId: string): Promise<void> {
+  await getTestPool().query(
+    `UPDATE tenants SET deleted_at = now() WHERE id = (SELECT tenant_id FROM brands WHERE id = $1)`,
+    [brandId],
+  );
+}
+
+// `first` runs in a transaction that holds its locks while `second` starts from the old snapshot.
+async function racingRemovals(first: (db: PoolClient) => Promise<void>, second: () => Promise<void>) {
+  const client = await getTestPool().connect();
+  try {
+    await client.query("BEGIN");
+    await first(client);
+    const pending = second();
+    pending.catch(() => undefined);
+    await waitForLockWaiter();
+    await client.query("COMMIT");
+    return await pending.then(
+      () => null,
+      (error: unknown) => error,
+    );
+  } finally {
+    client.release();
+  }
+}
+
+describe("last-role races (integration)", () => {
+  async function userWithTwoRoles() {
+    const actor = await adminActor("admin@x.com");
+    const target = await userNamed("bob@x.com");
+    await assignConsoleRole(target, await insertRole("Viewer", ["users.view"]));
+    const brandId = await insertBrandRole(target);
+    const clear = (db: Queryable = getTestPool()) => clearConsoleRole(db, actor, target);
+    const remove = (db: Queryable = getTestPool()) => removeBrandMember(db, actor, null, brandId, target);
+    return { target, clear, remove };
+  }
+
+  it("refuses removing the brand role while a console role clear commits first", async () => {
+    const { target, clear, remove } = await userWithTwoRoles();
+
+    const secondError = await racingRemovals((db) => clear(db), () => remove());
+
+    expect(secondError).toEqual(new ConflictError("A user must keep at least one role."));
+    expect(await rowCounts(target)).toMatchObject({ console_roles: 0, brand_roles: 1 });
+  });
+
+  it("refuses clearing the console role while a brand role removal commits first", async () => {
+    const { target, clear, remove } = await userWithTwoRoles();
+
+    const secondError = await racingRemovals((db) => remove(db), () => clear());
+
+    expect(secondError).toEqual(new ConflictError("A user must keep at least one role."));
+    expect(await rowCounts(target)).toMatchObject({ console_roles: 1, brand_roles: 0 });
   });
 });
 
@@ -312,7 +406,7 @@ describe("disableUser (integration)", () => {
   });
 });
 
-async function insertBrandRole(userId: string, grantedBy: string | null = null): Promise<void> {
+async function insertBrandRole(userId: string, grantedBy: string | null = null): Promise<string> {
   const suffix = randomBytes(4).toString("hex");
   const role = await getTestPool().query(`INSERT INTO roles (name, kind) VALUES ($1, 'brand') RETURNING id`, [
     `Brand role ${suffix}`,
@@ -325,6 +419,7 @@ async function insertBrandRole(userId: string, grantedBy: string | null = null):
     `INSERT INTO user_brand_roles (user_id, brand_id, role_id, granted_by) VALUES ($1, $2, $3, $4)`,
     [userId, brand.rows[0].id, role.rows[0].id, grantedBy],
   );
+  return brand.rows[0].id;
 }
 
 async function rowCounts(userId: string) {

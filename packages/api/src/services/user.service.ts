@@ -162,12 +162,14 @@ function toSessionUser(row: { id: string; email: string; display_name: string | 
 
 const ADMIN_TARGET_ERROR = "Only an Admin can change an Admin user.";
 const OWN_CONSOLE_ROLE_ERROR = "You cannot change your own console role.";
+export const LAST_ROLE_ERROR = "A user must keep at least one role.";
 
 interface ConsoleRoleFlags {
   target_found: boolean;
   target_is_admin: boolean;
   current_subset: boolean;
   written: boolean;
+  last_role?: boolean;
   role_found?: boolean;
   role_builtin?: boolean;
   new_subset?: boolean;
@@ -208,6 +210,9 @@ const userRecordColumns = (userAlias: string, roleAlias: string) => `
   ${roleAlias}.id AS role_id, ${roleAlias}.name AS role_name, ${roleAlias}.is_builtin AS role_is_builtin,
   ${brandCountOf(userAlias)} AS brand_count`;
 
+// Removals lock the user first, so two removals running at once can't both take their last role.
+export const lockedUser = (userIdParam: string) => `(SELECT * FROM users WHERE id = ${userIdParam} FOR UPDATE) u`;
+
 const isAdminUser = (alias: string) => `EXISTS (
   SELECT 1 FROM user_console_roles ucr JOIN roles r ON r.id = ucr.role_id
   WHERE ucr.user_id = ${alias}.id AND r.is_builtin
@@ -227,14 +232,30 @@ const lockedRoleWithin = (roleId: string, isAdminParam: string, actionsParam: st
   )
 )`;
 
+// A locking read skips a role deleted by a removal that committed while this statement waited for the user lock.
+export const liveBrandRoleExists = (userId: string, extraCondition = "") => `EXISTS (
+  SELECT 1
+  FROM user_brand_roles lbr
+  JOIN brands lb ON lb.id = lbr.brand_id AND lb.deleted_at IS NULL
+  JOIN tenants lt ON lt.id = lb.tenant_id AND lt.deleted_at IS NULL
+  WHERE lbr.user_id = ${userId}${extraCondition}
+  FOR KEY SHARE OF lbr
+)`;
+
+const CONSOLE_REMOVAL = {
+  from: lockedUser("$1"),
+  lastRole: `ucr.role_id IS NOT NULL AND NOT ${liveBrandRoleExists("u.id")}`,
+};
+
 // $1 is the target user. With no console role, the current role is empty, so it is a subset.
-const consoleTargetCte = (actionsParam: string) => `
+const consoleTargetCte = (actionsParam: string, forRemoval = false) => `
   target AS (
     SELECT u.id, u.email, u.display_name, u.display_name_source, u.status, u.last_login_at,
            ucr.role_id AS current_role_id,
            COALESCE(cr.is_builtin, false) AS target_is_admin,
-           ${isSubsetOf("ucr.role_id", actionsParam)} AS current_subset
-    FROM users u
+           ${isSubsetOf("ucr.role_id", actionsParam)} AS current_subset,
+           ${forRemoval ? CONSOLE_REMOVAL.lastRole : "false"} AS last_role
+    FROM ${forRemoval ? CONSOLE_REMOVAL.from : "users u"}
     LEFT JOIN user_console_roles ucr ON ucr.user_id = u.id
     LEFT JOIN roles cr ON cr.id = ucr.role_id
     WHERE u.id = $1
@@ -273,11 +294,12 @@ const SET_CONSOLE_ROLE_SQL = `
   LEFT JOIN assigned a ON true`;
 
 const CLEAR_CONSOLE_ROLE_SQL = `
-  WITH ${consoleTargetCte("$3")},
+  WITH ${consoleTargetCte("$3", true)},
   cleared AS (
     DELETE FROM user_console_roles ucr
     USING target t
     WHERE ucr.user_id = t.id
+      AND NOT t.last_role
       AND ($2::boolean OR (NOT t.target_is_admin AND t.current_subset))
       AND ${lockedRoleWithin("ucr.role_id", "$2", "$3")}
     RETURNING ucr.user_id
@@ -286,6 +308,7 @@ const CLEAR_CONSOLE_ROLE_SQL = `
     t.id IS NOT NULL AS target_found,
     COALESCE(t.target_is_admin, false) AS target_is_admin,
     COALESCE(t.current_subset, false) AS current_subset,
+    COALESCE(t.last_role, false) AS last_role,
     (t.current_role_id IS NULL OR c.user_id IS NOT NULL) AS written
   FROM (VALUES (1)) AS one (x)
   LEFT JOIN target t ON true
@@ -480,6 +503,7 @@ function assertConsoleRoleGuards(actor: RequestAccess, flags: ConsoleRoleFlags):
 
 function assertConsoleRoleWritten(actor: RequestAccess, flags: ConsoleRoleFlags): void {
   assertConsoleRoleGuards(actor, flags);
+  if (flags.last_role) throw new ConflictError(LAST_ROLE_ERROR);
   if (!flags.written) throw new ConflictError("The user's role changed; try again.");
 }
 

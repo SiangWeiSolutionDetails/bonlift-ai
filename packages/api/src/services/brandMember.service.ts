@@ -14,7 +14,7 @@ import { isCheckViolationOf } from "../utils/pgErrors.js";
 import { assertValid } from "../utils/validate.js";
 import type { RequestAccess } from "./authorization.service.js";
 import type { Queryable } from "./session.service.js";
-import { assertNotSelf, staffNameSource } from "./user.service.js";
+import { assertNotSelf, LAST_ROLE_ERROR, liveBrandRoleExists, lockedUser, staffNameSource } from "./user.service.js";
 
 const OWN_BRAND_ROLE_ERROR = "You cannot change your own brand role.";
 
@@ -25,6 +25,7 @@ interface BrandMemberFlags {
   target_disabled?: boolean;
   new_subset?: boolean;
   current_subset: boolean;
+  last_role?: boolean;
   written: boolean;
 }
 
@@ -123,16 +124,19 @@ const SET_BRAND_MEMBER_SQL = `
 const REMOVE_BRAND_MEMBER_SQL = `
   WITH ${brandCte},
   target AS (
-    SELECT ubr.user_id AS id, ${isSubsetOf("ubr.role_id", "$4")} AS current_subset
-    FROM user_brand_roles ubr
+    SELECT ubr.user_id AS id, ${isSubsetOf("ubr.role_id", "$4")} AS current_subset,
+           NOT EXISTS (SELECT 1 FROM user_console_roles ucr WHERE ucr.user_id = u.id FOR KEY SHARE)
+             AND NOT ${liveBrandRoleExists("u.id", " AND lbr.brand_id <> $1")} AS last_role
+    FROM ${lockedUser("$2")}
+    JOIN user_brand_roles ubr ON ubr.user_id = u.id
     JOIN brand b ON b.id = ubr.brand_id
-    WHERE ubr.user_id = $2
   ),
   written AS (
     DELETE FROM user_brand_roles ubr
     USING target t
     WHERE ubr.user_id = t.id
       AND ubr.brand_id = $1
+      AND NOT t.last_role
       AND ($3::boolean OR ${isSubsetOf("ubr.role_id", "$4")})
     RETURNING ubr.user_id
   )
@@ -140,6 +144,7 @@ const REMOVE_BRAND_MEMBER_SQL = `
     b.id IS NOT NULL AS brand_found,
     t.id IS NOT NULL AS target_found,
     COALESCE(t.current_subset, false) AS current_subset,
+    COALESCE(t.last_role, false) AS last_role,
     w.user_id IS NOT NULL AS written
   FROM (VALUES (1)) AS one (x)
   LEFT JOIN brand b ON true
@@ -242,6 +247,7 @@ function assertBrandMemberGuards(flags: BrandMemberFlags, limit: GrantLimit, tar
     if (flags.new_subset === false) throw new ForbiddenError("A brand role can only hold actions you hold on this brand.");
     if (!flags.current_subset) throw new ForbiddenError("The member's role on this brand holds actions you lack.");
   }
+  if (flags.last_role) throw new ConflictError(LAST_ROLE_ERROR);
   if (!flags.written) throw new ConflictError("The member changed while saving. Try again.");
 }
 

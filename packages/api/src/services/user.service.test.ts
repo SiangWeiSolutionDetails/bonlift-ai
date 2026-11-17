@@ -644,6 +644,25 @@ describe("clearConsoleRole", () => {
     await expect(clearConsoleRole(fakePool, userManager, TARGET_ID)).rejects.toBeInstanceOf(ConflictError);
   });
 
+  it("returns 409 when the console role is the user's last role", async () => {
+    poolQueryMock.mockResolvedValueOnce(pgResult([clearFlags({ last_role: true, written: false })]));
+
+    await expect(clearConsoleRole(fakePool, userManager, TARGET_ID)).rejects.toThrow(
+      new ConflictError("A user must keep at least one role."),
+    );
+  });
+
+  it("checks 404 and 403 before the last-role 409", async () => {
+    poolQueryMock
+      .mockResolvedValueOnce(pgResult([clearFlags({ target_found: false, last_role: true, written: false })]))
+      .mockResolvedValueOnce(pgResult([clearFlags({ target_is_admin: true, last_role: true, written: false })]))
+      .mockResolvedValueOnce(pgResult([clearFlags({ current_subset: false, last_role: true, written: false })]));
+
+    await expect(clearConsoleRole(fakePool, userManager, TARGET_ID)).rejects.toBeInstanceOf(NotFoundError);
+    await expect(clearConsoleRole(fakePool, userManager, TARGET_ID)).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(clearConsoleRole(fakePool, userManager, TARGET_ID)).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
   it("clears the role in one statement", async () => {
     poolQueryMock.mockResolvedValueOnce(pgResult([clearFlags()]));
 

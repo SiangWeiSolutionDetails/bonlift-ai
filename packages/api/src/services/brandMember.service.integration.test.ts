@@ -229,12 +229,73 @@ describe("setBrandMember and removeBrandMember (integration)", () => {
     const helper = await insertRole("Helper", "brand", ["members.view", "customerScores.view"]);
     const bob = await userNamed("bob@x.com");
     await assignBrandRole(bob, brandId, viewer);
+    await assignBrandRole(bob, await insertBrand("Tenant B", "Brand B"), viewer);
 
     await setBrandMember(getTestPool(), lead.access, lead.brandActions, brandId, bob, helper);
     expect(await storedBrandRole(bob, brandId)).toEqual({ role_id: helper, granted_by: lead.access.user.id });
 
     await removeBrandMember(getTestPool(), lead.access, lead.brandActions, brandId, bob);
     expect(await storedBrandRole(bob, brandId)).toBeNull();
+  });
+});
+
+describe("removeBrandMember last role (integration)", () => {
+  const LAST_ROLE = new ConflictError("A user must keep at least one role.");
+
+  async function soleMember() {
+    const brandId = await insertBrand("Tenant A", "Brand A");
+    const ops = await provisioner("ops@x.com");
+    const viewer = await insertRole("Viewer", "brand", ["customerScores.view"]);
+    const bob = await userNamed("bob@x.com");
+    await assignBrandRole(bob, brandId, viewer);
+    const remove = () => removeBrandMember(getTestPool(), ops.access, ops.brandActions, brandId, bob);
+    return { brandId, viewer, bob, remove };
+  }
+
+  it("returns 409 for the only brand role of a user with no console role and changes nothing", async () => {
+    const { brandId, viewer, bob, remove } = await soleMember();
+
+    await expect(remove()).rejects.toThrow(LAST_ROLE);
+
+    expect(await storedBrandRole(bob, brandId)).toEqual({ role_id: viewer, granted_by: null });
+  });
+
+  it("removes the only brand role of a user with a console role", async () => {
+    const { brandId, bob, remove } = await soleMember();
+    const consoleRole = await insertRole("Support", "console", ["users.view"]);
+    await getTestPool().query(`INSERT INTO user_console_roles (user_id, role_id) VALUES ($1, $2)`, [bob, consoleRole]);
+
+    await remove();
+
+    expect(await storedBrandRole(bob, brandId)).toBeNull();
+  });
+
+  it("removes one of two brand roles", async () => {
+    const { brandId, viewer, bob, remove } = await soleMember();
+    const other = await insertBrand("Tenant B", "Brand B");
+    await assignBrandRole(bob, other, viewer);
+
+    await remove();
+
+    expect(await storedBrandRole(bob, brandId)).toBeNull();
+    expect(await storedBrandRole(bob, other)).toEqual({ role_id: viewer, granted_by: null });
+  });
+
+  it("does not count a brand role on a soft-deleted brand or a brand of a soft-deleted tenant", async () => {
+    const { brandId, viewer, bob, remove } = await soleMember();
+    const deletedBrand = await insertBrand("Tenant B", "Brand B");
+    const tenantDeletedBrand = await insertBrand("Tenant C", "Brand C");
+    await assignBrandRole(bob, deletedBrand, viewer);
+    await assignBrandRole(bob, tenantDeletedBrand, viewer);
+    await getTestPool().query(`UPDATE brands SET deleted_at = now() WHERE id = $1`, [deletedBrand]);
+    await getTestPool().query(
+      `UPDATE tenants SET deleted_at = now() WHERE id = (SELECT tenant_id FROM brands WHERE id = $1)`,
+      [tenantDeletedBrand],
+    );
+
+    await expect(remove()).rejects.toThrow(LAST_ROLE);
+
+    expect(await storedBrandRole(bob, brandId)).toEqual({ role_id: viewer, granted_by: null });
   });
 });
 

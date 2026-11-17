@@ -233,6 +233,31 @@ describe("removeBrandMember", () => {
     expect(poolQueryMock.mock.calls[0][1]).toEqual([BRAND_ID, TARGET_ID, false, LEAD_BRAND_ACTIONS]);
   });
 
+  it("returns 409 when this brand role is the user's last role", async () => {
+    poolQueryMock.mockResolvedValueOnce(pgResult([writeFlags({ last_role: true, written: false })]));
+
+    await expect(removeBrandMember(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, TARGET_ID)).rejects.toThrow(
+      new ConflictError("A user must keep at least one role."),
+    );
+  });
+
+  it("checks 404 and 403 before the last-role 409", async () => {
+    poolQueryMock
+      .mockResolvedValueOnce(pgResult([writeFlags({ brand_found: false, last_role: true, written: false })]))
+      .mockResolvedValueOnce(pgResult([writeFlags({ target_found: false, last_role: true, written: false })]))
+      .mockResolvedValueOnce(pgResult([writeFlags({ current_subset: false, last_role: true, written: false })]));
+
+    await expect(
+      removeBrandMember(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, TARGET_ID),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    await expect(
+      removeBrandMember(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, TARGET_ID),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    await expect(
+      removeBrandMember(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, TARGET_ID),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
   it("returns 404 for a user who is not a member of the brand", async () => {
     poolQueryMock.mockResolvedValueOnce(pgResult([writeFlags({ target_found: false, written: false })]));
 

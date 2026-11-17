@@ -32,6 +32,7 @@ import { ItemAffinityConfigSection } from "@/features/item-affinity-config/compo
 import { ServingConfigSection } from "@/features/serving-config/components/serving-config-section";
 import { BrandCalculationScheduleSection } from "@/features/brand-calculation-schedule/components/brand-calculation-schedule-section";
 import { BrandChannelsSection } from "@/features/brand-channels/components/brand-channels-section";
+import { BrandMembersSection } from "@/features/brand-members/components/brand-members-section";
 
 const CALCULATIONS = [
   {
@@ -73,7 +74,10 @@ export function BrandDialog({ brand, tenantName, readOnly = false, onClose }: Br
     calculationConfigs: canBrand(brandId, "configs.view"),
     schedule: canBrand(brandId, "calculations.view"),
     channels: canBrand(brandId, "channels.view"),
+    members: canBrand(brandId, "members.view") || canConsole("users.view"),
   };
+  const canManageMembers =
+    canBrand(brandId, "members.manage") || canConsole("users.assignBrandRoles");
 
   return (
     <Dialog open={brand !== null} onOpenChange={(open) => !open && onClose()}>
@@ -108,6 +112,11 @@ export function BrandDialog({ brand, tenantName, readOnly = false, onClose }: Br
               {sections.channels && (
                 <TabsTrigger value="channels" className="flex-none">
                   {t("tabs.channels")}
+                </TabsTrigger>
+              )}
+              {sections.members && (
+                <TabsTrigger value="members" className="flex-none">
+                  {t("tabs.members")}
                 </TabsTrigger>
               )}
             </TabsList>
@@ -147,6 +156,14 @@ export function BrandDialog({ brand, tenantName, readOnly = false, onClose }: Br
                 <BrandChannelsSection
                   brandId={brand.id}
                   readOnly={readOnly || !canBrand(brand.id, "channels.edit")}
+                />
+              </BrandTab>
+            )}
+            {sections.members && (
+              <BrandTab value="members">
+                <BrandMembersSection
+                  brandId={brand.id}
+                  readOnly={readOnly || !canManageMembers}
                 />
               </BrandTab>
             )}

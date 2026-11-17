@@ -36,7 +36,25 @@
     "general": "General",
     "calculationConfigs": "Calculation Configs",
     "schedule": "Schedule",
-    "channels": "Channels"
+    "channels": "Channels",
+    "members": "Members"
+  },
+  "members": {
+    "description": "People who can work on this brand, and their role on it.",
+    "empty": "No members yet.",
+    "roleFor": "Role for {{name}}",
+    "remove": "Remove",
+    "removeNamed": "Remove {{name}}",
+    "removeConfirmTitle": "Remove {{name}}?",
+    "removeConfirmDescription": "They will lose access to this brand.",
+    "addTitle": "Add a member",
+    "email": "Email",
+    "displayName": "Name (optional)",
+    "role": "Role",
+    "rolePlaceholder": "Select a role",
+    "add": "Add",
+    "adding": "Adding…",
+    "accountDisabled": "This person's account is disabled; ask an Admin."
   },
   "dataSource": {
     "title": "Data Source",

@@ -251,7 +251,7 @@ function RoleForm({ target, onDone }: { target: RoleDialogTarget; onDone: () => 
             <p className="text-sm text-muted-foreground">{t("dialog.lackedHint")}</p>
           )}
           <div className="grid gap-4">
-            <label className="flex items-center gap-2 text-sm font-semibold">
+            <label className="flex items-center gap-2 pl-7 text-sm font-semibold">
               <Checkbox
                 checked={groupState(allKeys, effective)}
                 disabled={!allKeys.some(isEnabled)}
@@ -264,7 +264,7 @@ function RoleForm({ target, onDone }: { target: RoleDialogTarget; onDone: () => 
               return (
                 <Collapsible
                   key={group}
-                  defaultOpen={target.mode !== "edit"}
+                  defaultOpen={target.mode === "create"}
                   className="group/collapsible grid gap-2"
                 >
                   <div className="flex items-center gap-1">

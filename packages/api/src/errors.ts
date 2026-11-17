@@ -32,3 +32,20 @@ export class ServiceUnavailableError extends AppError {
   readonly statusCode = 503;
   readonly code = "SERVICE_UNAVAILABLE";
 }
+
+export type SignInRefusalReason = "unlisted" | "email_unverified" | "disabled" | "second_account";
+
+// reason is for server logs only; the client sees just the code.
+export class AccountNotApprovedError extends AppError {
+  readonly statusCode = 403;
+  readonly code = "ACCOUNT_NOT_APPROVED";
+
+  constructor(readonly reason: SignInRefusalReason) {
+    super("Account not approved");
+  }
+}
+
+export class ForbiddenError extends AppError {
+  readonly statusCode = 403;
+  readonly code = "FORBIDDEN";
+}

@@ -15,7 +15,7 @@ import {
 } from "@/features/outlet-item-scores/queries";
 import type { ResultsSearch } from "@/features/outlet-item-scores/search";
 
-const routeApi = getRouteApi("/results");
+const routeApi = getRouteApi("/_app/results");
 
 export function ResultsPage() {
   const { t } = useTranslation("results");

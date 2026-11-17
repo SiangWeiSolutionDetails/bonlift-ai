@@ -15,7 +15,7 @@ import { useBrands } from "@/features/brands/queries";
 import { BrandUsageReport } from "@/features/brand-usage/components/brand-usage-report";
 import { toIsoDate } from "@/lib/date-format";
 
-const routeApi = getRouteApi("/usage");
+const routeApi = getRouteApi("/_app/usage");
 const DEFAULT_RANGE_DAYS = 30;
 
 function defaultRange() {

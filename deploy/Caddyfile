@@ -3,7 +3,7 @@
 	auto_https off
 }
 
-# Protected by Cloudflare Access: the admin bundle embeds ADMIN_TOKEN.
+# Cloudflare Access is the outer layer; the API itself requires a signed-in admin session (sid cookie).
 http://{$ADMIN_HOST} {
 	handle_path /api/* {
 		reverse_proxy api:4000

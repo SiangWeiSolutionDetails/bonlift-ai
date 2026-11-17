@@ -16,7 +16,7 @@ import { BrandApiKeysTable } from "@/features/brand-api-keys/components/brand-ap
 import { CreateApiKeyDialog } from "@/features/brand-api-keys/components/create-api-key-dialog";
 import { useBrands } from "@/features/brands/queries";
 
-const routeApi = getRouteApi("/brand-api-keys");
+const routeApi = getRouteApi("/_app/brand-api-keys");
 
 export function ApiKeysPage() {
   const { t } = useTranslation("apiKeys");

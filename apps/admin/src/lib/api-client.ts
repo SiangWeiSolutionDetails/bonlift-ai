@@ -16,14 +16,8 @@ type ApiErrorBody = {
 
 const API_BASE = "/api";
 
-// Dev/pilot stopgap until admin login (H1): this token is baked into the bundle and visible to anyone who loads the SPA.
-const ADMIN_TOKEN: string | undefined = import.meta.env.VITE_ADMIN_TOKEN;
-
-if (import.meta.env.DEV && !ADMIN_TOKEN) {
-  console.warn(
-    "VITE_ADMIN_TOKEN is not set, so admin API requests will fail with 401. Set it in apps/admin/.env.local to the same value as ADMIN_TOKEN.",
-  );
-}
+const ME_PATH = "/auth/me";
+const LOGIN_PATH = "/login";
 
 export class ApiError extends Error {
   readonly status: number;
@@ -39,7 +33,6 @@ export class ApiError extends Error {
 
 function buildHeaders(hasBody: boolean) {
   const headers: Record<string, string> = {};
-  if (ADMIN_TOKEN) headers.Authorization = `Bearer ${ADMIN_TOKEN}`;
   if (hasBody) headers["Content-Type"] = "application/json";
   return headers;
 }
@@ -51,6 +44,16 @@ function buildUrl(path: string, query?: Record<string, QueryValue>) {
   }
   const queryString = params.toString();
   return `${API_BASE}${path}${queryString ? `?${queryString}` : ""}`;
+}
+
+// /auth/me is excluded because the router guard turns its 401 into a client-side redirect itself
+function redirectToLoginOnUnauthorized(status: number, path: string) {
+  if (status !== 401 || path === ME_PATH) return;
+  const { pathname, search } = window.location;
+  if (pathname === LOGIN_PATH) return;
+  window.location.assign(
+    `${LOGIN_PATH}?returnTo=${encodeURIComponent(pathname + search)}`,
+  );
 }
 
 async function toApiError(res: Response) {
@@ -96,6 +99,7 @@ export async function apiRequest<T>(
   }
 
   if (!res.ok) {
+    redirectToLoginOnUnauthorized(res.status, path);
     throw await toApiError(res);
   }
   if (res.status === 204) {

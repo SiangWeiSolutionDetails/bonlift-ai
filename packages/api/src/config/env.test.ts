@@ -49,3 +49,80 @@ describe("readCustomerIdSecret", () => {
     expect(readCustomerIdSecret()).toBe(VALID_SECRET);
   });
 });
+
+describe("readAuthConfig", () => {
+  function stubAuthEnv(overrides: Record<string, string | undefined> = {}) {
+    const values: Record<string, string | undefined> = {
+      APP_BASE_URL: "http://localhost:5173",
+      SESSION_COOKIE_SECRET: VALID_SECRET,
+      GOOGLE_CLIENT_ID: "client-id.apps.googleusercontent.com",
+      GOOGLE_CLIENT_SECRET: "client-secret",
+      ...overrides,
+    };
+    for (const [name, value] of Object.entries(values)) vi.stubEnv(name, value);
+  }
+
+  async function loadReadAuthConfig() {
+    const { readAuthConfig, resetAuthConfigCache } = await import("./env.js");
+    resetAuthConfigCache();
+    return readAuthConfig;
+  }
+
+  it.each(["APP_BASE_URL", "SESSION_COOKIE_SECRET", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"])(
+    "names %s when it is missing",
+    async (name) => {
+      stubAuthEnv({ [name]: undefined });
+      const readAuthConfig = await loadReadAuthConfig();
+
+      expect(() => readAuthConfig()).toThrow(name);
+    },
+  );
+
+  it.each([
+    ["shorter than 32 characters", "a".repeat(31)],
+    ["the .env.example placeholder", `replace-with-${"a".repeat(32)}`],
+  ])("refuses a SESSION_COOKIE_SECRET that is %s, without echoing it", async (_label, value) => {
+    stubAuthEnv({ SESSION_COOKIE_SECRET: value });
+    const readAuthConfig = await loadReadAuthConfig();
+
+    expect(() => readAuthConfig()).toThrow(/SESSION_COOKIE_SECRET must be set/);
+    expect(() => readAuthConfig()).not.toThrow(new RegExp(value));
+  });
+
+  it.each([
+    ["a trailing slash", "http://localhost:5173/"],
+    ["a path", "https://admin.example.com/app"],
+    ["a non-http scheme", "ftp://admin.example.com"],
+    ["no scheme", "admin.example.com"],
+  ])("refuses an APP_BASE_URL with %s", async (_label, value) => {
+    stubAuthEnv({ APP_BASE_URL: value });
+    const readAuthConfig = await loadReadAuthConfig();
+
+    expect(() => readAuthConfig()).toThrow(/APP_BASE_URL/);
+  });
+
+  it.each([
+    ["https://admin.example.com", true],
+    ["http://localhost:5173", false],
+  ])("sets secureCookies for %s to %s", async (appBaseUrl, secureCookies) => {
+    stubAuthEnv({ APP_BASE_URL: appBaseUrl });
+    const readAuthConfig = await loadReadAuthConfig();
+
+    expect(readAuthConfig()).toEqual({
+      appBaseUrl,
+      cookieSecret: VALID_SECRET,
+      secureCookies,
+      google: { clientId: "client-id.apps.googleusercontent.com", clientSecret: "client-secret" },
+    });
+  });
+
+  it("keeps the first config it read", async () => {
+    stubAuthEnv();
+    const readAuthConfig = await loadReadAuthConfig();
+    readAuthConfig();
+
+    vi.stubEnv("GOOGLE_CLIENT_ID", "other-client-id");
+
+    expect(readAuthConfig().google.clientId).toBe("client-id.apps.googleusercontent.com");
+  });
+});

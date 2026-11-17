@@ -1,11 +1,23 @@
 import type { FastifyInstance } from "fastify";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildApp } from "./app.js";
+import { resetAuthConfigCache } from "./config/env.js";
+import { findSessionUser } from "./services/session.service.js";
 
-const ADMIN_TOKEN = "a".repeat(64);
+vi.mock("./services/session.service.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./services/session.service.js")>()),
+  findSessionUser: vi.fn(),
+}));
+vi.mock("@bonlift-ai/db", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@bonlift-ai/db")>()),
+  getPool: () => ({ query: vi.fn() }),
+}));
+
 const PLACEHOLDER_ID = "00000000-0000-0000-0000-000000000000";
-// Everything outside these prefixes is admin surface and must demand the admin token.
-const PUBLIC_PREFIXES = ["/health", "/docs", "/v1/"];
+const SESSION_COOKIE = { sid: "a".repeat(43) };
+const SESSION_USER = { id: PLACEHOLDER_ID, email: "alice@x.com", displayName: null };
+// Everything outside these prefixes is admin surface and must demand a session.
+const PUBLIC_PREFIXES = ["/health", "/docs", "/auth/", "/v1/"];
 
 type RouteEntry = { method: string; url: string };
 
@@ -25,8 +37,12 @@ function adminRoutes(): RouteEntry[] {
 }
 
 beforeAll(async () => {
-  vi.stubEnv("ADMIN_TOKEN", ADMIN_TOKEN);
   vi.stubEnv("CUSTOMER_ID_SECRET", "b".repeat(64));
+  vi.stubEnv("APP_BASE_URL", "http://localhost:5173");
+  vi.stubEnv("SESSION_COOKIE_SECRET", "c".repeat(64));
+  vi.stubEnv("GOOGLE_CLIENT_ID", "test-client-id");
+  vi.stubEnv("GOOGLE_CLIENT_SECRET", "test-client-secret");
+  resetAuthConfigCache();
   // Dev routes on, so the inventory covers every route the app can register.
   vi.stubEnv("ENABLE_DEV_ROUTES", "true");
   app = buildApp();
@@ -37,9 +53,18 @@ beforeAll(async () => {
   await app.ready();
 });
 
+beforeEach(() => {
+  vi.mocked(findSessionUser).mockReset();
+});
+
+function signIn() {
+  vi.mocked(findSessionUser).mockResolvedValue(SESSION_USER);
+}
+
 afterAll(async () => {
   await app.close();
   vi.unstubAllEnvs();
+  resetAuthConfigCache();
 });
 
 describe("admin route inventory", () => {
@@ -47,7 +72,7 @@ describe("admin route inventory", () => {
     expect(adminRoutes().length).toBeGreaterThan(0);
   });
 
-  it("rejects every admin route without the admin token", async () => {
+  it("rejects every admin route without a session cookie", async () => {
     const unguarded: string[] = [];
     for (const route of adminRoutes()) {
       const res = await app.inject({
@@ -58,22 +83,25 @@ describe("admin route inventory", () => {
       if (res.statusCode !== 401) unguarded.push(`${route.method} ${route.url} -> ${res.statusCode}`);
     }
     expect(unguarded).toEqual([]);
+    expect(findSessionUser).not.toHaveBeenCalled();
   });
 
-  it("lets a valid admin token through to validation", async () => {
+  it("lets a valid session through to validation", async () => {
+    signIn();
     const res = await app.inject({
       method: "DELETE",
       url: "/tenants/not-a-uuid",
-      headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
+      cookies: SESSION_COOKIE,
     });
     expect(res.statusCode).toBe(400);
   });
 
   it("takes the customer search id in the body, so it never appears in the logged URL", async () => {
+    signIn();
     const res = await app.inject({
       method: "POST",
       url: "/runs/not-a-uuid/customer-item-scores/customers/search",
-      headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
+      cookies: SESSION_COOKIE,
       payload: { customerId: "log-probe@mail.com" },
     });
 
@@ -86,11 +114,12 @@ describe("admin route inventory", () => {
     expect(res.statusCode).toBe(200);
   });
 
-  it("does not accept the admin token on /v1", async () => {
+  it("does not accept a session cookie on /v1", async () => {
+    signIn();
     const res = await app.inject({
       method: "POST",
       url: "/v1/recommendations",
-      headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
+      cookies: SESSION_COOKIE,
       payload: {},
     });
     expect(res.statusCode).toBe(401);

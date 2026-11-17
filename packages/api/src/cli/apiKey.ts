@@ -9,8 +9,7 @@ import {
 } from "../services/brandApiKey.service.js";
 import { listBrandChannels } from "../services/brandChannel.service.js";
 
-// Keys are created on the server only, until the admin app has a login (H1): an open admin route would let anyone
-// create keys. Usage:
+// Usage:
 //   npm run api-key -w packages/api -- create --brand <brandId> --channel <code> --name <label> [--expires-in-days <n>]
 //   npm run api-key -w packages/api -- revoke --prefix <keyPrefix>
 const USAGE = `Usage:

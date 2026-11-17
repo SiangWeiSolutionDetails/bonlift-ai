@@ -18,8 +18,8 @@ import {
   revokeBrandApiKeyById,
 } from "../services/brandApiKey.service.js";
 
-// Guarded by the shared admin token until admin login exists (H1): anyone holding that token can create a key
-// for any brand. The api-key command line script remains available for creating keys without the API.
+// Guarded by the admin session hook: any signed-in user can create a key for any brand until per-brand permissions
+// exist. The api-key command line script remains available for creating keys without the API.
 export async function brandApiKeyRoutes(app: FastifyInstance) {
   app.get<{ Params: BrandParamsSchemaType }>(
     "/brands/:brandId/api-keys",
@@ -52,8 +52,8 @@ export async function brandApiKeyRoutes(app: FastifyInstance) {
       const created = await createBrandApiKey(pool, {
         brandId: request.params.brandId,
         ...request.body,
-        // Placeholder until admin login (H1) identifies the user.
-        createdBy: "admin",
+        // Set by the admin session hook.
+        createdBy: `user:${request.user!.id}`,
       });
       // The only response that carries the secret: no browser or proxy may keep a copy.
       reply.status(201).header("Cache-Control", "no-store");

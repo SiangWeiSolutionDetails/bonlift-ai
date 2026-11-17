@@ -1,6 +1,7 @@
 import { getPool } from "@bonlift-ai/db";
 import { Pool } from "pg";
 
+// Keep in sync with SESSION_IDLE_MS in packages/api/src/services/session.service.ts.
 const IDLE_TIMEOUT = "8 hours";
 
 export async function deleteExpiredSessions(db: Pick<Pool, "query">): Promise<number> {

@@ -25,8 +25,8 @@ function Build-Image([string]$target, [string]$name, [string]$tag, [string[]]$ex
 }
 
 function Assert-NoBearerInBundle([string]$image) {
-  & docker run --rm --entrypoint sh $image -c "! grep -rqF 'Bearer ' /srv/admin"
-  if ($LASTEXITCODE -ne 0) { throw "Built admin bundle contains a 'Bearer ' string; the admin SPA must authenticate with the session cookie only." }
+  & docker run --rm --entrypoint sh $image -c "test -d /srv/admin/assets && ! grep -rqF 'Bearer ' /srv/admin"
+  if ($LASTEXITCODE -ne 0) { throw "Built admin bundle is missing /srv/admin/assets or contains a 'Bearer ' string; the admin SPA must authenticate with the session cookie only." }
 }
 
 function Push-Image([string]$name) {

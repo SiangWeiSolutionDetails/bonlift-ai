@@ -48,11 +48,11 @@ export function UserBrandRolesField({
   }
 
   return (
-    <div className="grid gap-3">
+    <div className="grid min-w-0 gap-3">
       {entries.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("brandRoles.empty")}</p>
       ) : (
-        <ul className="grid gap-2">
+        <ul className="grid min-w-0 gap-2">
           {entries.map((entry) => (
             <BrandRoleRow
               key={entry.brandId}
@@ -107,11 +107,11 @@ function BrandRoleRow({
   const roleName = roles.find((role) => role.id === entry.roleId)?.name ?? entry.roleName;
 
   return (
-    <li className="grid gap-1 rounded-lg border p-3">
-      <div className="flex items-center justify-between gap-3">
+    <li className="grid min-w-0 gap-1 rounded-lg border p-3">
+      <div className="flex min-w-0 items-center justify-between gap-3">
         <p
           className={cn(
-            "truncate text-sm",
+            "min-w-0 truncate text-sm",
             entry.removed ? "text-muted-foreground line-through" : "font-medium",
           )}
         >
@@ -221,7 +221,7 @@ function AddBrandRole({ assignedBrandIds, roles, disabled, onAdd }: AddBrandRole
   return (
     <div className="flex flex-wrap items-center gap-2 border-t pt-3">
       <Select value={brandId} onValueChange={setBrandId} disabled={disabled}>
-        <SelectTrigger size="sm" className="min-w-40 flex-1" aria-label={t("brandRoles.brand")}>
+        <SelectTrigger size="sm" className="min-w-0 max-w-full flex-1 basis-40" aria-label={t("brandRoles.brand")}>
           <SelectValue placeholder={t("brandRoles.brandPlaceholder")} />
         </SelectTrigger>
         <SelectContent>

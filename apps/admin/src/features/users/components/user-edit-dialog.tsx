@@ -261,7 +261,7 @@ function UserEditForm({
   if (failure && "brandId" in failure.step) brandErrors.set(failure.step.brandId, failure.message);
 
   return (
-    <form onSubmit={save} className="grid gap-6">
+    <form onSubmit={save} className="grid min-w-0 gap-6 [&>section]:min-w-0">
       <DisplayNameField
         value={displayName}
         editable={access.name}
@@ -337,7 +337,7 @@ type DisplayNameFieldProps = {
 function DisplayNameField({ value, editable, disabled, hint, error, onChange }: DisplayNameFieldProps) {
   const { t } = useTranslation("users");
   return (
-    <section className="grid gap-2">
+    <section className="grid min-w-0 gap-2">
       <Label htmlFor="user-display-name">{t("edit.displayName")}</Label>
       <Input
         id="user-display-name"

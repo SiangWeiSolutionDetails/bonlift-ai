@@ -37,6 +37,15 @@ function uniqueViolation(constraint: string) {
   return Object.assign(new Error("duplicate key"), { code: "23505", constraint });
 }
 
+async function expectRefusal(promise: Promise<unknown>, reason: string) {
+  const error = await promise.then(
+    () => null,
+    (e: unknown) => e,
+  );
+  expect(error).toBeInstanceOf(AccountNotApprovedError);
+  expect((error as AccountNotApprovedError).reason).toBe(reason);
+}
+
 beforeEach(() => {
   poolQueryMock.mockReset();
   clientQueryMock.mockReset();
@@ -54,7 +63,7 @@ describe("resolveUserFromIdentity — known identity", () => {
     expect(user).toEqual({ id: USER_ID, email: "alice@x.com", displayName: "Alice" });
     const [sql, params] = poolQueryMock.mock.calls[0];
     expect(sql).toMatch(/last_login_at\s*=\s*now\(\)/);
-    expect(sql).toMatch(/COALESCE\(\s*u\.display_name/);
+    expect(sql).toMatch(/COALESCE\(\s*u\.display_name, NULLIF\(\$3, ''\)\)/);
     expect(sql).toMatch(/status IN \('active', 'invited'\)/);
     expect(params).toEqual(["google", "google-sub-1", "Alice"]);
     expect(connectMock).not.toHaveBeenCalled();
@@ -74,9 +83,7 @@ describe("resolveUserFromIdentity — known identity", () => {
       pgResult([knownRow({ id: null, email: null, display_name: null })]),
     );
 
-    await expect(resolveUserFromIdentity(fakePool, identity)).rejects.toBeInstanceOf(
-      AccountNotApprovedError,
-    );
+    await expectRefusal(resolveUserFromIdentity(fakePool, identity), "disabled");
     expect(connectMock).not.toHaveBeenCalled();
   });
 });
@@ -85,9 +92,10 @@ describe("resolveUserFromIdentity — first link", () => {
   it("refuses an unverified email without opening a transaction", async () => {
     poolQueryMock.mockResolvedValueOnce(pgResult([unknownRow]));
 
-    await expect(
+    await expectRefusal(
       resolveUserFromIdentity(fakePool, { ...identity, emailVerified: false }),
-    ).rejects.toBeInstanceOf(AccountNotApprovedError);
+      "email_unverified",
+    );
     expect(connectMock).not.toHaveBeenCalled();
   });
 
@@ -107,6 +115,7 @@ describe("resolveUserFromIdentity — first link", () => {
     expect(clientStatements()).toEqual(["BEGIN", "UPDATE", "INSERT", "COMMIT"]);
     const [activateSql, activateParams] = clientQueryMock.mock.calls[1];
     expect(activateSql).toMatch(/status = 'invited'/);
+    expect(activateSql).toMatch(/COALESCE\(display_name, NULLIF\(\$2, ''\)\)/);
     expect(activateParams[0]).toBe("alice@x.com");
     expect(clientQueryMock.mock.calls[2][1]).toEqual([USER_ID, "google", "google-sub-1"]);
     expect(releaseMock).toHaveBeenCalled();
@@ -118,9 +127,7 @@ describe("resolveUserFromIdentity — first link", () => {
       .mockResolvedValueOnce(pgResult([unknownRow]));
     clientQueryMock.mockResolvedValueOnce(pgResult([])).mockResolvedValue(pgResult([], 0));
 
-    await expect(resolveUserFromIdentity(fakePool, identity)).rejects.toBeInstanceOf(
-      AccountNotApprovedError,
-    );
+    await expectRefusal(resolveUserFromIdentity(fakePool, identity), "unlisted");
     expect(clientStatements()).toContain("ROLLBACK");
     expect(clientStatements()).not.toContain("INSERT");
     expect(poolQueryMock.mock.calls[1][1]).toEqual(["google", "google-sub-1", "Alice"]);
@@ -149,9 +156,7 @@ describe("resolveUserFromIdentity — first link", () => {
       .mockRejectedValueOnce(uniqueViolation("user_identities_user_provider_key"))
       .mockResolvedValue(pgResult([]));
 
-    await expect(resolveUserFromIdentity(fakePool, identity)).rejects.toBeInstanceOf(
-      AccountNotApprovedError,
-    );
+    await expectRefusal(resolveUserFromIdentity(fakePool, identity), "second_account");
     expect(clientStatements()).toContain("ROLLBACK");
   });
 
@@ -186,9 +191,7 @@ describe("resolveUserFromIdentity — first link", () => {
       .mockRejectedValueOnce(uniqueViolation("user_identities_pkey"))
       .mockResolvedValue(pgResult([]));
 
-    await expect(resolveUserFromIdentity(fakePool, identity)).rejects.toBeInstanceOf(
-      AccountNotApprovedError,
-    );
+    await expectRefusal(resolveUserFromIdentity(fakePool, identity), "disabled");
   });
 
   it("rethrows unrelated database errors", async () => {

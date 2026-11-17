@@ -8,8 +8,10 @@ import {
 } from "@bonlift-ai/contracts";
 import { getPool } from "@bonlift-ai/db";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import * as oidcClient from "openid-client";
 import { finishSignIn, startSignIn, type OAuthTransaction } from "../auth/oidc.js";
 import { safeReturnTo } from "../auth/returnTo.js";
+import { assertSameOriginWrite } from "../auth/sameOrigin.js";
 import { readAuthConfig } from "../config/env.js";
 import { AccountNotApprovedError, NotFoundError, UnauthorizedError } from "../errors.js";
 import {
@@ -74,15 +76,28 @@ function readTransaction(request: FastifyRequest): OAuthTransaction | null {
   }
 }
 
-// openid-client errors can carry the token response body or the callback parameters: log their names and codes only.
+function isOpenIdClientError(error: unknown): boolean {
+  return (
+    error instanceof oidcClient.ClientError ||
+    error instanceof oidcClient.ResponseBodyError ||
+    error instanceof oidcClient.AuthorizationResponseError ||
+    error instanceof oidcClient.WWWAuthenticateChallengeError
+  );
+}
+
+// openid-client errors can carry the token response body or the callback parameters: log their names and codes
+// only. Other errors are ours or pg's, so their stack is safe to log.
 function logSignInFailure(request: FastifyRequest, error: unknown): void {
-  const err = error as { name?: unknown; code?: unknown; error?: unknown; message?: unknown } | null;
+  const err = error as
+    | { name?: unknown; code?: unknown; error?: unknown; message?: unknown; stack?: unknown }
+    | null;
   request.log.error(
     {
       errorName: err?.name,
       errorCode: err?.code,
       oauthError: typeof err?.error === "string" ? err.error : undefined,
       errorMessage: err?.message,
+      stack: isOpenIdClientError(error) ? undefined : err?.stack,
     },
     "sign-in failed",
   );
@@ -101,6 +116,8 @@ async function signIn(request: FastifyRequest, tx: OAuthTransaction): Promise<st
   const pool = getPool();
   const identity = await finishSignIn("google", callbackUrl(request), tx);
   const user = await resolveUserFromIdentity(pool, identity);
+  const previousToken = readSessionCookie(request);
+  if (previousToken) await deleteSession(pool, previousToken);
   return createSession(pool, user.id, request.headers["user-agent"] ?? null);
 }
 
@@ -150,7 +167,10 @@ export async function authRoutes(app: FastifyInstance) {
         });
         return reply.redirect(tx.returnTo);
       } catch (error) {
-        if (error instanceof AccountNotApprovedError) return redirectToLogin(reply, "ACCOUNT_NOT_APPROVED");
+        if (error instanceof AccountNotApprovedError) {
+          request.log.info({ reason: error.reason, provider: request.params.provider }, "sign-in refused");
+          return redirectToLogin(reply, "ACCOUNT_NOT_APPROVED");
+        }
         logSignInFailure(request, error);
         return redirectToLogin(reply, "SIGN_IN_FAILED");
       }
@@ -170,6 +190,7 @@ export async function authRoutes(app: FastifyInstance) {
   );
 
   app.post("/auth/logout", async (request, reply) => {
+    assertSameOriginWrite(request);
     const token = readSessionCookie(request);
     if (token) await deleteSession(getPool(), token);
     reply.clearCookie(SESSION_COOKIE, sessionCookieOptions());

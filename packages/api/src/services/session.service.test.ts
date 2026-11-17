@@ -58,6 +58,22 @@ describe("createSession", () => {
     expect(params).toContain(USER_ID);
     expect(params).toContain("Mozilla/5.0");
   });
+
+  it("truncates the user agent to 512 characters", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([], 1));
+
+    await createSession(fakePool, USER_ID, "x".repeat(2000));
+
+    expect(queryMock.mock.calls[0][1]).toContain("x".repeat(512));
+  });
+
+  it("stores a null user agent as null", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([], 1));
+
+    await createSession(fakePool, USER_ID, null);
+
+    expect(queryMock.mock.calls[0][1][3]).toBeNull();
+  });
 });
 
 describe("findSessionUser", () => {

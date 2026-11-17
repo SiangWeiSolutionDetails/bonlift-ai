@@ -30,7 +30,8 @@ export async function resolveUserFromIdentity(
 ): Promise<SessionUser> {
   const known = await signInKnownIdentity(pool, identity);
   if (known.user) return known.user;
-  if (known.identityExists || !identity.emailVerified) throw new AccountNotApprovedError();
+  if (known.identityExists) throw new AccountNotApprovedError("disabled");
+  if (!identity.emailVerified) throw new AccountNotApprovedError("email_unverified");
 
   try {
     return await withTransaction(pool, (client) => linkInvitedUser(client, identity));
@@ -38,7 +39,7 @@ export async function resolveUserFromIdentity(
     if (!isInviteRace(error)) throw error;
     // A racing first sign-in may have linked this identity first; sign in through it, or refuse.
     const retry = await signInKnownIdentity(pool, identity);
-    if (!retry.user) throw new AccountNotApprovedError();
+    if (!retry.user) throw new AccountNotApprovedError(retry.identityExists ? "disabled" : "unlisted");
     return retry.user;
   }
 }
@@ -54,7 +55,7 @@ async function signInKnownIdentity(
       UPDATE users u
       SET status = 'active',
           last_login_at = now(),
-          display_name = COALESCE(u.display_name, $3),
+          display_name = COALESCE(u.display_name, NULLIF($3, '')),
           updated_at = now()
       FROM user_identities ui
       WHERE ui.provider = $1
@@ -97,7 +98,7 @@ async function activateInvitedUser(
     UPDATE users
     SET status = 'active',
         last_login_at = now(),
-        display_name = COALESCE(display_name, $2),
+        display_name = COALESCE(display_name, NULLIF($2, '')),
         updated_at = now()
     WHERE email = $1
       AND status = 'invited'
@@ -124,7 +125,7 @@ async function insertIdentity(
     );
   } catch (error) {
     if (isUniqueViolationOf(error, "user_identities_user_provider_key")) {
-      throw new AccountNotApprovedError();
+      throw new AccountNotApprovedError("second_account");
     }
     throw error;
   }

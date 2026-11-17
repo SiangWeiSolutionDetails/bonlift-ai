@@ -4,6 +4,7 @@ import { Pool, PoolClient } from "pg";
 export const SESSION_ABSOLUTE_MS = 7 * 24 * 3600_000;
 export const SESSION_IDLE_MS = 8 * 3600_000;
 export const SESSION_TOUCH_MS = 5 * 60_000;
+const USER_AGENT_MAX_LENGTH = 512;
 
 // 32 random bytes as base64url, no padding.
 const SESSION_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
@@ -40,7 +41,7 @@ export async function createSession(
     INSERT INTO user_sessions (id_hash, user_id, expires_at, user_agent)
     VALUES ($1, $2, now() + make_interval(secs => $3::double precision / 1000), $4)
     `,
-    [idHash, userId, SESSION_ABSOLUTE_MS, userAgent],
+    [idHash, userId, SESSION_ABSOLUTE_MS, userAgent?.slice(0, USER_AGENT_MAX_LENGTH) ?? null],
   );
   return token;
 }

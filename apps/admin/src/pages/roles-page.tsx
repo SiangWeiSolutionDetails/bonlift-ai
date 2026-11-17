@@ -70,6 +70,10 @@ export function RolesPage() {
         </TabsList>
       </Tabs>
 
+      <p className="-mt-3 text-sm text-muted-foreground">
+        {t(kind === "console" ? "page.consoleHint" : "page.brandHint")}
+      </p>
+
       <Input
         type="search"
         className="w-72"

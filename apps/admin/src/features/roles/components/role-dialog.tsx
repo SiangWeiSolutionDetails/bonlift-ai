@@ -260,6 +260,9 @@ function RoleForm({ target, onDone }: { target: RoleDialogTarget; onDone: () => 
           {!isReadOnly && kind === "console" && (
             <p className="text-sm text-muted-foreground">{t("dialog.lackedHint")}</p>
           )}
+          {kind === "brand" && (
+            <p className="text-sm text-muted-foreground">{t("dialog.brandHint")}</p>
+          )}
           <div className="grid gap-4">
             <label className="flex items-center gap-2 pl-7 text-sm font-semibold">
               <Checkbox

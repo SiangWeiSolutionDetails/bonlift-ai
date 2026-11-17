@@ -2,7 +2,9 @@
   "page": {
     "title": "角色",
     "newConsoleRole": "新建后台角色",
-    "newBrandRole": "新建品牌角色"
+    "newBrandRole": "新建品牌角色",
+    "consoleHint": "后台角色作用于整个后台：租户、品牌列表、用户和角色。每位用户最多一个。",
+    "brandHint": "品牌角色是模板。分配时再选择品牌：在“用户”页面或品牌的“成员”标签页中分配。"
   },
   "tabs": {
     "console": "后台角色",
@@ -36,6 +38,7 @@
     "toggleGroup": "展开或收起{{group}}操作",
     "builtinHint": "内置管理员角色拥有所有后台操作权限，无法修改。",
     "lackedHint": "您只能授予自己持有的后台操作权限。",
+    "brandHint": "该角色不绑定任何品牌。分配时再选择品牌：在“用户”页面或品牌的“成员”标签页中分配。",
     "assignedUsers": "已分配用户",
     "assignedUsersHint": "如需更改谁持有该角色，请前往“用户”页面或品牌的“成员”标签页。",
     "noAssignedUsers": "暂无用户持有该角色。",

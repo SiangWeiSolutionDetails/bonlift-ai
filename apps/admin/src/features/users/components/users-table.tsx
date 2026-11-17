@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -15,6 +14,7 @@ import { formatDateTime } from "@/lib/date-format";
 import { getErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
 import type { UserRecord } from "../type";
+import { UserStatusBadge } from "./user-status-badge";
 
 const COLUMN_COUNT = 7;
 const SKELETON_ROW_COUNT = 3;
@@ -105,9 +105,7 @@ function UsersTableRows({
         <TableCell className="font-medium">{user.email}</TableCell>
         <TableCell>{user.displayName ?? "-"}</TableCell>
         <TableCell>
-          <Badge variant={user.status === "active" ? "secondary" : "outline"}>
-            {t(`status.${user.status}`)}
-          </Badge>
+          <UserStatusBadge status={user.status} />
         </TableCell>
         <TableCell>{user.consoleRole?.name ?? t("table.noRole")}</TableCell>
         <TableCell>{user.brandCount}</TableCell>

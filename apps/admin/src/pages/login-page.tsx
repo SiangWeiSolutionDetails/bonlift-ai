@@ -1,5 +1,5 @@
 import { useSearch } from "@tanstack/react-router";
-import { ShieldCheckIcon, SparklesIcon } from "lucide-react";
+import { ShieldCheckIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { ThemeSwitcher } from "@/components/theme-switcher";
@@ -43,14 +43,9 @@ function BrandMark() {
   const { t } = useTranslation("auth");
 
   return (
-    <div className="flex flex-col items-center gap-4 text-center">
-      <span className="flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
-        <SparklesIcon className="size-6" />
-      </span>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-[28px] font-bold tracking-tight">{t("signInTitle")}</h1>
-        <p className="text-sm text-muted-foreground">{t("tagline")}</p>
-      </div>
+    <div className="flex flex-col items-center gap-1 text-center">
+      <h1 className="text-[28px] font-bold tracking-tight">{t("signInTitle")}</h1>
+      <p className="text-sm text-muted-foreground">{t("tagline")}</p>
     </div>
   );
 }

@@ -57,7 +57,10 @@ export function RoleDialog({ target, onClose }: RoleDialogProps) {
 
   return (
     <Dialog open={target !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent aria-describedby={undefined} className="sm:max-w-xl">
+      <DialogContent
+        aria-describedby={undefined}
+        className="flex max-h-[calc(100dvh-2rem)] flex-col sm:max-w-2xl"
+      >
         <DialogHeader>
           <DialogTitle>{shown && t(TITLE_KEYS[shown.mode])}</DialogTitle>
         </DialogHeader>
@@ -229,80 +232,82 @@ function RoleForm({ target, onDone }: { target: RoleDialogTarget; onDone: () => 
   }
 
   return (
-    <form onSubmit={submit} className="grid gap-6">
-      <div className="grid gap-2">
-        <Label htmlFor="role-name">{t("dialog.name")}</Label>
-        <Input
-          id="role-name"
-          value={name}
-          disabled={isReadOnly}
-          onChange={(event) => setName(event.target.value)}
-        />
-      </div>
-
-      <fieldset className="grid gap-4">
-        <legend className="mb-2 text-sm font-medium">{t("dialog.permissions")}</legend>
-        {isBuiltin && <p className="text-sm text-muted-foreground">{t("dialog.builtinHint")}</p>}
-        {!isReadOnly && kind === "console" && (
-          <p className="text-sm text-muted-foreground">{t("dialog.lackedHint")}</p>
-        )}
-        <div className="grid max-h-80 gap-4 overflow-y-auto pr-1">
-          <label className="flex items-center gap-2 text-sm font-semibold">
-            <Checkbox
-              checked={groupState(allKeys, effective)}
-              disabled={!allKeys.some(isEnabled)}
-              onCheckedChange={() => toggleKeys(allKeys)}
-            />
-            {t("dialog.selectAll")}
-          </label>
-          {groups.map(({ group, keys }) => {
-            const groupName = tPermissions(`groups.${group}` as never);
-            return (
-              <Collapsible key={group} defaultOpen className="group/collapsible grid gap-2">
-                <div className="flex items-center gap-1">
-                  <CollapsibleTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="size-6"
-                      aria-label={t("dialog.toggleGroup", { group: groupName })}
-                    >
-                      <ChevronRightIcon className="transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                    </Button>
-                  </CollapsibleTrigger>
-                  <label className="flex items-center gap-2 text-sm font-semibold">
-                    <Checkbox
-                      checked={groupState(keys, effective)}
-                      disabled={!keys.some(isEnabled)}
-                      onCheckedChange={() => toggleKeys(keys)}
-                    />
-                    {groupName}
-                  </label>
-                </div>
-                <CollapsibleContent className="grid gap-2 pl-13">
-                  {keys.map((key) => (
-                    <label key={key} className="flex items-center gap-2 text-sm">
-                      <Checkbox
-                        checked={effective.has(key)}
-                        disabled={!isEnabled(key)}
-                        onCheckedChange={() => setSelected((current) => toggled(current, key))}
-                      />
-                      {tPermissions(key as never)}
-                    </label>
-                  ))}
-                </CollapsibleContent>
-              </Collapsible>
-            );
-          })}
+    <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col gap-6">
+      <div className="-mx-6 grid min-h-0 flex-1 gap-6 overflow-y-auto px-6">
+        <div className="grid gap-2">
+          <Label htmlFor="role-name">{t("dialog.name")}</Label>
+          <Input
+            id="role-name"
+            value={name}
+            disabled={isReadOnly}
+            onChange={(event) => setName(event.target.value)}
+          />
         </div>
-      </fieldset>
 
-      {existing && canConsole("users.view") && <AssignedUsers roleId={existing.id} kind={kind} />}
+        <fieldset className="grid gap-4">
+          <legend className="mb-2 text-sm font-medium">{t("dialog.permissions")}</legend>
+          {isBuiltin && <p className="text-sm text-muted-foreground">{t("dialog.builtinHint")}</p>}
+          {!isReadOnly && kind === "console" && (
+            <p className="text-sm text-muted-foreground">{t("dialog.lackedHint")}</p>
+          )}
+          <div className="grid gap-4">
+            <label className="flex items-center gap-2 text-sm font-semibold">
+              <Checkbox
+                checked={groupState(allKeys, effective)}
+                disabled={!allKeys.some(isEnabled)}
+                onCheckedChange={() => toggleKeys(allKeys)}
+              />
+              {t("dialog.selectAll")}
+            </label>
+            {groups.map(({ group, keys }) => {
+              const groupName = tPermissions(`groups.${group}` as never);
+              return (
+                <Collapsible key={group} defaultOpen className="group/collapsible grid gap-2">
+                  <div className="flex items-center gap-1">
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-6"
+                        aria-label={t("dialog.toggleGroup", { group: groupName })}
+                      >
+                        <ChevronRightIcon className="transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      </Button>
+                    </CollapsibleTrigger>
+                    <label className="flex items-center gap-2 text-sm font-semibold">
+                      <Checkbox
+                        checked={groupState(keys, effective)}
+                        disabled={!keys.some(isEnabled)}
+                        onCheckedChange={() => toggleKeys(keys)}
+                      />
+                      {groupName}
+                    </label>
+                  </div>
+                  <CollapsibleContent className="grid gap-2 pl-13">
+                    {keys.map((key) => (
+                      <label key={key} className="flex items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={effective.has(key)}
+                          disabled={!isEnabled(key)}
+                          onCheckedChange={() => setSelected((current) => toggled(current, key))}
+                        />
+                        {tPermissions(key as never)}
+                      </label>
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              );
+            })}
+          </div>
+        </fieldset>
 
-      {mutation.error && (
-        <p className="text-sm text-destructive">{getErrorMessage(mutation.error, tCommon)}</p>
-      )}
+        {existing && canConsole("users.view") && <AssignedUsers roleId={existing.id} kind={kind} />}
+
+        {mutation.error && (
+          <p className="text-sm text-destructive">{getErrorMessage(mutation.error, tCommon)}</p>
+        )}
+      </div>
 
       <DialogFooter>
         <DialogClose asChild>

@@ -151,8 +151,32 @@
     }
 }
 
-/* Login backdrop: gradient glows drift slowly */
-@keyframes login-drift {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(6%, 4%) scale(1.1); }
+/* Login backdrop: liquid colour blobs that morph and flow */
+@keyframes login-morph {
+  0%, 100% { border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%; }
+  33% { border-radius: 70% 30% 46% 54% / 30% 29% 71% 70%; }
+  66% { border-radius: 30% 70% 35% 65% / 62% 38% 62% 38%; }
+}
+
+@keyframes login-flow-a {
+  0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+  33% { transform: translate(18%, 12%) rotate(60deg) scale(1.15); }
+  66% { transform: translate(-8%, 20%) rotate(120deg) scale(0.9); }
+}
+
+@keyframes login-flow-b {
+  0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+  33% { transform: translate(-20%, 10%) rotate(-70deg) scale(1.1); }
+  66% { transform: translate(-6%, -16%) rotate(-140deg) scale(0.95); }
+}
+
+@keyframes login-flow-c {
+  0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+  50% { transform: translate(14%, -22%) rotate(90deg) scale(1.2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-blob {
+    animation: none !important;
+  }
 }

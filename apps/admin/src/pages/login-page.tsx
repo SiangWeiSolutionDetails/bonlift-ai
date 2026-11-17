@@ -30,12 +30,26 @@ function GoogleMark() {
   );
 }
 
+const LIQUID_BLOBS = [
+  { color: "#4285F4", position: "top-[-15%] left-[5%]", size: "size-160", flow: "login-flow-a 24s" },
+  { color: "#9B72CB", position: "top-[15%] right-[-5%]", size: "size-144", flow: "login-flow-b 28s" },
+  { color: "#D96570", position: "bottom-[-20%] left-[25%]", size: "size-136", flow: "login-flow-c 32s" },
+  { color: "#24C1E0", position: "bottom-[0%] right-[15%]", size: "size-96", flow: "login-flow-b 20s" },
+];
+
 function GradientBackdrop() {
   return (
     <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className="absolute top-[-20%] left-[10%] size-168 rounded-full bg-[#4285F4] opacity-25 blur-[120px] motion-safe:animate-[login-drift_18s_ease-in-out_infinite] dark:opacity-35" />
-      <div className="absolute top-[20%] right-[-10%] size-144 rounded-full bg-[#9B72CB] opacity-25 blur-[120px] motion-safe:animate-[login-drift_22s_ease-in-out_infinite_reverse] dark:opacity-35" />
-      <div className="absolute bottom-[-25%] left-[30%] size-136 rounded-full bg-[#D96570] opacity-20 blur-[120px] motion-safe:animate-[login-drift_26s_ease-in-out_infinite] dark:opacity-30" />
+      {LIQUID_BLOBS.map((blob, index) => (
+        <div
+          key={blob.color}
+          className={`login-blob absolute ${blob.position} ${blob.size} opacity-30 blur-[90px] dark:opacity-40`}
+          style={{
+            backgroundColor: blob.color,
+            animation: `login-morph ${14 + index * 3}s ease-in-out infinite, ${blob.flow} ease-in-out infinite`,
+          }}
+        />
+      ))}
     </div>
   );
 }

@@ -4,19 +4,26 @@ import { reconcileWithRetry } from "./schedules/reconcileCalculationSchedules.js
 import { startCustomerItemScoresWorker } from "./workers/customerItemScores.worker.js";
 import { startItemAffinityWorker } from "./workers/itemAffinity.worker.js";
 import { startOutletItemScoresWorker } from "./workers/outletItemScores.worker.js";
+import { registerSessionCleanupSchedule } from "./queues/sessionCleanup.queue.js";
 import { startScheduledCalculationsWorker } from "./workers/scheduledCalculations.worker.js";
+import { startSessionCleanupWorker } from "./workers/sessionCleanup.worker.js";
 
 const workers = [
   startOutletItemScoresWorker(),
   startCustomerItemScoresWorker(),
   startItemAffinityWorker(),
   startScheduledCalculationsWorker(),
+  startSessionCleanupWorker(),
 ];
 
 let shuttingDown = false;
 
 // Each brand's schedule lives in brand_calculation_schedules (set in the admin); this rebuilds BullMQ from it.
 void reconcileWithRetry(getPool(), () => shuttingDown);
+
+registerSessionCleanupSchedule().catch((error) => {
+  console.error("[session-cleanup] registering the hourly schedule failed: ", error);
+});
 
 async function shutdown(signal: string): Promise<void> {
   if (shuttingDown) return;

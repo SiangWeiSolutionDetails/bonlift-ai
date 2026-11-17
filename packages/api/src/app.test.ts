@@ -1,11 +1,12 @@
 import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { buildApp } from "./app.js";
+import { resetAuthConfigCache } from "./config/env.js";
 
 const ADMIN_TOKEN = "a".repeat(64);
 const PLACEHOLDER_ID = "00000000-0000-0000-0000-000000000000";
 // Everything outside these prefixes is admin surface and must demand the admin token.
-const PUBLIC_PREFIXES = ["/health", "/docs", "/v1/"];
+const PUBLIC_PREFIXES = ["/health", "/docs", "/auth/", "/v1/"];
 
 type RouteEntry = { method: string; url: string };
 
@@ -27,6 +28,11 @@ function adminRoutes(): RouteEntry[] {
 beforeAll(async () => {
   vi.stubEnv("ADMIN_TOKEN", ADMIN_TOKEN);
   vi.stubEnv("CUSTOMER_ID_SECRET", "b".repeat(64));
+  vi.stubEnv("APP_BASE_URL", "http://localhost:5173");
+  vi.stubEnv("SESSION_COOKIE_SECRET", "c".repeat(64));
+  vi.stubEnv("GOOGLE_CLIENT_ID", "test-client-id");
+  vi.stubEnv("GOOGLE_CLIENT_SECRET", "test-client-secret");
+  resetAuthConfigCache();
   // Dev routes on, so the inventory covers every route the app can register.
   vi.stubEnv("ENABLE_DEV_ROUTES", "true");
   app = buildApp();
@@ -40,6 +46,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await app.close();
   vi.unstubAllEnvs();
+  resetAuthConfigCache();
 });
 
 describe("admin route inventory", () => {

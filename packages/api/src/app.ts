@@ -1,4 +1,5 @@
-import Fastify, { FastifyError, type FastifyInstance } from "fastify";
+import fastifyCookie from "@fastify/cookie";
+import Fastify, { FastifyError, type FastifyInstance, type FastifyRequest } from "fastify";
 import { AppError } from "./errors.js";
 import { healthRoutes } from "./routes/health.route.js";
 import { tenantRoutes } from "./routes/tenant.route.js";
@@ -21,6 +22,7 @@ import { itemAffinityResultRoutes } from "./routes/itemAffinityResult.route.js";
 import { recommendationRoutes } from "./routes/recommendation.route.js";
 import { itemAffinityServingRoutes } from "./routes/itemAffinityServing.route.js";
 import { brandApiKeyRoutes } from "./routes/brandApiKey.route.js";
+import { authRoutes } from "./routes/auth.route.js";
 import { brandChannelRoutes } from "./routes/brandChannel.route.js";
 import { brandUsageRoutes } from "./routes/brandUsage.route.js";
 import { recommendationFeedbackReportRoutes } from "./routes/recommendationFeedbackReport.route.js";
@@ -33,14 +35,37 @@ import {
 import { createServingUsageHook } from "./plugins/servingUsage.js";
 import { registerApiDocs } from "./plugins/apiDocs.js";
 import { createAdminAuthHook } from "./plugins/adminAuth.js";
-import { areDevRoutesEnabled, readAdminToken, readCustomerIdSecret } from "./config/env.js";
+import {
+  areDevRoutesEnabled,
+  readAdminToken,
+  readAuthConfig,
+  readCustomerIdSecret,
+} from "./config/env.js";
+
+const CALLBACK_PATH_PREFIX = "/auth/callback/";
+
+// The sign-in callback URL carries the authorization code and state: never log its query string.
+function redactLoggedUrl(url: string): string {
+  return url.startsWith(CALLBACK_PATH_PREFIX) ? url.split("?")[0] : url;
+}
+
+function serializeRequest(request: FastifyRequest) {
+  return {
+    method: request.method,
+    url: redactLoggedUrl(request.url),
+    host: request.host,
+    remoteAddress: request.ip,
+    remotePort: request.socket?.remotePort,
+  };
+}
 
 export function buildApp(): FastifyInstance {
   const adminToken = readAdminToken();
   // Read at start so a missing secret stops the API instead of failing the first upload or /v1 call.
   readCustomerIdSecret();
+  const authConfig = readAuthConfig();
   const app = Fastify({
-    logger: true,
+    logger: { serializers: { req: serializeRequest } },
     ajv: { customOptions: { removeAdditional: false } },
   });
 
@@ -68,7 +93,9 @@ export function buildApp(): FastifyInstance {
 
   registerApiDocs(app);
 
+  app.register(fastifyCookie, { secret: authConfig.cookieSecret });
   app.register(healthRoutes);
+  app.register(authRoutes);
 
   // Admin surface: the admin token hook is encapsulated to this scope only.
   app.register(async (admin) => {

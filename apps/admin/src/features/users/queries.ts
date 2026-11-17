@@ -15,6 +15,8 @@ export function useUserBrandRoles(userId: string | undefined) {
   return useQuery({
     queryKey: userKeys.brandRoles(userId ?? ""),
     queryFn: userId ? ({ signal }) => listUserBrandRoles(userId, signal) : skipToken,
+    // The edit dialog seeds its baseline from this, so each open must read fresh data
+    refetchOnMount: "always",
   });
 }
 

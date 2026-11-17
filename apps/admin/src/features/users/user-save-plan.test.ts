@@ -92,6 +92,25 @@ describe("applySaveStep", () => {
     expect(applySaveStep(baseline, { kind: "name", displayName: null }).displayName).toBe("");
   });
 
+  it("sets and clears the console role", () => {
+    const set = applySaveStep(baseline, { kind: "consoleRole", roleId: ROLE_B });
+    expect(set.consoleRoleId).toBe(ROLE_B);
+    expect(applySaveStep(set, { kind: "consoleRole", roleId: null }).consoleRoleId).toBeNull();
+  });
+
+  it("keeps a failed addition plannable when only the earlier steps are applied", () => {
+    const staged: UserEditState = {
+      ...baseline,
+      displayName: "Robert",
+      brandRoles: [...baseline.brandRoles, { brandId: BRAND_3, roleId: ROLE_B }],
+    };
+    const [nameStep, addStep] = planUserSave(baseline, staged);
+    const refreshed = applySaveStep(baseline, nameStep);
+
+    expect(addStep).toEqual({ kind: "addBrandRole", brandId: BRAND_3, roleId: ROLE_B });
+    expect(planUserSave(refreshed, staged)).toEqual([addStep]);
+  });
+
   it("removes, changes and adds brand roles", () => {
     const removed = applySaveStep(baseline, { kind: "removeBrandRole", brandId: BRAND_1 });
     const changed = applySaveStep(removed, { kind: "changeBrandRole", brandId: BRAND_2, roleId: ROLE_B });

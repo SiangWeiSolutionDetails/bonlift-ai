@@ -54,11 +54,14 @@ export function UserEditDialog({ user, onClose }: UserEditDialogProps) {
     if ("brandId" in step) saved.current.brandIds.add(step.brandId);
   }
 
-  function close() {
-    if (saving) return;
+  function finishClose() {
     if (saved.current) void invalidate(saved.current);
     saved.current = null;
     onClose();
+  }
+
+  function close() {
+    if (!saving) finishClose();
   }
 
   return (
@@ -75,6 +78,7 @@ export function UserEditDialog({ user, onClose }: UserEditDialogProps) {
             onSavingChange={setSaving}
             onSaved={(step) => recordSaved(user.id, step)}
             onCancel={close}
+            onDone={finishClose}
           />
         )}
       </DialogContent>
@@ -105,14 +109,18 @@ type UserEditBodyProps = {
   onSavingChange: (saving: boolean) => void;
   onSaved: (step: SaveStep) => void;
   onCancel: () => void;
+  onDone: () => void;
 };
 
 function UserEditBody(props: UserEditBodyProps) {
   const { t } = useTranslation("users");
   const { t: tCommon } = useTranslation();
-  const { data, error, isPending } = useUserBrandRoles(props.user.id);
+  const { data, error, isFetching } = useUserBrandRoles(props.user.id);
+  // Latched, so a later background refetch doesn't unmount the form and lose staged edits
+  const [ready, setReady] = useState(false);
+  if (!ready && !isFetching) setReady(true);
 
-  if (isPending) return <p className="text-sm text-muted-foreground">{t("edit.loading")}</p>;
+  if (!ready) return <p className="text-sm text-muted-foreground">{t("edit.loading")}</p>;
   return (
     <UserEditForm
       {...props}
@@ -172,6 +180,7 @@ function UserEditForm({
   onSavingChange,
   onSaved,
   onCancel,
+  onDone,
   initialBrandRoles,
   brandRolesError,
 }: UserEditFormProps) {
@@ -238,7 +247,14 @@ function UserEditForm({
       onSaved(step);
     }
     onSavingChange(false);
-    onCancel();
+    onDone();
+  }
+
+  function edited<T>(setter: (value: T) => void) {
+    return (value: T) => {
+      setFailure(null);
+      setter(value);
+    };
   }
 
   const brandErrors = new Map<string, string>();
@@ -252,17 +268,21 @@ function UserEditForm({
         disabled={saving}
         hint={access.canName && access.adminLocked ? t("edit.adminLocked") : null}
         error={failure?.step.kind === "name" ? failure.message : null}
-        onChange={setDisplayName}
+        onChange={edited(setDisplayName)}
       />
 
       <section className="grid gap-2">
-        <Label htmlFor="user-console-role">{t("edit.consoleRole")}</Label>
+        {access.consoleRole ? (
+          <Label htmlFor="user-console-role">{t("edit.consoleRole")}</Label>
+        ) : (
+          <p className="text-sm font-medium">{t("edit.consoleRole")}</p>
+        )}
         <ConsoleRoleField
           user={user}
           value={consoleRoleId}
           editable={access.consoleRole}
           disabled={saving}
-          onChange={setConsoleRoleId}
+          onChange={edited(setConsoleRoleId)}
         />
         <LockHint access={access} canSection={access.canConsoleRole} />
         {failure?.step.kind === "consoleRole" && (
@@ -284,7 +304,7 @@ function UserEditForm({
             editable={access.brandRoles}
             disabled={saving}
             errors={brandErrors}
-            onChange={setEntries}
+            onChange={edited(setEntries)}
           />
         )}
       </section>
@@ -399,9 +419,15 @@ function SaveReportLine({ report }: { report: SaveReport }) {
   const { t } = useTranslation("users");
   const separator = t("edit.listSeparator");
   return (
-    <p className="text-sm text-destructive">
-      {report.saved.length > 0 && `${t("edit.savedSummary", { items: report.saved.join(separator) })} `}
-      {t("edit.notSavedSummary", { item: report.failed.label, reason: report.failed.message })}
+    <p className="text-sm">
+      {report.saved.length > 0 && (
+        <span className="text-muted-foreground">
+          {`${t("edit.savedSummary", { items: report.saved.join(separator) })} `}
+        </span>
+      )}
+      <span className="text-destructive">
+        {t("edit.notSavedSummary", { item: report.failed.label, reason: report.failed.message })}
+      </span>
     </p>
   );
 }

@@ -20,6 +20,7 @@ const SKELETON_ROW_COUNT = 3;
 
 type RolesTableProps = {
   roles: Role[] | undefined;
+  emptyMessage?: string;
   isPending: boolean;
   error: Error | null;
   heldRoleIds: ReadonlySet<string>;
@@ -54,6 +55,7 @@ export function RolesTable(props: RolesTableProps) {
 
 function RolesTableRows({
   roles,
+  emptyMessage,
   isPending,
   error,
   heldRoleIds,
@@ -79,7 +81,7 @@ function RolesTableRows({
   }
 
   if (!roles?.length) {
-    return <MessageRow>{t("table.empty")}</MessageRow>;
+    return <MessageRow>{emptyMessage ?? t("table.empty")}</MessageRow>;
   }
 
   return roles.map((role) => {

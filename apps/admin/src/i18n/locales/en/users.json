@@ -3,6 +3,10 @@
     "title": "Users",
     "invite": "Invite User"
   },
+  "search": {
+    "placeholder": "Search by email or name",
+    "noMatches": "No matches for “{{text}}”"
+  },
   "table": {
     "email": "Email",
     "name": "Name",

@@ -19,7 +19,16 @@ import { usePermissions } from "@/features/auth/permissions";
 import { getErrorMessage } from "@/lib/error-message";
 import { UserStatusBadge } from "@/features/users/components/user-status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useCreateRole, useRoleAssignments, useUpdateRole } from "../queries";
+import { filterAssignments } from "../filter-assignments";
 import { groupState, toggleGroup } from "../permission-selection";
 import type { Role, RoleAssignment, RoleKindType } from "../type";
 
@@ -84,13 +93,16 @@ function assignmentScope(assignment: RoleAssignment) {
   return [assignment.tenantName, assignment.brandName].filter(Boolean).join(" · ");
 }
 
-function AssignedUsers({ roleId }: { roleId: string }) {
+function AssignedUsers({ roleId, kind }: { roleId: string; kind: RoleKindType }) {
   const { t } = useTranslation("roles");
   const { t: tCommon } = useTranslation();
   const { data, isPending, error } = useRoleAssignments(roleId, true);
+  const [searchText, setSearchText] = useState("");
+  const filtered = filterAssignments(data, searchText);
+  const isBrand = kind === "brand";
 
   return (
-    <section className="grid gap-2">
+    <section className="grid min-w-0 gap-2">
       <div>
         <h3 className="text-sm font-medium">{t("dialog.assignedUsers")}</h3>
         <p className="text-sm text-muted-foreground">{t("dialog.assignedUsersHint")}</p>
@@ -102,23 +114,64 @@ function AssignedUsers({ roleId }: { roleId: string }) {
       ) : !data.length ? (
         <p className="text-sm text-muted-foreground">{t("dialog.noAssignedUsers")}</p>
       ) : (
-        <ul className="grid max-h-48 gap-2 overflow-y-auto pr-1">
-          {data.map((assignment) => (
-            <li
-              key={`${assignment.userId}-${assignment.brandId ?? ""}`}
-              className="flex items-center justify-between gap-3 text-sm"
-            >
-              <div className="min-w-0">
-                <p className="truncate font-medium">{assignment.displayName ?? assignment.email}</p>
-                <p className="truncate text-muted-foreground">{assignment.email}</p>
-                {assignment.brandId && (
-                  <p className="truncate text-muted-foreground">{assignmentScope(assignment)}</p>
+        <>
+          <div className="flex items-center justify-between gap-3">
+            <Input
+              type="search"
+              className="min-w-0 max-w-64"
+              aria-label={t("dialog.assignedSearch")}
+              placeholder={t("dialog.assignedSearch")}
+              value={searchText}
+              onChange={(event) => setSearchText(event.target.value)}
+            />
+            <span className="shrink-0 text-sm text-muted-foreground">
+              {searchText.trim()
+                ? t("dialog.assignedFiltered", { shown: filtered?.length, total: data.length })
+                : t("dialog.assignedCount", { count: data.length })}
+            </span>
+          </div>
+          <div className="max-h-48 min-w-0 overflow-auto rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("dialog.assignedName")}</TableHead>
+                  <TableHead>{t("dialog.assignedEmail")}</TableHead>
+                  <TableHead>{t("dialog.assignedStatus")}</TableHead>
+                  {isBrand && <TableHead>{t("dialog.assignedBrand")}</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered?.length ? (
+                  filtered.map((assignment) => (
+                    <TableRow key={`${assignment.userId}-${assignment.brandId ?? ""}`}>
+                      <TableCell className="max-w-32 truncate font-medium">
+                        {assignment.displayName ?? "-"}
+                      </TableCell>
+                      <TableCell className="max-w-44 truncate">{assignment.email}</TableCell>
+                      <TableCell>
+                        <UserStatusBadge status={assignment.status} />
+                      </TableCell>
+                      {isBrand && (
+                        <TableCell className="max-w-40 truncate">
+                          {assignmentScope(assignment) || "-"}
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell
+                      colSpan={isBrand ? 4 : 3}
+                      className="h-16 text-center text-muted-foreground"
+                    >
+                      {t("search.noMatches", { text: searchText.trim() })}
+                    </TableCell>
+                  </TableRow>
                 )}
-              </div>
-              <UserStatusBadge status={assignment.status} />
-            </li>
-          ))}
-        </ul>
+              </TableBody>
+            </Table>
+          </div>
+        </>
       )}
     </section>
   );
@@ -237,7 +290,7 @@ function RoleForm({ target, onDone }: { target: RoleDialogTarget; onDone: () => 
         </div>
       </fieldset>
 
-      {existing && canConsole("users.view") && <AssignedUsers roleId={existing.id} />}
+      {existing && canConsole("users.view") && <AssignedUsers roleId={existing.id} kind={kind} />}
 
       {mutation.error && (
         <p className="text-sm text-destructive">{getErrorMessage(mutation.error, tCommon)}</p>

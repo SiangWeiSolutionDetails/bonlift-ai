@@ -4,8 +4,10 @@ import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { usePermissions } from "@/features/auth/permissions";
 import { useCurrentUser } from "@/features/auth/queries";
+import { filterUsers } from "@/features/users/filter-users";
 import { InviteUserDialog } from "@/features/users/components/invite-user-dialog";
 import { UserEditDialog } from "@/features/users/components/user-edit-dialog";
 import { UsersTable } from "@/features/users/components/users-table";
@@ -37,7 +39,9 @@ export function UsersPage() {
   const [userToDelete, setUserToDelete] = useState<UserRecord | null>(null);
   const [deleteTitleEmail, setDeleteTitleEmail] = useState("");
   const [userToEdit, setUserToEdit] = useState<UserRecord | null>(null);
+  const [searchText, setSearchText] = useState("");
   const { data: users, error, isPending } = useUsers();
+  const filteredUsers = filterUsers(users, searchText);
   const reinviteMutation = useReinviteUser();
   const disableMutation = useDisableUser();
   const deleteMutation = useDeleteUser();
@@ -63,12 +67,24 @@ export function UsersPage() {
         }
       />
 
+      <Input
+        type="search"
+        className="w-72"
+        aria-label={t("search.placeholder")}
+        placeholder={t("search.placeholder")}
+        value={searchText}
+        onChange={(event) => setSearchText(event.target.value)}
+      />
+
       {shownError && (
         <p className="text-sm text-destructive">{getErrorMessage(shownError, tCommon)}</p>
       )}
 
       <UsersTable
-        users={users}
+        users={filteredUsers}
+        emptyMessage={
+          searchText.trim() ? t("search.noMatches", { text: searchText.trim() }) : undefined
+        }
         isPending={isPending}
         error={error}
         currentUserId={me.id}

@@ -3,6 +3,10 @@
     "title": "用户",
     "invite": "邀请用户"
   },
+  "search": {
+    "placeholder": "按邮箱或姓名搜索",
+    "noMatches": "没有匹配“{{text}}”的结果"
+  },
   "table": {
     "email": "邮箱",
     "name": "名称",

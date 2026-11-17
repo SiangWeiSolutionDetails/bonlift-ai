@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePermissions } from "@/features/auth/permissions";
 import { useCurrentUser } from "@/features/auth/queries";
@@ -12,6 +13,7 @@ import { RolesTable } from "@/features/roles/components/roles-table";
 import { useDeleteRole, useRoles } from "@/features/roles/queries";
 import type { Role, RoleKindType } from "@/features/roles/type";
 import { getErrorMessage } from "@/lib/error-message";
+import { filterByName } from "@/lib/filter-by-name";
 
 function useHeldRoleIds() {
   const me = useCurrentUser();
@@ -32,7 +34,9 @@ export function RolesPage() {
   const [roleToDelete, setRoleToDelete] = useState<Role | null>(null);
   // Not cleared on close, so the title doesn't lose the name while the dialog animates out
   const [deleteTitleName, setDeleteTitleName] = useState("");
+  const [searchText, setSearchText] = useState("");
   const { data: roles, error, isPending } = useRoles(kind);
+  const filteredRoles = filterByName(roles, searchText);
   const deleteMutation = useDeleteRole();
 
   return (
@@ -66,12 +70,24 @@ export function RolesPage() {
         </TabsList>
       </Tabs>
 
+      <Input
+        type="search"
+        className="w-72"
+        aria-label={t("search.placeholder")}
+        placeholder={t("search.placeholder")}
+        value={searchText}
+        onChange={(event) => setSearchText(event.target.value)}
+      />
+
       {deleteMutation.error && (
         <p className="text-sm text-destructive">{getErrorMessage(deleteMutation.error, tCommon)}</p>
       )}
 
       <RolesTable
-        roles={roles}
+        roles={filteredRoles}
+        emptyMessage={
+          searchText.trim() ? t("search.noMatches", { text: searchText.trim() }) : undefined
+        }
         isPending={isPending}
         error={error}
         heldRoleIds={heldRoleIds}

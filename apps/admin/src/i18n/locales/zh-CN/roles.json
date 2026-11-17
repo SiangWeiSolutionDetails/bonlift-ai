@@ -7,6 +7,10 @@
     "console": "后台角色",
     "brand": "品牌角色"
   },
+  "search": {
+    "placeholder": "按名称搜索角色",
+    "noMatches": "没有匹配“{{text}}”的结果"
+  },
   "table": {
     "name": "名称",
     "actions": "操作数",
@@ -32,7 +36,15 @@
     "lackedHint": "您只能授予自己持有的后台操作权限。",
     "assignedUsers": "已分配用户",
     "assignedUsersHint": "如需更改谁持有该角色，请前往“用户”页面或品牌的“成员”标签页。",
-    "noAssignedUsers": "暂无用户持有该角色。"
+    "noAssignedUsers": "暂无用户持有该角色。",
+    "assignedSearch": "搜索已分配用户",
+    "assignedFiltered": "{{shown}} / {{total}}",
+    "assignedName": "姓名",
+    "assignedEmail": "邮箱",
+    "assignedStatus": "状态",
+    "assignedBrand": "品牌",
+    "assignedCount_other": "{{count}} 位用户",
+    "assignedCount_one": "{{count}} 位用户"
   },
   "delete": {
     "title": "删除 {{name}}？",

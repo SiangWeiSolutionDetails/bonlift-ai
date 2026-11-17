@@ -21,6 +21,7 @@ const SKELETON_ROW_COUNT = 3;
 
 type UsersTableProps = {
   users: UserRecord[] | undefined;
+  emptyMessage?: string;
   isPending: boolean;
   error: Error | null;
   currentUserId: string;
@@ -65,6 +66,7 @@ export function UsersTable(props: UsersTableProps) {
 
 function UsersTableRows({
   users,
+  emptyMessage,
   isPending,
   error,
   currentUserId,
@@ -97,7 +99,7 @@ function UsersTableRows({
   }
 
   if (!users?.length) {
-    return <MessageRow>{t("table.empty")}</MessageRow>;
+    return <MessageRow>{emptyMessage ?? t("table.empty")}</MessageRow>;
   }
 
   return users.map((user) => {

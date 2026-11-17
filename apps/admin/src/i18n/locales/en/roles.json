@@ -7,6 +7,10 @@
     "console": "Console roles",
     "brand": "Brand roles"
   },
+  "search": {
+    "placeholder": "Search roles by name",
+    "noMatches": "No matches for “{{text}}”"
+  },
   "table": {
     "name": "Name",
     "actions": "Actions",
@@ -32,7 +36,15 @@
     "lackedHint": "You can only grant console actions you hold yourself.",
     "assignedUsers": "Assigned users",
     "assignedUsersHint": "To change who holds this role, use the Users page or the brand's Members tab.",
-    "noAssignedUsers": "No one holds this role."
+    "noAssignedUsers": "No one holds this role.",
+    "assignedSearch": "Search assigned users",
+    "assignedFiltered": "{{shown}} of {{total}}",
+    "assignedName": "Name",
+    "assignedEmail": "Email",
+    "assignedStatus": "Status",
+    "assignedBrand": "Brand",
+    "assignedCount_one": "{{count}} user",
+    "assignedCount_other": "{{count}} users"
   },
   "delete": {
     "title": "Delete {{name}}?",

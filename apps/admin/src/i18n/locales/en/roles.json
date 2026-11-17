@@ -27,6 +27,7 @@
     "name": "Name",
     "permissions": "Permissions",
     "selectAll": "Select all",
+    "toggleGroup": "Show or hide {{group}} actions",
     "builtinHint": "The built-in Admin role holds every console action and can't be changed.",
     "lackedHint": "You can only grant console actions you hold yourself."
   },

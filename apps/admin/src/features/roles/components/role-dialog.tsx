@@ -1,7 +1,10 @@
 import { useState, type FormEvent } from "react";
 import { PERMISSIONS, type ConsoleAction } from "@bonlift-ai/contracts";
+import { ChevronRightIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogClose,
@@ -17,7 +20,6 @@ import { getErrorMessage } from "@/lib/error-message";
 import { useCreateRole, useUpdateRole } from "../queries";
 import { groupState, toggleGroup } from "../permission-selection";
 import type { Role, RoleKindType } from "../type";
-import { TriStateCheckbox } from "./tri-state-checkbox";
 
 export type RoleDialogTarget =
   | { mode: "create"; kind: RoleKindType }
@@ -139,39 +141,53 @@ function RoleForm({ target, onDone }: { target: RoleDialogTarget; onDone: () => 
         )}
         <div className="grid max-h-80 gap-4 overflow-y-auto pr-1">
           <label className="flex items-center gap-2 text-sm font-semibold">
-            <TriStateCheckbox
-              className="size-4 accent-primary"
+            <Checkbox
               checked={groupState(allKeys, effective)}
               disabled={!allKeys.some(isEnabled)}
-              onChange={() => toggleKeys(allKeys)}
+              onCheckedChange={() => toggleKeys(allKeys)}
             />
             {t("dialog.selectAll")}
           </label>
-          {groups.map(({ group, keys }) => (
-            <div key={group} className="grid gap-2">
-              <label className="flex items-center gap-2 text-sm font-semibold">
-                <TriStateCheckbox
-                  className="size-4 accent-primary"
-                  checked={groupState(keys, effective)}
-                  disabled={!keys.some(isEnabled)}
-                  onChange={() => toggleKeys(keys)}
-                />
-                {tPermissions(`groups.${group}` as never)}
-              </label>
-              {keys.map((key) => (
-                <label key={key} className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    className="size-4 accent-primary"
-                    checked={effective.has(key)}
-                    disabled={!isEnabled(key)}
-                    onChange={() => setSelected((current) => toggled(current, key))}
-                  />
-                  {tPermissions(key as never)}
-                </label>
-              ))}
-            </div>
-          ))}
+          {groups.map(({ group, keys }) => {
+            const groupName = tPermissions(`groups.${group}` as never);
+            return (
+              <Collapsible key={group} defaultOpen className="group/collapsible grid gap-2">
+                <div className="flex items-center gap-1">
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-6"
+                      aria-label={t("dialog.toggleGroup", { group: groupName })}
+                    >
+                      <ChevronRightIcon className="transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <label className="flex items-center gap-2 text-sm font-semibold">
+                    <Checkbox
+                      checked={groupState(keys, effective)}
+                      disabled={!keys.some(isEnabled)}
+                      onCheckedChange={() => toggleKeys(keys)}
+                    />
+                    {groupName}
+                  </label>
+                </div>
+                <CollapsibleContent className="grid gap-2 pl-13">
+                  {keys.map((key) => (
+                    <label key={key} className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={effective.has(key)}
+                        disabled={!isEnabled(key)}
+                        onCheckedChange={() => setSelected((current) => toggled(current, key))}
+                      />
+                      {tPermissions(key as never)}
+                    </label>
+                  ))}
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
         </div>
       </fieldset>
 

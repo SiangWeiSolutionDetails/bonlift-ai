@@ -66,8 +66,6 @@ services:
     build:
       context: .
       target: web
-      args:
-        VITE_ADMIN_TOKEN: ${ADMIN_TOKEN:?ADMIN_TOKEN must be set in .env}
     image: ${IMAGE_REGISTRY:-ghcr.io/siangweisolutiondetails}/bonlift-web:${IMAGE_TAG:-staging}
     restart: unless-stopped
     environment:

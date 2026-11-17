@@ -262,7 +262,11 @@ function RoleForm({ target, onDone }: { target: RoleDialogTarget; onDone: () => 
             {groups.map(({ group, keys }) => {
               const groupName = tPermissions(`groups.${group}` as never);
               return (
-                <Collapsible key={group} defaultOpen className="group/collapsible grid gap-2">
+                <Collapsible
+                  key={group}
+                  defaultOpen={target.mode !== "edit"}
+                  className="group/collapsible grid gap-2"
+                >
                   <div className="flex items-center gap-1">
                     <CollapsibleTrigger asChild>
                       <Button

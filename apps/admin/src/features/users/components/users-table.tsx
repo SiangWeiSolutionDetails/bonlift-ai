@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { EyeIcon, PencilIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -120,7 +119,6 @@ function UsersTableRows({
             aria-label={t(canEdit ? "table.editUser" : "table.viewUser", { email: user.email })}
             onClick={() => onEdit(user)}
           >
-            {canEdit ? <PencilIcon data-icon="inline-start" /> : <EyeIcon data-icon="inline-start" />}
             {tCommon(canEdit ? "actions.edit" : "actions.view")}
           </Button>
           {canInvite && user.status === "disabled" && (

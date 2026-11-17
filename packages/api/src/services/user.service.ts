@@ -151,6 +151,7 @@ interface ConsoleRoleFlags {
   target_found: boolean;
   target_is_admin: boolean;
   current_subset: boolean;
+  written: boolean;
   role_found?: boolean;
   role_builtin?: boolean;
   new_subset?: boolean;
@@ -183,10 +184,20 @@ const isSubsetOf = (roleId: string, actionsParam: string) => `NOT EXISTS (
   EXCEPT SELECT unnest(${actionsParam}::text[])
 )`;
 
+// Re-read on the locked row, so a role granted after the snapshot (an Admin's, or a broader one) is not overwritten.
+const lockedRoleWithin = (roleId: string, isAdminParam: string, actionsParam: string) => `(
+  ${isAdminParam}::boolean
+  OR (
+    NOT EXISTS (SELECT 1 FROM roles lr WHERE lr.id = ${roleId} AND lr.is_builtin)
+    AND ${isSubsetOf(roleId, actionsParam)}
+  )
+)`;
+
 // $1 is the target user. With no console role, the current role is empty, so it is a subset.
 const consoleTargetCte = (actionsParam: string) => `
   target AS (
     SELECT u.id, u.email, u.display_name, u.status, u.last_login_at,
+           ucr.role_id AS current_role_id,
            COALESCE(cr.is_builtin, false) AS target_is_admin,
            ${isSubsetOf("ucr.role_id", actionsParam)} AS current_subset
     FROM users u
@@ -210,6 +221,7 @@ const SET_CONSOLE_ROLE_SQL = `
        OR (NOT ro.is_builtin AND NOT t.target_is_admin AND ro.new_subset AND t.current_subset)
     ON CONFLICT (user_id) DO UPDATE
     SET role_id = EXCLUDED.role_id, granted_by = EXCLUDED.granted_by, updated_at = now()
+    WHERE ${lockedRoleWithin("user_console_roles.role_id", "$4", "$5")}
     RETURNING user_id
   )
   SELECT
@@ -219,6 +231,7 @@ const SET_CONSOLE_ROLE_SQL = `
     COALESCE(t.target_is_admin, false) AS target_is_admin,
     COALESCE(ro.new_subset, false) AS new_subset,
     COALESCE(t.current_subset, false) AS current_subset,
+    a.user_id IS NOT NULL AS written,
     ${userRecordColumns("t", "ro")}
   FROM (VALUES (1)) AS one (x)
   LEFT JOIN target t ON true
@@ -232,13 +245,17 @@ const CLEAR_CONSOLE_ROLE_SQL = `
     USING target t
     WHERE ucr.user_id = t.id
       AND ($2::boolean OR (NOT t.target_is_admin AND t.current_subset))
+      AND ${lockedRoleWithin("ucr.role_id", "$2", "$3")}
+    RETURNING ucr.user_id
   )
   SELECT
     t.id IS NOT NULL AS target_found,
     COALESCE(t.target_is_admin, false) AS target_is_admin,
-    COALESCE(t.current_subset, false) AS current_subset
+    COALESCE(t.current_subset, false) AS current_subset,
+    (t.current_role_id IS NULL OR c.user_id IS NOT NULL) AS written
   FROM (VALUES (1)) AS one (x)
-  LEFT JOIN target t ON true`;
+  LEFT JOIN target t ON true
+  LEFT JOIN cleared c ON true`;
 
 // $1 is the target, $2 whether the actor is an Admin. The update runs only from fromStatus.
 const statusChangeSql = (toStatus: string, fromStatus: string, afterChange = "") => `
@@ -305,6 +322,11 @@ function assertConsoleRoleGuards(actor: RequestAccess, flags: ConsoleRoleFlags):
   if (!flags.current_subset) throw new ForbiddenError("The user's console role holds actions you lack.");
 }
 
+function assertConsoleRoleWritten(actor: RequestAccess, flags: ConsoleRoleFlags): void {
+  assertConsoleRoleGuards(actor, flags);
+  if (!flags.written) throw new ConflictError("The user's role changed; try again.");
+}
+
 function assertStatusChanged(actor: RequestAccess, flags: StatusFlags, conflictMessage: string): void {
   if (!flags.target_found) throw new NotFoundError("User does not exist.");
   if (flags.target_is_admin && !actor.isAdmin) throw new ForbiddenError(ADMIN_TARGET_ERROR);
@@ -363,7 +385,7 @@ export async function setConsoleRole(
     actor.consoleActions,
   ]);
   const row = result.rows[0];
-  assertConsoleRoleGuards(actor, row);
+  assertConsoleRoleWritten(actor, row);
   return toUserRecord(row);
 }
 
@@ -372,7 +394,7 @@ export async function clearConsoleRole(db: Queryable, actor: RequestAccess, user
   assertNotSelf(actor, userId, OWN_CONSOLE_ROLE_ERROR);
 
   const result = await db.query(CLEAR_CONSOLE_ROLE_SQL, [userId, actor.isAdmin, actor.consoleActions]);
-  assertConsoleRoleGuards(actor, result.rows[0]);
+  assertConsoleRoleWritten(actor, result.rows[0]);
 }
 
 export async function disableUser(db: Queryable, actor: RequestAccess, userId: string): Promise<UserRecordSchemaType> {

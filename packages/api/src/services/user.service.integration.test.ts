@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { ConflictError, ForbiddenError } from "../errors.js";
 import { getTestPool } from "../testing/testDb.js";
 import type { RequestAccess } from "./authorization.service.js";
-import { disableUser, setConsoleRole } from "./user.service.js";
+import { clearConsoleRole, disableUser, setConsoleRole } from "./user.service.js";
 
 async function userNamed(email: string, status = "active"): Promise<string> {
   const result = await getTestPool().query(`INSERT INTO users (email, status) VALUES ($1, $2) RETURNING id`, [
@@ -83,6 +83,33 @@ async function statusOf(userId: string): Promise<string> {
 
 const ASSIGNER_ACTIONS: RequestAccess["consoleActions"] = ["users.view", "users.assignConsoleRoles"];
 
+async function waitForLockWaiter(): Promise<void> {
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    const result = await getTestPool().query(
+      `SELECT count(*)::int AS n FROM pg_stat_activity WHERE wait_event_type = 'Lock' AND datname = current_database()`,
+    );
+    if (result.rows[0].n > 0) return;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error("No statement waited on the row lock.");
+}
+
+// Another transaction changes the user's console role and holds the row lock while `write` starts from the old snapshot.
+async function racingRoleChange<T>(userId: string, roleId: string, write: () => Promise<T>): Promise<T> {
+  const client = await getTestPool().connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(`UPDATE user_console_roles SET role_id = $2 WHERE user_id = $1`, [userId, roleId]);
+    const pending = write();
+    pending.catch(() => undefined);
+    await waitForLockWaiter();
+    await client.query("COMMIT");
+    return await pending;
+  } finally {
+    client.release();
+  }
+}
+
 describe("setConsoleRole (integration)", () => {
   it("assigns a role within the actor's actions and records who granted it", async () => {
     const actor = await actorWithRole("assigner@x.com", ASSIGNER_ACTIONS);
@@ -151,6 +178,89 @@ describe("setConsoleRole (integration)", () => {
     const viewer = await insertRole("Viewer", ["users.view"]);
 
     await expect(setConsoleRole(getTestPool(), actor, target, viewer)).rejects.toBeInstanceOf(ForbiddenError);
+
+    expect(await storedConsoleRole(target)).toEqual({ role_id: adminId, granted_by: null });
+  });
+});
+
+describe("setConsoleRole races (integration)", () => {
+  it("lets an Admin replace an Admin's role", async () => {
+    const actor = await adminActor("admin@x.com");
+    const target = await userNamed("boss@x.com");
+    await assignConsoleRole(target, await adminRoleId());
+    const viewer = await insertRole("Viewer", ["users.view"]);
+
+    await setConsoleRole(getTestPool(), actor, target, viewer);
+
+    expect(await storedConsoleRole(target)).toEqual({ role_id: viewer, granted_by: actor.user.id });
+  });
+
+  it("returns 409 and keeps the Admin role granted after the non-Admin's snapshot", async () => {
+    const actor = await actorWithRole("assigner@x.com", ASSIGNER_ACTIONS);
+    const target = await userNamed("bob@x.com");
+    const viewer = await insertRole("Viewer", ["users.view"]);
+    await assignConsoleRole(target, viewer);
+    const adminId = await adminRoleId();
+
+    await expect(
+      racingRoleChange(target, adminId, () => setConsoleRole(getTestPool(), actor, target, viewer)),
+    ).rejects.toBeInstanceOf(ConflictError);
+
+    expect(await storedConsoleRole(target)).toEqual({ role_id: adminId, granted_by: null });
+  });
+});
+
+describe("clearConsoleRole (integration)", () => {
+  it("lets a non-Admin clear a role within their actions", async () => {
+    const actor = await actorWithRole("assigner@x.com", ASSIGNER_ACTIONS);
+    const target = await userNamed("bob@x.com");
+    await assignConsoleRole(target, await insertRole("Viewer", ["users.view"]));
+
+    await clearConsoleRole(getTestPool(), actor, target);
+
+    expect(await storedConsoleRole(target)).toBeNull();
+  });
+
+  it("succeeds for a user with no console role", async () => {
+    const actor = await actorWithRole("assigner@x.com", ASSIGNER_ACTIONS);
+    const target = await userNamed("bob@x.com");
+
+    await clearConsoleRole(getTestPool(), actor, target);
+
+    expect(await storedConsoleRole(target)).toBeNull();
+  });
+
+  it("refuses a non-Admin clearing an Admin's role and writes nothing", async () => {
+    const actor = await actorWithRole("assigner@x.com", ASSIGNER_ACTIONS);
+    const target = await userNamed("boss@x.com");
+    const adminId = await adminRoleId();
+    await assignConsoleRole(target, adminId);
+
+    await expect(clearConsoleRole(getTestPool(), actor, target)).rejects.toBeInstanceOf(ForbiddenError);
+
+    expect(await storedConsoleRole(target)).toEqual({ role_id: adminId, granted_by: null });
+  });
+
+  it("refuses a non-Admin clearing a role broader than their own and writes nothing", async () => {
+    const actor = await actorWithRole("assigner@x.com", ASSIGNER_ACTIONS);
+    const target = await userNamed("bob@x.com");
+    const broader = await insertRole("Grantor", ["users.view", "roles.manage"]);
+    await assignConsoleRole(target, broader);
+
+    await expect(clearConsoleRole(getTestPool(), actor, target)).rejects.toBeInstanceOf(ForbiddenError);
+
+    expect(await storedConsoleRole(target)).toEqual({ role_id: broader, granted_by: null });
+  });
+
+  it("returns 409 and keeps the Admin role granted after the non-Admin's snapshot", async () => {
+    const actor = await actorWithRole("assigner@x.com", ASSIGNER_ACTIONS);
+    const target = await userNamed("bob@x.com");
+    await assignConsoleRole(target, await insertRole("Viewer", ["users.view"]));
+    const adminId = await adminRoleId();
+
+    await expect(
+      racingRoleChange(target, adminId, () => clearConsoleRole(getTestPool(), actor, target)),
+    ).rejects.toBeInstanceOf(ConflictError);
 
     expect(await storedConsoleRole(target)).toEqual({ role_id: adminId, granted_by: null });
   });

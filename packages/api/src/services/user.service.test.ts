@@ -268,13 +268,14 @@ function consoleRoleFlags(overrides: Record<string, unknown> = {}) {
     target_is_admin: false,
     new_subset: true,
     current_subset: true,
+    written: true,
     ...userRow(),
     ...overrides,
   };
 }
 
 function clearFlags(overrides: Record<string, unknown> = {}) {
-  return { target_found: true, target_is_admin: false, current_subset: true, ...overrides };
+  return { target_found: true, target_is_admin: false, current_subset: true, written: true, ...overrides };
 }
 
 function statusFlags(overrides: Record<string, unknown> = {}) {
@@ -428,6 +429,12 @@ describe("setConsoleRole", () => {
     expect(poolQueryMock.mock.calls[0][1][3]).toBe(true);
   });
 
+  it("returns 409 when the user's role changed before the write", async () => {
+    poolQueryMock.mockResolvedValueOnce(pgResult([consoleRoleFlags({ written: false })]));
+
+    await expect(setConsoleRole(fakePool, userManager, TARGET_ID, ROLE_ID)).rejects.toBeInstanceOf(ConflictError);
+  });
+
   it("returns 404 for an unknown user or role", async () => {
     poolQueryMock
       .mockResolvedValueOnce(pgResult([consoleRoleFlags({ target_found: false, role_builtin: true })]))
@@ -454,6 +461,12 @@ describe("clearConsoleRole", () => {
     poolQueryMock.mockResolvedValueOnce(pgResult([clearFlags({ target_found: false })]));
 
     await expect(clearConsoleRole(fakePool, userManager, TARGET_ID)).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("returns 409 when the user's role changed before the delete", async () => {
+    poolQueryMock.mockResolvedValueOnce(pgResult([clearFlags({ written: false })]));
+
+    await expect(clearConsoleRole(fakePool, userManager, TARGET_ID)).rejects.toBeInstanceOf(ConflictError);
   });
 
   it("clears the role in one statement", async () => {

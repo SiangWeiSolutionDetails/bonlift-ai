@@ -281,6 +281,28 @@ function statusFlags(overrides: Record<string, unknown> = {}) {
   return { target_found: true, target_is_admin: false, ...userRow(), ...overrides };
 }
 
+describe("self checks", () => {
+  const OWN_ID_UPPERCASE = "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA";
+  const lowercaseActor = { ...admin, user: { ...admin.user, id: OWN_ID_UPPERCASE.toLowerCase() } };
+
+  it("refuses your own console role given as an uppercase UUID", async () => {
+    await expect(setConsoleRole(fakePool, lowercaseActor, OWN_ID_UPPERCASE, ROLE_ID)).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+    expect(poolQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("refuses clearing your own console role given as an uppercase UUID", async () => {
+    await expect(clearConsoleRole(fakePool, lowercaseActor, OWN_ID_UPPERCASE)).rejects.toBeInstanceOf(ForbiddenError);
+    expect(poolQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("refuses disabling yourself given as an uppercase UUID", async () => {
+    await expect(disableUser(fakePool, lowercaseActor, OWN_ID_UPPERCASE)).rejects.toBeInstanceOf(ForbiddenError);
+    expect(poolQueryMock).not.toHaveBeenCalled();
+  });
+});
+
 describe("listUsers", () => {
   it("maps each user with their console role and brand count", async () => {
     poolQueryMock.mockResolvedValueOnce(

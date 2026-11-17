@@ -291,7 +291,8 @@ function toUserRecord(row: any): UserRecordSchemaType {
 }
 
 function assertNotSelf(actor: RequestAccess, userId: string, message: string): void {
-  if (actor.user.id === userId) throw new ForbiddenError(message);
+  // Postgres compares UUIDs case-insensitively, so this must too.
+  if (actor.user.id.toLowerCase() === userId.toLowerCase()) throw new ForbiddenError(message);
 }
 
 function assertConsoleRoleGuards(actor: RequestAccess, flags: ConsoleRoleFlags): void {

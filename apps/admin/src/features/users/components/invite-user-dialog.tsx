@@ -52,7 +52,7 @@ function InviteForm({ onDone }: { onDone: () => void }) {
   const { canConsole } = usePermissions();
   const canConsoleRole = canConsole("users.assignConsoleRoles");
   const canBrandRoles = canConsole("users.assignBrandRoles");
-  const { data: brandRoleOptions = [] } = useRoles("brand");
+  const { data: brandRoleOptions = [] } = useRoles("brand", canBrandRoles);
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [consoleRoleId, setConsoleRoleId] = useState<string | null>(null);

@@ -9,10 +9,11 @@ export const roleKeys = {
   assignments: (roleId: string) => [...roleKeys.all, "assignments", roleId] as const,
 };
 
-export function useRoles(kind: RoleKindType) {
+export function useRoles(kind: RoleKindType, enabled = true) {
   return useQuery({
     queryKey: roleKeys.list(kind),
     queryFn: ({ signal }) => listRoles(kind, signal),
+    enabled,
   });
 }
 

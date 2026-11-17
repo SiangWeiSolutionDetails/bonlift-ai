@@ -7,10 +7,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useBrands } from "@/features/brands/queries";
+import type { BrandAction } from "@bonlift-ai/contracts";
+import { useBrandsWith } from "@/features/brands/queries";
 import { useOutlets } from "@/features/outlets/queries";
 
 type OutletPickerProps = {
+  action: BrandAction;
   brandId: string | undefined;
   outletId: string | undefined;
   onBrandChange: (brandId: string) => void;
@@ -18,13 +20,14 @@ type OutletPickerProps = {
 };
 
 export function OutletPicker({
+  action,
   brandId,
   outletId,
   onBrandChange,
   onOutletChange,
 }: OutletPickerProps) {
   const { t } = useTranslation("results");
-  const { data: brands = [] } = useBrands();
+  const brands = useBrandsWith(action);
   // Shares the outlets page's cache entry for the same brand
   const { data: outlets = [] } = useOutlets(brandId ? { brandId } : {});
 

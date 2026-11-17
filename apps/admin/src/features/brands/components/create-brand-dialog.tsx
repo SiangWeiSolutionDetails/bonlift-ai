@@ -29,7 +29,7 @@ import { FieldError } from "@/components/field-error";
 type CreateBrandDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  tenants: Tenant[];
+  tenants: Pick<Tenant, "id" | "name">[];
 };
 
 export function CreateBrandDialog({
@@ -56,7 +56,7 @@ export function CreateBrandDialog({
 }
 
 type CreateBrandFormProps = {
-  tenants: Tenant[];
+  tenants: Pick<Tenant, "id" | "name">[];
   onCreated: () => void;
 };
 

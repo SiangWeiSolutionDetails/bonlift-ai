@@ -14,7 +14,8 @@ import {
 } from "@/components/ui/select";
 import { BrandApiKeysTable } from "@/features/brand-api-keys/components/brand-api-keys-table";
 import { CreateApiKeyDialog } from "@/features/brand-api-keys/components/create-api-key-dialog";
-import { useBrands } from "@/features/brands/queries";
+import { usePermissions } from "@/features/auth/permissions";
+import { useBrandsWith } from "@/features/brands/queries";
 
 const routeApi = getRouteApi("/_app/brand-api-keys");
 
@@ -23,17 +24,20 @@ export function ApiKeysPage() {
   const search = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const { data: brands = [] } = useBrands();
+  const brands = useBrandsWith("apiKeys.view");
+  const { canBrand } = usePermissions();
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title={t("page.title")}
         action={
-          <Button disabled={!search.brandId} onClick={() => setIsCreateDialogOpen(true)}>
-            <PlusIcon data-icon="inline-start" />
-            {t("list.create")}
-          </Button>
+          canBrand(search.brandId, "apiKeys.create") && (
+            <Button disabled={!search.brandId} onClick={() => setIsCreateDialogOpen(true)}>
+              <PlusIcon data-icon="inline-start" />
+              {t("list.create")}
+            </Button>
+          )
         }
       />
 

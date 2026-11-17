@@ -61,6 +61,7 @@
   },
   "errors": {
     "NOT_FOUND": "The requested record could not be found.",
+    "FORBIDDEN": "You don’t have permission to do that.",
     "VALIDATION_ERROR": "Some of the information entered is invalid.",
     "INTERNAL_ERROR": "Something went wrong on our side. Please try again.",
     "NETWORK_ERROR": "Unable to reach the server. Check your connection and try again.",
@@ -71,5 +72,8 @@
     "open": "Choose time",
     "hour": "Hour",
     "minute": "Minute"
+  },
+  "noAccess": {
+    "message": "You don’t have access to this page."
   }
 }

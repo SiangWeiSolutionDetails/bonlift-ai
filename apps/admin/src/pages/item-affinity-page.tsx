@@ -12,7 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useBrands } from "@/features/brands/queries";
+import { usePermissions } from "@/features/auth/permissions";
+import { useBrandsWith } from "@/features/brands/queries";
 import { RunCalculationDialog } from "@/features/item-affinity/components/run-calculation-dialog";
 import { RunResultsCard } from "@/features/item-affinity/components/run-results-card";
 import { RunsCard } from "@/features/item-affinity/components/runs-card";
@@ -30,7 +31,8 @@ export function ItemAffinityPage() {
   const search = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
   const [isRunDialogOpen, setIsRunDialogOpen] = useState(false);
-  const { data: brands = [] } = useBrands();
+  const brands = useBrandsWith("itemAffinity.view");
+  const { canBrand } = usePermissions();
 
   const runs = useItemAffinityRuns(search.brandId);
   const runList = runs.data ?? [];
@@ -65,13 +67,15 @@ export function ItemAffinityPage() {
         action={
           <div className="flex flex-wrap items-center gap-2">
             <ScoreFormula />
-            <Button
-              disabled={!search.brandId}
-              onClick={() => setIsRunDialogOpen(true)}
-            >
-              <PlayIcon data-icon="inline-start" />
-              {t("page.runCalculation")}
-            </Button>
+            {canBrand(search.brandId, "calculations.trigger") && (
+              <Button
+                disabled={!search.brandId}
+                onClick={() => setIsRunDialogOpen(true)}
+              >
+                <PlayIcon data-icon="inline-start" />
+                {t("page.runCalculation")}
+              </Button>
+            )}
           </div>
         }
       />
@@ -118,6 +122,7 @@ export function ItemAffinityPage() {
             isPending={runs.isPending}
             error={runs.error}
             viewingRunId={viewingRun?.id}
+            canPublishRuns={canBrand(search.brandId, "calculations.publish")}
             onView={viewRun}
             onPublished={viewRun}
           />

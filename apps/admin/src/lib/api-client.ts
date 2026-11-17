@@ -1,3 +1,6 @@
+import i18next from "i18next";
+import { toast } from "sonner";
+
 type QueryValue = string | number | boolean | undefined;
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -56,6 +59,12 @@ function redirectToLoginOnUnauthorized(status: number, path: string) {
   );
 }
 
+// One toast id, so a page whose several requests are refused shows a single message
+function toastOnForbidden(status: number) {
+  if (status !== 403) return;
+  toast.error(i18next.t("errors.FORBIDDEN"), { id: "api-forbidden" });
+}
+
 async function toApiError(res: Response) {
   try {
     const body = (await res.json()) as ApiErrorBody;
@@ -100,6 +109,7 @@ export async function apiRequest<T>(
 
   if (!res.ok) {
     redirectToLoginOnUnauthorized(res.status, path);
+    toastOnForbidden(res.status);
     throw await toApiError(res);
   }
   if (res.status === 204) {

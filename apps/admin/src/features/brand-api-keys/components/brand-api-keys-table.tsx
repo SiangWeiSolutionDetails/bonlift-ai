@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatDate, formatDateTime } from "@/lib/date-format";
+import { usePermissions } from "@/features/auth/permissions";
 import { getErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
 import {
@@ -41,6 +42,7 @@ export function BrandApiKeysTable({ brandId }: BrandApiKeysTableProps) {
   const [keyToRevoke, setKeyToRevoke] = useState<BrandApiKey | null>(null);
   const [keyToDelete, setKeyToDelete] = useState<BrandApiKey | null>(null);
   const actionError = revokeMutation.error ?? deleteMutation.error;
+  const { canBrand } = usePermissions();
 
   return (
     <>
@@ -91,8 +93,8 @@ export function BrandApiKeysTable({ brandId }: BrandApiKeysTableProps) {
               apiKeys={apiKeys}
               isPending={isPending}
               error={error}
-              onRevoke={setKeyToRevoke}
-              onDelete={setKeyToDelete}
+              onRevoke={canBrand(brandId, "apiKeys.revoke") ? setKeyToRevoke : undefined}
+              onDelete={canBrand(brandId, "apiKeys.delete") ? setKeyToDelete : undefined}
             />
           </TableBody>
         </Table>
@@ -105,8 +107,8 @@ type ApiKeyRowsProps = {
   apiKeys: BrandApiKey[] | undefined;
   isPending: boolean;
   error: Error | null;
-  onRevoke: (apiKey: BrandApiKey) => void;
-  onDelete: (apiKey: BrandApiKey) => void;
+  onRevoke?: (apiKey: BrandApiKey) => void;
+  onDelete?: (apiKey: BrandApiKey) => void;
 };
 
 function ApiKeyRows({ apiKeys, isPending, error, onRevoke, onDelete }: ApiKeyRowsProps) {
@@ -161,7 +163,7 @@ function ApiKeyRows({ apiKeys, isPending, error, onRevoke, onDelete }: ApiKeyRow
         </TableCell>
         {/* A live key is revoked first; only a key that can no longer authenticate can be deleted */}
         <TableCell className="text-right">
-          {isLive ? (
+          {isLive && onRevoke && (
             <Button
               variant="ghost"
               size="sm"
@@ -171,7 +173,8 @@ function ApiKeyRows({ apiKeys, isPending, error, onRevoke, onDelete }: ApiKeyRow
             >
               {t("list.revoke")}
             </Button>
-          ) : (
+          )}
+          {!isLive && onDelete && (
             <Button
               variant="ghost"
               size="sm"

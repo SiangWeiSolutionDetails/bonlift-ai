@@ -12,7 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useBrands } from "@/features/brands/queries";
+import { usePermissions } from "@/features/auth/permissions";
+import { useBrandsWith } from "@/features/brands/queries";
 import { CalculationsOverviewReport } from "@/features/calculations-overview/components/calculations-overview-report";
 import { RunAllDialog } from "@/features/calculations-overview/components/run-all-dialog";
 import { useRunAllToast } from "@/features/calculations-overview/components/run-all-toast";
@@ -25,7 +26,8 @@ export function CalculationsPage() {
   const { t } = useTranslation("calculations");
   const search = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
-  const { data: brands = [] } = useBrands();
+  const brands = useBrandsWith("calculations.view");
+  const { canBrand } = usePermissions();
   const [isRunDialogOpen, setIsRunDialogOpen] = useState(false);
   const [started, setStarted] = useState<{ brandId: string; response: StartAllResponse }>();
 
@@ -48,10 +50,12 @@ export function CalculationsPage() {
       <PageHeader
         title={t("page.title")}
         action={
-          <Button disabled={!overview.data} onClick={() => setIsRunDialogOpen(true)}>
-            <PlayIcon data-icon="inline-start" />
-            {t("page.runAll")}
-          </Button>
+          canBrand(search.brandId, "calculations.trigger") && (
+            <Button disabled={!overview.data} onClick={() => setIsRunDialogOpen(true)}>
+              <PlayIcon data-icon="inline-start" />
+              {t("page.runAll")}
+            </Button>
+          )
         }
       />
 

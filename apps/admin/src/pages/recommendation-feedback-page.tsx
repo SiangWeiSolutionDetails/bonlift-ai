@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useBrands } from "@/features/brands/queries";
+import { useBrandsWith } from "@/features/brands/queries";
 import { FeedbackFilters } from "@/features/recommendation-feedback/components/feedback-filters";
 import { RecommendationFeedbackReport } from "@/features/recommendation-feedback/components/recommendation-feedback-report";
 import {
@@ -36,7 +36,7 @@ export function RecommendationFeedbackPage() {
   const { t } = useTranslation("recommendationFeedback");
   const search = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
-  const { data: brands = [] } = useBrands();
+  const brands = useBrandsWith("feedback.view");
   const range = search.from && search.to ? { from: search.from, to: search.to } : defaultRange();
   const filters: Filters = {
     ...range,

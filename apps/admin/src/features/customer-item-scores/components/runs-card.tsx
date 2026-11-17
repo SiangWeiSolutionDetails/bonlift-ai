@@ -33,6 +33,7 @@ type RunsCardProps = {
   isPending: boolean;
   error: Error | null;
   viewingRunId: string | undefined;
+  canPublishRuns: boolean;
   onView: (runId: string) => void;
   onPublished: (runId: string) => void;
 };
@@ -114,6 +115,7 @@ function RunRows({
   isPending,
   error,
   viewingRunId,
+  canPublishRuns,
   onView,
   isPublishing,
   onPublish,
@@ -192,14 +194,16 @@ function RunRows({
             >
               {t("runs.view")}
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={!canPublish(run) || isPublishing}
-              onClick={() => onPublish(run)}
-            >
-              {t("runs.publish")}
-            </Button>
+            {canPublishRuns && (
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={!canPublish(run) || isPublishing}
+                onClick={() => onPublish(run)}
+              >
+                {t("runs.publish")}
+              </Button>
+            )}
           </div>
         </TableCell>
       </TableRow>

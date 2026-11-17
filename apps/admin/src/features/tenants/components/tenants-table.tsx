@@ -23,9 +23,9 @@ type TenantsTableProps = {
   tenants: Tenant[] | undefined;
   isPending: boolean;
   error: Error | null;
-  onEdit: (tenant: Tenant) => void;
+  onEdit?: (tenant: Tenant) => void;
   onView: (tenant: Tenant) => void;
-  onDelete: (tenant: Tenant) => void;
+  onDelete?: (tenant: Tenant) => void;
   emptyMessage?: string;
 };
 
@@ -92,14 +92,16 @@ function TenantsTableRows({
         </Badge>
       </TableCell>
       <TableCell className="text-right">
-        <Button
-          variant="ghost"
-          size="sm"
-          aria-label={t("table.editTenant", { name: tenant.name })}
-          onClick={() => onEdit(tenant)}
-        >
-          {tCommon("actions.edit")}
-        </Button>
+        {onEdit && (
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={t("table.editTenant", { name: tenant.name })}
+            onClick={() => onEdit(tenant)}
+          >
+            {tCommon("actions.edit")}
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="sm"
@@ -108,15 +110,17 @@ function TenantsTableRows({
         >
           {tCommon("actions.view")}
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-destructive hover:text-destructive"
-          aria-label={t("table.deleteTenant", { name: tenant.name })}
-          onClick={() => onDelete(tenant)}
-        >
-          {tCommon("actions.delete")}
-        </Button>
+        {onDelete && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-destructive hover:text-destructive"
+            aria-label={t("table.deleteTenant", { name: tenant.name })}
+            onClick={() => onDelete(tenant)}
+          >
+            {tCommon("actions.delete")}
+          </Button>
+        )}
       </TableCell>
     </TableRow>
   ));

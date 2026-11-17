@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { getRouteApi } from "@tanstack/react-router";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { usePermissions } from "@/features/auth/permissions";
 import { OutletPicker } from "@/features/outlet-item-scores/components/outlet-picker";
 import { RankingCard } from "@/features/outlet-item-scores/components/ranking-card";
 import { RunCalculationDialog } from "@/features/outlet-item-scores/components/run-calculation-dialog";
@@ -22,6 +23,7 @@ export function ResultsPage() {
   const search = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
   const [isRunDialogOpen, setIsRunDialogOpen] = useState(false);
+  const { canBrand } = usePermissions();
 
   const runs = useOutletItemScoresRuns(search.outletId);
   const runList = runs.data ?? [];
@@ -52,18 +54,21 @@ export function ResultsPage() {
         action={
           <div className="flex flex-wrap items-center gap-2">
             <ScoreFormula />
-            <Button
-              disabled={!search.outletId}
-              onClick={() => setIsRunDialogOpen(true)}
-            >
-              <PlayIcon data-icon="inline-start" />
-              {t("page.runCalculation")}
-            </Button>
+            {canBrand(search.brandId, "calculations.trigger") && (
+              <Button
+                disabled={!search.outletId}
+                onClick={() => setIsRunDialogOpen(true)}
+              >
+                <PlayIcon data-icon="inline-start" />
+                {t("page.runCalculation")}
+              </Button>
+            )}
           </div>
         }
       />
 
       <OutletPicker
+        action="results.view"
         brandId={search.brandId}
         outletId={search.outletId}
         onBrandChange={(brandId) =>
@@ -84,6 +89,7 @@ export function ResultsPage() {
             isPending={runs.isPending}
             error={runs.error}
             viewingRunId={viewingRun?.id}
+            canPublishRuns={canBrand(search.brandId, "calculations.publish")}
             onView={(runId) => updateSearch({ runId })}
             onPublished={(runId) => updateSearch({ runId })}
           />

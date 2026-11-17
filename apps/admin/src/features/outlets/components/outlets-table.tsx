@@ -26,6 +26,8 @@ type OutletsTableProps = {
   brands: Brand[];
   isPending: boolean;
   error: Error | null;
+  canEdit: (outlet: Outlet) => boolean;
+  canDelete: (outlet: Outlet) => boolean;
   onEdit: (outlet: Outlet) => void;
   onView: (outlet: Outlet) => void;
   onDelete: (outlet: Outlet) => void;
@@ -61,6 +63,8 @@ function OutletsTableRows({
   brands,
   isPending,
   error,
+  canEdit,
+  canDelete,
   onEdit,
   onView,
   onDelete,
@@ -106,14 +110,16 @@ function OutletsTableRows({
       </TableCell>
       <TableCell className="text-right">
         <CopyOutletIdButton outlet={outlet} />
-        <Button
-          variant="ghost"
-          size="sm"
-          aria-label={t("table.editOutlet", { name: outlet.name })}
-          onClick={() => onEdit(outlet)}
-        >
-          {tCommon("actions.edit")}
-        </Button>
+        {canEdit(outlet) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={t("table.editOutlet", { name: outlet.name })}
+            onClick={() => onEdit(outlet)}
+          >
+            {tCommon("actions.edit")}
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="sm"
@@ -122,15 +128,17 @@ function OutletsTableRows({
         >
           {tCommon("actions.view")}
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-destructive hover:text-destructive"
-          aria-label={t("table.deleteOutlet", { name: outlet.name })}
-          onClick={() => onDelete(outlet)}
-        >
-          {tCommon("actions.delete")}
-        </Button>
+        {canDelete(outlet) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-destructive hover:text-destructive"
+            aria-label={t("table.deleteOutlet", { name: outlet.name })}
+            onClick={() => onDelete(outlet)}
+          >
+            {tCommon("actions.delete")}
+          </Button>
+        )}
       </TableCell>
     </TableRow>
   ));

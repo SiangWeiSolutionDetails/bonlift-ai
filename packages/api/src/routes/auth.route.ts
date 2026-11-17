@@ -17,9 +17,9 @@ import { AccountNotApprovedError, NotFoundError, UnauthorizedError } from "../er
 import {
   createSession,
   deleteSession,
-  findSessionUser,
   SESSION_ABSOLUTE_MS,
 } from "../services/session.service.js";
+import { findSessionUserAccess } from "../services/userAccess.service.js";
 import { resolveUserFromIdentity } from "../services/user.service.js";
 
 export const SESSION_COOKIE = "sid";
@@ -182,7 +182,7 @@ export async function authRoutes(app: FastifyInstance) {
     { schema: { response: { 200: AuthMeResponseSchema } } },
     async (request, reply) => {
       const token = readSessionCookie(request);
-      const user = token ? await findSessionUser(getPool(), token) : null;
+      const user = token ? await findSessionUserAccess(getPool(), token) : null;
       if (!user) throw new UnauthorizedError("Not signed in");
       reply.header("Cache-Control", "no-store");
       return user;

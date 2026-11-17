@@ -47,7 +47,7 @@ export function RolesPage() {
           canManage && (
             <Button onClick={() => setDialogTarget({ mode: "create", kind })}>
               <PlusIcon data-icon="inline-start" />
-              {t("page.newRole")}
+              {t(kind === "console" ? "page.newConsoleRole" : "page.newBrandRole")}
             </Button>
           )
         }

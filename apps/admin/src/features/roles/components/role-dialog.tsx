@@ -42,11 +42,12 @@ type RoleDialogProps = {
   onClose: () => void;
 };
 
-const TITLE_KEYS = {
-  create: "dialog.createTitle",
-  edit: "dialog.editTitle",
-  view: "dialog.viewTitle",
-} as const;
+function titleKey(target: RoleDialogTarget) {
+  if (target.mode === "create") {
+    return target.kind === "console" ? "dialog.createConsoleTitle" : "dialog.createBrandTitle";
+  }
+  return target.mode === "edit" ? "dialog.editTitle" : "dialog.viewTitle";
+}
 
 export function RoleDialog({ target, onClose }: RoleDialogProps) {
   const { t } = useTranslation("roles");
@@ -62,7 +63,7 @@ export function RoleDialog({ target, onClose }: RoleDialogProps) {
         className="flex max-h-[calc(100dvh-2rem)] flex-col sm:max-w-2xl"
       >
         <DialogHeader>
-          <DialogTitle>{shown && t(TITLE_KEYS[shown.mode])}</DialogTitle>
+          <DialogTitle>{shown && t(titleKey(shown))}</DialogTitle>
         </DialogHeader>
         {target && <RoleForm key={formKey(target)} target={target} onDone={onClose} />}
       </DialogContent>

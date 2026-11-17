@@ -1,7 +1,8 @@
 {
   "page": {
     "title": "Roles",
-    "newRole": "New Role"
+    "newConsoleRole": "New Console Role",
+    "newBrandRole": "New Brand Role"
   },
   "tabs": {
     "console": "Console roles",
@@ -25,7 +26,8 @@
     "ownRole": "You can't change a role you hold."
   },
   "dialog": {
-    "createTitle": "New Role",
+    "createConsoleTitle": "New Console Role",
+    "createBrandTitle": "New Brand Role",
     "editTitle": "Edit Role",
     "viewTitle": "Role Details",
     "name": "Name",

@@ -1,7 +1,8 @@
 {
   "page": {
     "title": "角色",
-    "newRole": "新建角色"
+    "newConsoleRole": "新建后台角色",
+    "newBrandRole": "新建品牌角色"
   },
   "tabs": {
     "console": "后台角色",
@@ -25,7 +26,8 @@
     "ownRole": "无法修改您自己持有的角色。"
   },
   "dialog": {
-    "createTitle": "新建角色",
+    "createConsoleTitle": "新建后台角色",
+    "createBrandTitle": "新建品牌角色",
     "editTitle": "编辑角色",
     "viewTitle": "角色详情",
     "name": "名称",

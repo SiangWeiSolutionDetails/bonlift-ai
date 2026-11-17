@@ -112,13 +112,29 @@ describe("resolveUserFromIdentity — first link", () => {
     expect(releaseMock).toHaveBeenCalled();
   });
 
-  it("refuses when no invited row matches and rolls back", async () => {
-    poolQueryMock.mockResolvedValueOnce(pgResult([unknownRow]));
+  it("refuses an unlisted email after rolling back and re-reading", async () => {
+    poolQueryMock
+      .mockResolvedValueOnce(pgResult([unknownRow]))
+      .mockResolvedValueOnce(pgResult([unknownRow]));
     clientQueryMock.mockResolvedValueOnce(pgResult([])).mockResolvedValue(pgResult([], 0));
 
     await expect(resolveUserFromIdentity(fakePool, identity)).rejects.toBeInstanceOf(
       AccountNotApprovedError,
     );
+    expect(clientStatements()).toContain("ROLLBACK");
+    expect(clientStatements()).not.toContain("INSERT");
+    expect(poolQueryMock.mock.calls[1][1]).toEqual(["google", "google-sub-1", "Alice"]);
+  });
+
+  it("signs in through the identity a racing first sign-in linked (activate matches zero rows)", async () => {
+    poolQueryMock
+      .mockResolvedValueOnce(pgResult([unknownRow]))
+      .mockResolvedValueOnce(pgResult([knownRow()]));
+    clientQueryMock.mockResolvedValueOnce(pgResult([])).mockResolvedValue(pgResult([], 0));
+
+    const user = await resolveUserFromIdentity(fakePool, identity);
+
+    expect(user).toEqual({ id: USER_ID, email: "alice@x.com", displayName: "Alice" });
     expect(clientStatements()).toContain("ROLLBACK");
     expect(clientStatements()).not.toContain("INSERT");
   });

@@ -12,6 +12,13 @@ export interface VerifiedIdentity {
   name: string | null;
 }
 
+// Thrown inside the transaction so it rolls back; never leaves this module.
+class InviteNotFoundError extends Error {}
+
+function isInviteRace(error: unknown): boolean {
+  return error instanceof InviteNotFoundError || isUniqueViolationOf(error, "user_identities_pkey");
+}
+
 interface KnownIdentityResult {
   identityExists: boolean;
   user: SessionUser | null;
@@ -28,8 +35,8 @@ export async function resolveUserFromIdentity(
   try {
     return await withTransaction(pool, (client) => linkInvitedUser(client, identity));
   } catch (error) {
-    if (!isUniqueViolationOf(error, "user_identities_pkey")) throw error;
-    // A racing first sign-in linked this identity first; sign in through it instead.
+    if (!isInviteRace(error)) throw error;
+    // A racing first sign-in may have linked this identity first; sign in through it, or refuse.
     const retry = await signInKnownIdentity(pool, identity);
     if (!retry.user) throw new AccountNotApprovedError();
     return retry.user;
@@ -100,7 +107,8 @@ async function activateInvitedUser(
   );
 
   const row = result.rows[0];
-  if (!row) throw new AccountNotApprovedError();
+  // Zero rows also covers a racing sign-in that activated this invite first (READ COMMITTED re-check).
+  if (!row) throw new InviteNotFoundError();
   return toSessionUser(row);
 }
 

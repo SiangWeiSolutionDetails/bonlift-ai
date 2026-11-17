@@ -30,7 +30,7 @@ import {
 import { useCreateRole, useRoleAssignments, useUpdateRole } from "../queries";
 import { filterAssignments } from "../filter-assignments";
 import { groupState, toggleGroup } from "../permission-selection";
-import type { Role, RoleAssignment, RoleKindType } from "../type";
+import type { Role, RoleKindType } from "../type";
 
 export type RoleDialogTarget =
   | { mode: "create"; kind: RoleKindType }
@@ -91,10 +91,6 @@ function toggled(selected: ReadonlySet<string>, key: string) {
   if (next.has(key)) next.delete(key);
   else next.add(key);
   return next;
-}
-
-function assignmentScope(assignment: RoleAssignment) {
-  return [assignment.tenantName, assignment.brandName].filter(Boolean).join(" · ");
 }
 
 function AssignedUsers({ roleId, kind }: { roleId: string; kind: RoleKindType }) {
@@ -161,11 +157,24 @@ function AssignedUsers({ roleId, kind }: { roleId: string; kind: RoleKindType })
                         <UserStatusBadge status={assignment.status} />
                       </TableCell>
                       {isBrand && (
-                        <TableCell
-                          className="max-w-32 truncate"
-                          title={assignmentScope(assignment) || undefined}
-                        >
-                          {assignmentScope(assignment) || "-"}
+                        <TableCell className="max-w-32">
+                          {assignment.brandName ? (
+                            <div className="grid min-w-0">
+                              <span className="truncate" title={assignment.brandName}>
+                                {assignment.brandName}
+                              </span>
+                              {assignment.tenantName && (
+                                <span
+                                  className="truncate text-xs text-muted-foreground"
+                                  title={assignment.tenantName}
+                                >
+                                  {assignment.tenantName}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            "-"
+                          )}
                         </TableCell>
                       )}
                     </TableRow>

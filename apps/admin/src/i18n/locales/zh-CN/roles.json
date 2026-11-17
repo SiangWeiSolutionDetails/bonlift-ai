@@ -26,6 +26,7 @@
     "viewTitle": "角色详情",
     "name": "名称",
     "permissions": "权限",
+    "selectAll": "全选",
     "builtinHint": "内置管理员角色拥有所有后台操作权限，无法修改。",
     "lackedHint": "您只能授予自己持有的后台操作权限。"
   },

@@ -26,6 +26,7 @@
     "viewTitle": "Role Details",
     "name": "Name",
     "permissions": "Permissions",
+    "selectAll": "Select all",
     "builtinHint": "The built-in Admin role holds every console action and can't be changed.",
     "lackedHint": "You can only grant console actions you hold yourself."
   },

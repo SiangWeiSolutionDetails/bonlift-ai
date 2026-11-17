@@ -15,7 +15,9 @@ import { Label } from "@/components/ui/label";
 import { usePermissions } from "@/features/auth/permissions";
 import { getErrorMessage } from "@/lib/error-message";
 import { useCreateRole, useUpdateRole } from "../queries";
+import { groupState, toggleGroup } from "../permission-selection";
 import type { Role, RoleKindType } from "../type";
+import { TriStateCheckbox } from "./tri-state-checkbox";
 
 export type RoleDialogTarget =
   | { mode: "create"; kind: RoleKindType }
@@ -95,6 +97,15 @@ function RoleForm({ target, onDone }: { target: RoleDialogTarget; onDone: () => 
     return kind === "console" && !canConsole(key as ConsoleAction);
   }
 
+  const groups = groupPermissions(kind);
+  const allKeys = groups.flatMap(({ keys }) => keys);
+  const effective: ReadonlySet<string> = isBuiltin ? new Set(allKeys) : selected;
+  const isEnabled = (key: string) => !isReadOnly && !isLacking(key);
+
+  function toggleKeys(keys: string[]) {
+    setSelected((current) => toggleGroup(keys, current, isEnabled));
+  }
+
   function submit(event: FormEvent) {
     event.preventDefault();
     const actions = [...selected];
@@ -127,16 +138,33 @@ function RoleForm({ target, onDone }: { target: RoleDialogTarget; onDone: () => 
           <p className="text-sm text-muted-foreground">{t("dialog.lackedHint")}</p>
         )}
         <div className="grid max-h-80 gap-4 overflow-y-auto pr-1">
-          {groupPermissions(kind).map(({ group, keys }) => (
+          <label className="flex items-center gap-2 text-sm font-semibold">
+            <TriStateCheckbox
+              className="size-4 accent-primary"
+              checked={groupState(allKeys, effective)}
+              disabled={!allKeys.some(isEnabled)}
+              onChange={() => toggleKeys(allKeys)}
+            />
+            {t("dialog.selectAll")}
+          </label>
+          {groups.map(({ group, keys }) => (
             <div key={group} className="grid gap-2">
-              <p className="text-sm font-semibold">{tPermissions(`groups.${group}` as never)}</p>
+              <label className="flex items-center gap-2 text-sm font-semibold">
+                <TriStateCheckbox
+                  className="size-4 accent-primary"
+                  checked={groupState(keys, effective)}
+                  disabled={!keys.some(isEnabled)}
+                  onChange={() => toggleKeys(keys)}
+                />
+                {tPermissions(`groups.${group}` as never)}
+              </label>
               {keys.map((key) => (
                 <label key={key} className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
                     className="size-4 accent-primary"
-                    checked={isBuiltin || selected.has(key)}
-                    disabled={isReadOnly || isLacking(key)}
+                    checked={effective.has(key)}
+                    disabled={!isEnabled(key)}
                     onChange={() => setSelected((current) => toggled(current, key))}
                   />
                   {tPermissions(key as never)}

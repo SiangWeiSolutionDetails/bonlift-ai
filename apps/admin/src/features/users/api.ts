@@ -1,0 +1,50 @@
+import { apiRequest } from "@/lib/api-client";
+import type { InviteUserInput, UserBrandRole, UserRecord } from "./type";
+
+const userPath = (userId: string) => `/users/${encodeURIComponent(userId)}`;
+
+const memberPath = (brandId: string, userId: string) =>
+  `/brands/${encodeURIComponent(brandId)}/members/${encodeURIComponent(userId)}`;
+
+export async function listUsers(signal: AbortSignal) {
+  const data = await apiRequest<{ users: UserRecord[] }>("/users", { signal });
+  return data.users;
+}
+
+export async function inviteUser(input: InviteUserInput) {
+  return await apiRequest<UserRecord>("/users", { method: "POST", body: input });
+}
+
+export async function reinviteUser(userId: string) {
+  return await apiRequest<UserRecord>(`${userPath(userId)}/reinvite`, { method: "POST" });
+}
+
+export async function disableUser(userId: string) {
+  return await apiRequest<UserRecord>(`${userPath(userId)}/disable`, { method: "POST" });
+}
+
+export async function setConsoleRole(userId: string, roleId: string) {
+  return await apiRequest<UserRecord>(`${userPath(userId)}/console-role`, {
+    method: "PUT",
+    body: { roleId },
+  });
+}
+
+export async function clearConsoleRole(userId: string) {
+  return await apiRequest<void>(`${userPath(userId)}/console-role`, { method: "DELETE" });
+}
+
+export async function listUserBrandRoles(userId: string, signal: AbortSignal) {
+  return await apiRequest<UserBrandRole[]>(`${userPath(userId)}/brand-roles`, { signal });
+}
+
+export async function setBrandRole(brandId: string, userId: string, roleId: string) {
+  return await apiRequest<unknown>(memberPath(brandId, userId), {
+    method: "PUT",
+    body: { roleId },
+  });
+}
+
+export async function removeBrandRole(brandId: string, userId: string) {
+  return await apiRequest<void>(memberPath(brandId, userId), { method: "DELETE" });
+}

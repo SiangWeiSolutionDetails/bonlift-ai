@@ -21,6 +21,7 @@ import {
   StoreIcon,
   TagIcon,
   ThumbsUpIcon,
+  UsersIcon,
 } from "lucide-react";
 import App from "@/App";
 import { hasAccess, type RouteAccess } from "@/features/auth/permissions";
@@ -49,6 +50,7 @@ import { OutletsPage } from "@/pages/outlets-page";
 import { RecommendationFeedbackPage } from "@/pages/recommendation-feedback-page";
 import { ResultsPage } from "@/pages/results-page";
 import { RolesPage } from "@/pages/roles-page";
+import { UsersPage } from "@/pages/users-page";
 import { TenantsPage } from "@/pages/tenants-page";
 import { UsagePage } from "@/pages/usage-page";
 
@@ -167,6 +169,18 @@ const rolesRoute = createRoute({
   }),
 });
 
+const usersRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: "/users",
+  component: UsersPage,
+  ...guardedBy({
+    titleKey: "nav.users",
+    groupKey: "nav.management",
+    icon: <UsersIcon />,
+    access: { console: "users.view" },
+  }),
+});
+
 const snapshotsRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: "/snapshots",
@@ -278,6 +292,7 @@ const sidebarRoutes = [
   brandsRoute,
   outletsRoute,
   rolesRoute,
+  usersRoute,
   snapshotsRoute,
   calculationsRoute,
   resultsRoute,

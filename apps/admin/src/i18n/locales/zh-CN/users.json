@@ -1,0 +1,55 @@
+{
+  "page": {
+    "title": "用户",
+    "invite": "邀请用户"
+  },
+  "table": {
+    "email": "邮箱",
+    "name": "名称",
+    "status": "状态",
+    "consoleRole": "后台角色",
+    "brands": "品牌数",
+    "lastLogin": "最近登录",
+    "rowActions": "行操作",
+    "empty": "暂无用户。",
+    "noRole": "无",
+    "ownRow": "你不能更改自己的权限。",
+    "consoleRoleFor": "{{email}} 的后台角色",
+    "brandRoles": "品牌角色",
+    "brandRolesFor": "{{email}} 的品牌角色",
+    "reinvite": "重新邀请",
+    "reinviteUser": "重新邀请 {{email}}",
+    "disable": "停用",
+    "disableUser": "停用 {{email}}"
+  },
+  "status": {
+    "invited": "已邀请",
+    "active": "正常",
+    "disabled": "已停用"
+  },
+  "invite": {
+    "title": "邀请用户",
+    "email": "邮箱",
+    "displayName": "名称（可选）",
+    "submit": "邀请",
+    "submitting": "邀请中…"
+  },
+  "disable": {
+    "title": "停用 {{email}}？",
+    "description": "该用户将立即退出登录，重新邀请前无法登录。"
+  },
+  "brandRoles": {
+    "title": "品牌角色",
+    "loading": "加载中…",
+    "empty": "尚未分配品牌角色。",
+    "roleFor": "{{brand}} 的角色",
+    "removeFrom": "移除 {{brand}} 的权限",
+    "remove": "移除",
+    "addTitle": "添加品牌角色",
+    "brand": "品牌",
+    "brandPlaceholder": "选择品牌",
+    "role": "角色",
+    "rolePlaceholder": "选择角色",
+    "add": "添加"
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "page": {
+    "title": "Users",
+    "invite": "Invite User"
+  },
+  "table": {
+    "email": "Email",
+    "name": "Name",
+    "status": "Status",
+    "consoleRole": "Console role",
+    "brands": "Brands",
+    "lastLogin": "Last login",
+    "rowActions": "Row actions",
+    "empty": "No users yet.",
+    "noRole": "None",
+    "ownRow": "You can't change your own access.",
+    "consoleRoleFor": "Console role for {{email}}",
+    "brandRoles": "Brand roles",
+    "brandRolesFor": "Brand roles for {{email}}",
+    "reinvite": "Reinvite",
+    "reinviteUser": "Reinvite {{email}}",
+    "disable": "Disable",
+    "disableUser": "Disable {{email}}"
+  },
+  "status": {
+    "invited": "Invited",
+    "active": "Active",
+    "disabled": "Disabled"
+  },
+  "invite": {
+    "title": "Invite User",
+    "email": "Email",
+    "displayName": "Name (optional)",
+    "submit": "Invite",
+    "submitting": "Inviting…"
+  },
+  "disable": {
+    "title": "Disable {{email}}?",
+    "description": "This user is signed out immediately and can't sign in until reinvited."
+  },
+  "brandRoles": {
+    "title": "Brand roles",
+    "loading": "Loading…",
+    "empty": "No brand roles assigned.",
+    "roleFor": "Role on {{brand}}",
+    "removeFrom": "Remove access to {{brand}}",
+    "remove": "Remove",
+    "addTitle": "Add a brand role",
+    "brand": "Brand",
+    "brandPlaceholder": "Select a brand",
+    "role": "Role",
+    "rolePlaceholder": "Select a role",
+    "add": "Add"
+  }
+}

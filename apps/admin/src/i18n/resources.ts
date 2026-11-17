@@ -13,6 +13,7 @@ import enResults from "./locales/en/results.json";
 import enServingConfig from "./locales/en/servingConfig.json";
 import enSnapshots from "./locales/en/snapshots.json";
 import enTenants from "./locales/en/tenants.json";
+import enUsers from "./locales/en/users.json";
 import enUsage from "./locales/en/usage.json";
 import zhCNApiKeys from "./locales/zh-CN/apiKeys.json";
 import zhCNAuth from "./locales/zh-CN/auth.json";
@@ -29,14 +30,15 @@ import zhCNResults from "./locales/zh-CN/results.json";
 import zhCNServingConfig from "./locales/zh-CN/servingConfig.json";
 import zhCNSnapshots from "./locales/zh-CN/snapshots.json";
 import zhCNTenants from "./locales/zh-CN/tenants.json";
+import zhCNUsers from "./locales/zh-CN/users.json";
 import zhCNUsage from "./locales/zh-CN/usage.json";
 import type { Language } from "./languages";
 
-export const NAMESPACES = ["common", "tenants", "brands", "outlets", "snapshots", "results", "customerScores", "itemAffinity", "servingConfig", "apiKeys", "usage", "recommendationFeedback", "calculations", "auth", "roles", "permissions"] as const;
+export const NAMESPACES = ["common", "tenants", "brands", "outlets", "snapshots", "results", "customerScores", "itemAffinity", "servingConfig", "apiKeys", "usage", "recommendationFeedback", "calculations", "auth", "roles", "permissions", "users"] as const;
 
 export const defaultNS = "common";
 
 export const resources = {
-  en: { common: enCommon, tenants: enTenants, brands: enBrands, outlets: enOutlets, snapshots: enSnapshots, results: enResults, customerScores: enCustomerScores, itemAffinity: enItemAffinity, servingConfig: enServingConfig, apiKeys: enApiKeys, usage: enUsage, recommendationFeedback: enRecommendationFeedback, calculations: enCalculations, auth: enAuth, roles: enRoles, permissions: enPermissions },
-  "zh-CN": { common: zhCNCommon, tenants: zhCNTenants, brands: zhCNBrands, outlets: zhCNOutlets, snapshots: zhCNSnapshots, results: zhCNResults, customerScores: zhCNCustomerScores, itemAffinity: zhCNItemAffinity, servingConfig: zhCNServingConfig, apiKeys: zhCNApiKeys, usage: zhCNUsage, recommendationFeedback: zhCNRecommendationFeedback, calculations: zhCNCalculations, auth: zhCNAuth, roles: zhCNRoles, permissions: zhCNPermissions },
+  en: { common: enCommon, tenants: enTenants, brands: enBrands, outlets: enOutlets, snapshots: enSnapshots, results: enResults, customerScores: enCustomerScores, itemAffinity: enItemAffinity, servingConfig: enServingConfig, apiKeys: enApiKeys, usage: enUsage, recommendationFeedback: enRecommendationFeedback, calculations: enCalculations, auth: enAuth, roles: enRoles, permissions: enPermissions, users: enUsers },
+  "zh-CN": { common: zhCNCommon, tenants: zhCNTenants, brands: zhCNBrands, outlets: zhCNOutlets, snapshots: zhCNSnapshots, results: zhCNResults, customerScores: zhCNCustomerScores, itemAffinity: zhCNItemAffinity, servingConfig: zhCNServingConfig, apiKeys: zhCNApiKeys, usage: zhCNUsage, recommendationFeedback: zhCNRecommendationFeedback, calculations: zhCNCalculations, auth: zhCNAuth, roles: zhCNRoles, permissions: zhCNPermissions, users: zhCNUsers },
 } satisfies Record<Language, Record<(typeof NAMESPACES)[number], object>>;

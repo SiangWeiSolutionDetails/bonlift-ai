@@ -12,6 +12,7 @@ import { CHECK_VIOLATION, UNIQUE_VIOLATION } from "../utils/pgErrors.js";
 import type { RequestAccess } from "./authorization.service.js";
 import {
   clearConsoleRole,
+  deleteUser,
   disableUser,
   inviteUser,
   listUsers,
@@ -303,6 +304,11 @@ describe("self checks", () => {
     await expect(disableUser(fakePool, lowercaseActor, OWN_ID_UPPERCASE)).rejects.toBeInstanceOf(ForbiddenError);
     expect(poolQueryMock).not.toHaveBeenCalled();
   });
+
+  it("refuses deleting yourself given as an uppercase UUID", async () => {
+    await expect(deleteUser(fakePool, lowercaseActor, OWN_ID_UPPERCASE)).rejects.toBeInstanceOf(ForbiddenError);
+    expect(poolQueryMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("listUsers", () => {
@@ -540,6 +546,62 @@ describe("Admin targets", () => {
     const user = await disableUser(fakePool, admin, TARGET_ID);
 
     expect(user.status).toBe("disabled");
+    expect(poolQueryMock.mock.calls[0][1]).toEqual([TARGET_ID, true]);
+  });
+});
+
+function deleteFlags(overrides: Record<string, unknown> = {}) {
+  return { target_found: true, target_disabled: true, target_is_admin: false, deleted: true, ...overrides };
+}
+
+describe("deleteUser", () => {
+  const deleter = actorWith(["users.view", "users.delete"]);
+
+  it("refuses to delete yourself", async () => {
+    await expect(deleteUser(fakePool, admin, ACTOR_ID)).rejects.toThrow("You cannot delete yourself.");
+    expect(poolQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("deletes a disabled user in one statement", async () => {
+    poolQueryMock.mockResolvedValueOnce(pgResult([deleteFlags()]));
+
+    await deleteUser(fakePool, deleter, TARGET_ID);
+
+    expect(poolQueryMock.mock.calls[0][0]).toMatch(/DELETE FROM users/);
+    expect(poolQueryMock.mock.calls[0][1]).toEqual([TARGET_ID, false]);
+  });
+
+  it("returns 404 for an unknown user", async () => {
+    poolQueryMock.mockResolvedValueOnce(
+      pgResult([deleteFlags({ target_found: false, target_disabled: false, deleted: false })]),
+    );
+
+    await expect(deleteUser(fakePool, deleter, TARGET_ID)).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("refuses a non-Admin deleting an Admin", async () => {
+    poolQueryMock.mockResolvedValueOnce(pgResult([deleteFlags({ target_is_admin: true, deleted: false })]));
+
+    await expect(deleteUser(fakePool, deleter, TARGET_ID)).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("returns 409 for a user who is not disabled", async () => {
+    poolQueryMock.mockResolvedValueOnce(pgResult([deleteFlags({ target_disabled: false, deleted: false })]));
+
+    await expect(deleteUser(fakePool, deleter, TARGET_ID)).rejects.toThrow("Disable the user before deleting them.");
+  });
+
+  it("returns 409 when the user stopped being disabled before the delete", async () => {
+    poolQueryMock.mockResolvedValueOnce(pgResult([deleteFlags({ deleted: false })]));
+
+    await expect(deleteUser(fakePool, deleter, TARGET_ID)).rejects.toBeInstanceOf(ConflictError);
+  });
+
+  it("lets an Admin delete a disabled Admin", async () => {
+    poolQueryMock.mockResolvedValueOnce(pgResult([deleteFlags({ target_is_admin: true })]));
+
+    await deleteUser(fakePool, admin, TARGET_ID);
+
     expect(poolQueryMock.mock.calls[0][1]).toEqual([TARGET_ID, true]);
   });
 });

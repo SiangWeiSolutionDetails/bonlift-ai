@@ -35,6 +35,7 @@
     "invite": "邀请用户",
     "edit": "编辑用户",
     "disable": "停用用户",
+    "delete": "删除用户",
     "assignConsoleRoles": "分配后台角色",
     "assignBrandRoles": "分配品牌角色"
   },

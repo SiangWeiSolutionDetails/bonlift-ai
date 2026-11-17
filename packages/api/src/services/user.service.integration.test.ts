@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { ConflictError, ForbiddenError, NotFoundError } from "../errors.js";
 import { getTestPool } from "../testing/testDb.js";
 import type { RequestAccess } from "./authorization.service.js";
-import { clearConsoleRole, disableUser, setConsoleRole, updateUser } from "./user.service.js";
+import { clearConsoleRole, deleteUser, disableUser, setConsoleRole, updateUser } from "./user.service.js";
 
 async function userNamed(email: string, status = "active"): Promise<string> {
   const result = await getTestPool().query(`INSERT INTO users (email, status) VALUES ($1, $2) RETURNING id`, [
@@ -300,6 +300,90 @@ describe("disableUser (integration)", () => {
     const target = await userNamed("bob@x.com", "disabled");
 
     await expect(disableUser(getTestPool(), actor, target)).rejects.toBeInstanceOf(ConflictError);
+  });
+});
+
+async function insertBrandRole(userId: string, grantedBy: string | null = null): Promise<void> {
+  const suffix = randomBytes(4).toString("hex");
+  const role = await getTestPool().query(`INSERT INTO roles (name, kind) VALUES ($1, 'brand') RETURNING id`, [
+    `Brand role ${suffix}`,
+  ]);
+  const tenant = await getTestPool().query(`INSERT INTO tenants (name) VALUES ($1) RETURNING id`, [`T ${suffix}`]);
+  const brand = await getTestPool().query(`INSERT INTO brands (tenant_id, name) VALUES ($1, 'B') RETURNING id`, [
+    tenant.rows[0].id,
+  ]);
+  await getTestPool().query(
+    `INSERT INTO user_brand_roles (user_id, brand_id, role_id, granted_by) VALUES ($1, $2, $3, $4)`,
+    [userId, brand.rows[0].id, role.rows[0].id, grantedBy],
+  );
+}
+
+async function rowCounts(userId: string) {
+  const result = await getTestPool().query(
+    `
+    SELECT
+      (SELECT count(*)::int FROM users WHERE id = $1) AS users,
+      (SELECT count(*)::int FROM user_sessions WHERE user_id = $1) AS sessions,
+      (SELECT count(*)::int FROM user_identities WHERE user_id = $1) AS identities,
+      (SELECT count(*)::int FROM user_console_roles WHERE user_id = $1) AS console_roles,
+      (SELECT count(*)::int FROM user_brand_roles WHERE user_id = $1) AS brand_roles
+    `,
+    [userId],
+  );
+  return result.rows[0];
+}
+
+async function insertIdentity(userId: string): Promise<void> {
+  await getTestPool().query(
+    `INSERT INTO user_identities (user_id, provider, provider_subject) VALUES ($1, 'google', $2)`,
+    [userId, randomBytes(8).toString("hex")],
+  );
+}
+
+describe("deleteUser (integration)", () => {
+  it("removes a disabled user with their sessions, identities and roles, keeping roles they granted", async () => {
+    const actor = await adminActor("admin@x.com");
+    const target = await userNamed("bob@x.com", "disabled");
+    const grantee = await userNamed("carol@x.com");
+    await insertSession(target);
+    await insertIdentity(target);
+    await assignConsoleRole(target, await insertRole("Viewer", ["users.view"]));
+    await insertBrandRole(target);
+    await getTestPool().query(`INSERT INTO user_console_roles (user_id, role_id, granted_by) VALUES ($1, $2, $3)`, [
+      grantee,
+      await insertRole("Granted", ["users.view"]),
+      target,
+    ]);
+    await insertBrandRole(grantee, target);
+
+    await deleteUser(getTestPool(), actor, target);
+
+    expect(await rowCounts(target)).toEqual({ users: 0, sessions: 0, identities: 0, console_roles: 0, brand_roles: 0 });
+    expect((await storedConsoleRole(grantee)).granted_by).toBeNull();
+    const brandRole = await getTestPool().query(`SELECT granted_by FROM user_brand_roles WHERE user_id = $1`, [
+      grantee,
+    ]);
+    expect(brandRole.rows).toEqual([{ granted_by: null }]);
+  });
+
+  it("returns 409 for an active user and deletes nothing", async () => {
+    const actor = await adminActor("admin@x.com");
+    const target = await userNamed("bob@x.com");
+    await insertSession(target);
+
+    await expect(deleteUser(getTestPool(), actor, target)).rejects.toBeInstanceOf(ConflictError);
+
+    expect(await rowCounts(target)).toMatchObject({ users: 1, sessions: 1 });
+  });
+
+  it("refuses a non-Admin deleting a disabled Admin and deletes nothing", async () => {
+    const actor = await actorWithRole("deleter@x.com", ["users.view", "users.delete"]);
+    const target = await userNamed("boss@x.com", "disabled");
+    await assignConsoleRole(target, await adminRoleId());
+
+    await expect(deleteUser(getTestPool(), actor, target)).rejects.toBeInstanceOf(ForbiddenError);
+
+    expect(await rowCounts(target)).toMatchObject({ users: 1, console_roles: 1 });
   });
 });
 

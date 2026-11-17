@@ -14,6 +14,7 @@ import {
 } from "@bonlift-ai/contracts";
 import {
   clearConsoleRole,
+  deleteUser,
   disableUser,
   inviteUser,
   listUsers,
@@ -88,6 +89,20 @@ export async function userRoutes(app: FastifyInstance) {
       },
     },
     (request) => disableUser(getPool(), request.access!, request.params.userId),
+  );
+
+  app.delete<{ Params: UserParamsSchemaType }>(
+    "/users/:userId",
+    {
+      config: { access: { console: "users.delete" } },
+      schema: {
+        params: UserParamsSchema,
+      },
+    },
+    async (request, reply) => {
+      await deleteUser(getPool(), request.access!, request.params.userId);
+      return reply.status(204).send();
+    },
   );
 
   app.put<{ Params: UserParamsSchemaType; Body: SetConsoleRoleBodySchemaType }>(

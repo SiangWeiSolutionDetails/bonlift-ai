@@ -159,6 +159,13 @@ interface ConsoleRoleFlags {
   new_subset?: boolean;
 }
 
+interface DeleteFlags {
+  target_found: boolean;
+  target_disabled: boolean;
+  target_is_admin: boolean;
+  deleted: boolean;
+}
+
 interface StatusFlags {
   target_found: boolean;
   target_is_admin: boolean;
@@ -331,6 +338,39 @@ const UPDATE_USER_SQL = `
   LEFT JOIN user_console_roles ucr ON ucr.user_id = c.id
   LEFT JOIN roles cr ON cr.id = ucr.role_id`;
 
+// $1 is the target, $2 whether the actor is an Admin. Same FOR SHARE re-check as UPDATE_USER_SQL;
+// a role row inserted concurrently for a user who had none is not covered (as in disable/reinvite).
+// The cascades remove sessions, identities and role assignments; granted_by on others' assignments becomes NULL.
+const DELETE_USER_SQL = `
+  WITH target AS (
+    SELECT u.id, u.status = 'disabled' AS target_disabled, COALESCE(r.is_builtin, false) AS target_is_admin
+    FROM users u
+    LEFT JOIN (
+      SELECT ucr.user_id, ucr.role_id
+      FROM user_console_roles ucr
+      WHERE ucr.user_id = $1
+      FOR SHARE
+    ) cr ON cr.user_id = u.id
+    LEFT JOIN roles r ON r.id = cr.role_id
+    WHERE u.id = $1
+  ),
+  deleted AS (
+    DELETE FROM users u
+    USING target t
+    WHERE u.id = t.id
+      AND u.status = 'disabled'
+      AND ($2::boolean OR NOT t.target_is_admin)
+    RETURNING u.id
+  )
+  SELECT
+    t.id IS NOT NULL AS target_found,
+    COALESCE(t.target_disabled, false) AS target_disabled,
+    COALESCE(t.target_is_admin, false) AS target_is_admin,
+    d.id IS NOT NULL AS deleted
+  FROM (VALUES (1)) AS one (x)
+  LEFT JOIN target t ON true
+  LEFT JOIN deleted d ON true`;
+
 function toUserRecord(row: any): UserRecordSchemaType {
   return {
     id: row.id,
@@ -367,6 +407,12 @@ function assertStatusChanged(actor: RequestAccess, flags: StatusFlags, conflictM
   if (!flags.target_found) throw new NotFoundError("User does not exist.");
   if (flags.target_is_admin && !actor.isAdmin) throw new ForbiddenError(ADMIN_TARGET_ERROR);
   if (!flags.id) throw new ConflictError(conflictMessage);
+}
+
+function assertDeleted(actor: RequestAccess, flags: DeleteFlags): void {
+  if (!flags.target_found) throw new NotFoundError("User does not exist.");
+  if (flags.target_is_admin && !actor.isAdmin) throw new ForbiddenError(ADMIN_TARGET_ERROR);
+  if (!flags.target_disabled || !flags.deleted) throw new ConflictError("Disable the user before deleting them.");
 }
 
 function toInviteError(error: unknown, email: string): Error | null {
@@ -467,4 +513,12 @@ export async function reinviteUser(db: Queryable, actor: RequestAccess, userId: 
   const row = result.rows[0];
   assertStatusChanged(actor, row, "Only a disabled user can be reinvited.");
   return toUserRecord(row);
+}
+
+export async function deleteUser(db: Queryable, actor: RequestAccess, userId: string): Promise<void> {
+  assertValid(UserParamsSchema, { userId });
+  assertNotSelf(actor, userId, "You cannot delete yourself.");
+
+  const result = await db.query(DELETE_USER_SQL, [userId, actor.isAdmin]);
+  assertDeleted(actor, result.rows[0]);
 }

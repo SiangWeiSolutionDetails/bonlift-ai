@@ -35,6 +35,7 @@
     "invite": "Invite users",
     "edit": "Edit users",
     "disable": "Disable users",
+    "delete": "Delete users",
     "assignConsoleRoles": "Assign console roles",
     "assignBrandRoles": "Assign brand roles"
   },

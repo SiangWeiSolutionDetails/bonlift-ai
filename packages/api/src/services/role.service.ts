@@ -288,6 +288,7 @@ const ROLE_ASSIGNMENTS_SQL = `
     FROM role
     JOIN user_console_roles ucr ON ucr.role_id = role.id
     JOIN users u ON u.id = ucr.user_id
+    -- No kind filter needed: the (role_id, role_kind) foreign keys keep each table to roles of its own kind.
     UNION ALL
     SELECT u.id, u.email, u.display_name, u.status, b.id, b.name, t.name
     FROM role

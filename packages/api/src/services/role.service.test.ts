@@ -7,6 +7,7 @@ import type { RequestAccess } from "./authorization.service.js";
 import { createRole, deleteRole, listRoleAssignments, listRoles, updateRole } from "./role.service.js";
 
 const ROLE_ID = "11111111-1111-1111-1111-111111111111";
+const BRAND_ID = "33333333-3333-3333-3333-333333333333";
 const USER_ID = "22222222-2222-2222-2222-222222222222";
 
 const queryMock = vi.fn();
@@ -302,7 +303,7 @@ describe("listRoleAssignments", () => {
     queryMock.mockResolvedValueOnce(
       pgResult([
         { found: true, user_id: USER_ID, email: "a@x.com", display_name: null, status: "active", brand_id: null, brand_name: null, tenant_name: null },
-        { found: true, user_id: ROLE_ID, email: "b@x.com", display_name: "Bea", status: "invited", brand_id: USER_ID, brand_name: "Alpha", tenant_name: "Group" },
+        { found: true, user_id: ROLE_ID, email: "b@x.com", display_name: "Bea", status: "invited", brand_id: BRAND_ID, brand_name: "Alpha", tenant_name: "Group" },
       ]),
     );
 
@@ -310,7 +311,7 @@ describe("listRoleAssignments", () => {
 
     expect(rows).toEqual([
       { userId: USER_ID, email: "a@x.com", displayName: null, status: "active", brandId: null, brandName: null, tenantName: null },
-      { userId: ROLE_ID, email: "b@x.com", displayName: "Bea", status: "invited", brandId: USER_ID, brandName: "Alpha", tenantName: "Group" },
+      { userId: ROLE_ID, email: "b@x.com", displayName: "Bea", status: "invited", brandId: BRAND_ID, brandName: "Alpha", tenantName: "Group" },
     ]);
   });
 });

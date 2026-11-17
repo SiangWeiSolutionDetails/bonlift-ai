@@ -278,23 +278,44 @@ describe("listRoleAssignments (integration)", () => {
     expect(rows[0]).toMatchObject({ userId, email: "bob@x.com", brandId: alphaId });
   });
 
+  it("leaves out a brand whose tenant is soft-deleted", async () => {
+    const actor = await actorFor("admin@x.com");
+    const roleId = await insertRole("brand", "Viewer", ["outlets.view"]);
+    const userId = await userNamed("bob@x.com");
+    await assignBrandRole(userId, await brandNamed("Alpha"), roleId);
+    const orphanedId = await brandNamed("Beta");
+    await assignBrandRole(userId, orphanedId, roleId);
+    await getTestPool().query(
+      `UPDATE tenants SET deleted_at = now() WHERE id = (SELECT tenant_id FROM brands WHERE id = $1)`,
+      [orphanedId],
+    );
+
+    const rows = await listRoleAssignments(getTestPool(), actor, roleId);
+
+    expect(rows.map((row) => row.brandName)).toEqual(["Alpha"]);
+  });
+
   it("orders by email, then tenant, then brand", async () => {
     const actor = await actorFor("admin@x.com");
     const roleId = await insertRole("brand", "Viewer", ["outlets.view"]);
     const zed = await userNamed("zed@x.com");
     const amy = await userNamed("amy@x.com");
-    const alpha = await brandNamed("Alpha");
-    const beta = await brandNamed("Beta");
-    await assignBrandRole(zed, alpha, roleId);
-    await assignBrandRole(amy, beta, roleId);
-    await assignBrandRole(amy, alpha, roleId);
+    const brandIn = async (tenantName: string, name: string) => {
+      const tenant = await createTenant(getTestPool(), { name: tenantName });
+      return (await createBrand(getTestPool(), { tenantId: tenant.id, name })).id;
+    };
+    const zetaAlpha = await brandIn("Zeta Group", "Alpha");
+    const betaZulu = await brandIn("Beta Group", "Zulu");
+    await assignBrandRole(zed, zetaAlpha, roleId);
+    await assignBrandRole(amy, zetaAlpha, roleId);
+    await assignBrandRole(amy, betaZulu, roleId);
 
     const rows = await listRoleAssignments(getTestPool(), actor, roleId);
 
-    expect(rows.map((row) => [row.email, row.brandName])).toEqual([
-      ["amy@x.com", "Alpha"],
-      ["amy@x.com", "Beta"],
-      ["zed@x.com", "Alpha"],
+    expect(rows.map((row) => [row.email, row.tenantName, row.brandName])).toEqual([
+      ["amy@x.com", "Beta Group", "Zulu"],
+      ["amy@x.com", "Zeta Group", "Alpha"],
+      ["zed@x.com", "Zeta Group", "Alpha"],
     ]);
   });
 

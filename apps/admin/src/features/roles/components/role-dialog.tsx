@@ -17,9 +17,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { usePermissions } from "@/features/auth/permissions";
 import { getErrorMessage } from "@/lib/error-message";
-import { useCreateRole, useUpdateRole } from "../queries";
+import { UserStatusBadge } from "@/features/users/components/user-status-badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useCreateRole, useRoleAssignments, useUpdateRole } from "../queries";
 import { groupState, toggleGroup } from "../permission-selection";
-import type { Role, RoleKindType } from "../type";
+import type { Role, RoleAssignment, RoleKindType } from "../type";
 
 export type RoleDialogTarget =
   | { mode: "create"; kind: RoleKindType }
@@ -76,6 +78,50 @@ function toggled(selected: ReadonlySet<string>, key: string) {
   if (next.has(key)) next.delete(key);
   else next.add(key);
   return next;
+}
+
+function assignmentScope(assignment: RoleAssignment) {
+  return [assignment.tenantName, assignment.brandName].filter(Boolean).join(" · ");
+}
+
+function AssignedUsers({ roleId }: { roleId: string }) {
+  const { t } = useTranslation("roles");
+  const { t: tCommon } = useTranslation();
+  const { data, isPending, error } = useRoleAssignments(roleId, true);
+
+  return (
+    <section className="grid gap-2">
+      <div>
+        <h3 className="text-sm font-medium">{t("dialog.assignedUsers")}</h3>
+        <p className="text-sm text-muted-foreground">{t("dialog.assignedUsersHint")}</p>
+      </div>
+      {isPending && !error ? (
+        <Skeleton className="h-5 w-full" />
+      ) : error ? (
+        <p className="text-sm text-destructive">{getErrorMessage(error, tCommon)}</p>
+      ) : !data.length ? (
+        <p className="text-sm text-muted-foreground">{t("dialog.noAssignedUsers")}</p>
+      ) : (
+        <ul className="grid max-h-48 gap-2 overflow-y-auto pr-1">
+          {data.map((assignment) => (
+            <li
+              key={`${assignment.userId}-${assignment.brandId ?? ""}`}
+              className="flex items-center justify-between gap-3 text-sm"
+            >
+              <div className="min-w-0">
+                <p className="truncate font-medium">{assignment.displayName ?? assignment.email}</p>
+                <p className="truncate text-muted-foreground">{assignment.email}</p>
+                {assignment.brandId && (
+                  <p className="truncate text-muted-foreground">{assignmentScope(assignment)}</p>
+                )}
+              </div>
+              <UserStatusBadge status={assignment.status} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
 }
 
 function RoleForm({ target, onDone }: { target: RoleDialogTarget; onDone: () => void }) {
@@ -190,6 +236,8 @@ function RoleForm({ target, onDone }: { target: RoleDialogTarget; onDone: () => 
           })}
         </div>
       </fieldset>
+
+      {existing && canConsole("users.view") && <AssignedUsers roleId={existing.id} />}
 
       {mutation.error && (
         <p className="text-sm text-destructive">{getErrorMessage(mutation.error, tCommon)}</p>

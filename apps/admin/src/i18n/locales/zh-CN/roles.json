@@ -29,7 +29,10 @@
     "selectAll": "全选",
     "toggleGroup": "展开或收起{{group}}操作",
     "builtinHint": "内置管理员角色拥有所有后台操作权限，无法修改。",
-    "lackedHint": "您只能授予自己持有的后台操作权限。"
+    "lackedHint": "您只能授予自己持有的后台操作权限。",
+    "assignedUsers": "已分配用户",
+    "assignedUsersHint": "如需更改谁持有该角色，请前往“用户”页面或品牌的“成员”标签页。",
+    "noAssignedUsers": "暂无用户持有该角色。"
   },
   "delete": {
     "title": "删除 {{name}}？",

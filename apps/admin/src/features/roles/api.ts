@@ -1,9 +1,15 @@
 import { apiRequest } from "@/lib/api-client";
-import type { CreateRoleInput, Role, RoleKindType, UpdateRoleInput } from "./type";
+import type { CreateRoleInput, Role, RoleAssignment, RoleKindType, UpdateRoleInput } from "./type";
 
 export async function listRoles(kind: RoleKindType, signal: AbortSignal) {
   const data = await apiRequest<{ roles: Role[] }>("/roles", { query: { kind }, signal });
   return data.roles;
+}
+
+export async function listRoleAssignments(roleId: string, signal: AbortSignal) {
+  return await apiRequest<RoleAssignment[]>(`/roles/${encodeURIComponent(roleId)}/assignments`, {
+    signal,
+  });
 }
 
 export async function createRole(input: CreateRoleInput) {

@@ -1,17 +1,26 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { meQueryOptions } from "@/features/auth/queries";
-import { createRole, deleteRole, listRoles, updateRole } from "./api";
+import { createRole, deleteRole, listRoleAssignments, listRoles, updateRole } from "./api";
 import type { RoleKindType, UpdateRoleInput } from "./type";
 
 export const roleKeys = {
   all: ["roles"] as const,
   list: (kind: RoleKindType) => [...roleKeys.all, "list", kind] as const,
+  assignments: (roleId: string) => [...roleKeys.all, "assignments", roleId] as const,
 };
 
 export function useRoles(kind: RoleKindType) {
   return useQuery({
     queryKey: roleKeys.list(kind),
     queryFn: ({ signal }) => listRoles(kind, signal),
+  });
+}
+
+export function useRoleAssignments(roleId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: roleKeys.assignments(roleId),
+    queryFn: ({ signal }) => listRoleAssignments(roleId, signal),
+    enabled,
   });
 }
 

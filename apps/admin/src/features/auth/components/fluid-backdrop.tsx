@@ -119,7 +119,7 @@ export function FluidBackdrop() {
       ))}
       {!reduceMotion && (
         <motion.div
-          className="absolute top-0 left-0 -mt-36 -ml-36 size-72 rounded-full bg-[radial-gradient(circle,#ffffff_0%,#9B72CB_40%,transparent_70%)] mix-blend-overlay blur-3xl dark:mix-blend-screen"
+          className="absolute top-0 left-0 -mt-36 -ml-36 size-72 rounded-full bg-[radial-gradient(circle,var(--background)_0%,var(--background)_35%,transparent_70%)] blur-2xl"
           style={{ x: glowSpringX, y: glowSpringY, opacity: glowOpacity }}
         />
       )}

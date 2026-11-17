@@ -119,9 +119,14 @@ export function FluidBackdrop() {
       ))}
       {!reduceMotion && (
         <motion.div
-          className="absolute top-0 left-0 -mt-36 -ml-36 size-72 rounded-full bg-[radial-gradient(circle,var(--background)_0%,var(--background)_35%,transparent_70%)] blur-2xl"
+          className="absolute top-0 left-0 -mt-36 -ml-36 size-72"
           style={{ x: glowSpringX, y: glowSpringY, opacity: glowOpacity }}
-        />
+        >
+          <div
+            className="login-blob size-full bg-[#9B72CB] opacity-30 blur-[70px] dark:opacity-40"
+            style={{ animation: "login-morph 11s ease-in-out infinite" }}
+          />
+        </motion.div>
       )}
     </div>
   );

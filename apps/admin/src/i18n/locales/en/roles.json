@@ -1,0 +1,36 @@
+{
+  "page": {
+    "title": "Roles",
+    "newRole": "New Role"
+  },
+  "tabs": {
+    "console": "Console roles",
+    "brand": "Brand roles"
+  },
+  "table": {
+    "name": "Name",
+    "actions": "Actions",
+    "assignments": "Assigned",
+    "rowActions": "Row actions",
+    "empty": "No roles yet.",
+    "builtin": "Built-in",
+    "allActions": "All",
+    "editRole": "Edit {{name}}",
+    "viewRole": "View {{name}}",
+    "deleteRole": "Delete {{name}}",
+    "ownRole": "You can't change a role you hold."
+  },
+  "dialog": {
+    "createTitle": "New Role",
+    "editTitle": "Edit Role",
+    "viewTitle": "Role Details",
+    "name": "Name",
+    "permissions": "Permissions",
+    "builtinHint": "The built-in Admin role holds every console action and can't be changed.",
+    "lackedHint": "You can only grant console actions you hold yourself."
+  },
+  "delete": {
+    "title": "Delete {{name}}?",
+    "description": "This role will be removed permanently. A role that is assigned to users can't be deleted."
+  }
+}

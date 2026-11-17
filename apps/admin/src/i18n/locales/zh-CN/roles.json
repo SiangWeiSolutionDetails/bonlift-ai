@@ -1,0 +1,36 @@
+{
+  "page": {
+    "title": "角色",
+    "newRole": "新建角色"
+  },
+  "tabs": {
+    "console": "后台角色",
+    "brand": "品牌角色"
+  },
+  "table": {
+    "name": "名称",
+    "actions": "操作数",
+    "assignments": "已分配",
+    "rowActions": "行操作",
+    "empty": "暂无角色。",
+    "builtin": "内置",
+    "allActions": "全部",
+    "editRole": "编辑 {{name}}",
+    "viewRole": "查看 {{name}}",
+    "deleteRole": "删除 {{name}}",
+    "ownRole": "无法修改您自己持有的角色。"
+  },
+  "dialog": {
+    "createTitle": "新建角色",
+    "editTitle": "编辑角色",
+    "viewTitle": "角色详情",
+    "name": "名称",
+    "permissions": "权限",
+    "builtinHint": "内置管理员角色拥有所有后台操作权限，无法修改。",
+    "lackedHint": "您只能授予自己持有的后台操作权限。"
+  },
+  "delete": {
+    "title": "删除 {{name}}？",
+    "description": "该角色将被永久删除。已分配给用户的角色无法删除。"
+  }
+}

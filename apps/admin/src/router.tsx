@@ -16,6 +16,7 @@ import {
   GaugeIcon,
   KeyRoundIcon,
   LayoutDashboardIcon,
+  ShieldIcon,
   SquareStackIcon,
   StoreIcon,
   TagIcon,
@@ -47,6 +48,7 @@ import { OrderSnapshotsPage } from "@/pages/order-snapshots-page";
 import { OutletsPage } from "@/pages/outlets-page";
 import { RecommendationFeedbackPage } from "@/pages/recommendation-feedback-page";
 import { ResultsPage } from "@/pages/results-page";
+import { RolesPage } from "@/pages/roles-page";
 import { TenantsPage } from "@/pages/tenants-page";
 import { UsagePage } from "@/pages/usage-page";
 
@@ -150,6 +152,18 @@ const outletsRoute = createRoute({
     groupKey: "nav.management",
     icon: <StoreIcon />,
     access: { anyBrand: "outlets.view" },
+  }),
+});
+
+const rolesRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: "/roles",
+  component: RolesPage,
+  ...guardedBy({
+    titleKey: "nav.roles",
+    groupKey: "nav.management",
+    icon: <ShieldIcon />,
+    access: { console: "roles.view" },
   }),
 });
 
@@ -263,6 +277,7 @@ const sidebarRoutes = [
   tenantsRoute,
   brandsRoute,
   outletsRoute,
+  rolesRoute,
   snapshotsRoute,
   calculationsRoute,
   resultsRoute,

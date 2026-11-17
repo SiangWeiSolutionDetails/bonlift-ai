@@ -1,0 +1,98 @@
+{
+  "groups": {
+    "tenants": "Tenants",
+    "brands": "Brands",
+    "users": "Users",
+    "roles": "Roles",
+    "outlets": "Outlets",
+    "dataSource": "Data source",
+    "snapshots": "Order snapshots",
+    "calculations": "Calculations",
+    "configs": "Configs",
+    "results": "Outlet item scoring",
+    "customerScores": "Customer item scoring",
+    "itemAffinity": "Item affinity",
+    "channels": "Channels",
+    "apiKeys": "API keys",
+    "usage": "Usage",
+    "feedback": "Recommendation feedback",
+    "members": "Members"
+  },
+  "tenants": {
+    "view": "View tenants",
+    "create": "Create tenants",
+    "edit": "Edit tenants",
+    "delete": "Delete tenants"
+  },
+  "brands": {
+    "view": "View all brands",
+    "create": "Create brands",
+    "edit": "Edit brands",
+    "delete": "Delete brands"
+  },
+  "users": {
+    "view": "View users",
+    "invite": "Invite users",
+    "disable": "Disable users",
+    "assignConsoleRoles": "Assign console roles",
+    "assignBrandRoles": "Assign brand roles"
+  },
+  "roles": {
+    "view": "View roles",
+    "manage": "Manage roles"
+  },
+  "outlets": {
+    "view": "View outlets",
+    "create": "Create outlets",
+    "edit": "Edit outlets",
+    "delete": "Delete outlets"
+  },
+  "dataSource": {
+    "view": "View data source",
+    "edit": "Edit data source"
+  },
+  "snapshots": {
+    "view": "View order snapshots",
+    "viewCustomerIds": "View customer IDs in snapshots",
+    "upload": "Upload order snapshots"
+  },
+  "calculations": {
+    "view": "View calculations",
+    "trigger": "Trigger calculations",
+    "editSchedule": "Edit calculation schedule",
+    "publish": "Publish calculation results"
+  },
+  "configs": {
+    "view": "View configs",
+    "edit": "Edit configs"
+  },
+  "results": {
+    "view": "View outlet item scores"
+  },
+  "customerScores": {
+    "view": "View customer item scores"
+  },
+  "itemAffinity": {
+    "view": "View item affinity"
+  },
+  "channels": {
+    "view": "View channels",
+    "edit": "Edit channels"
+  },
+  "apiKeys": {
+    "view": "View API keys",
+    "create": "Create API keys",
+    "revoke": "Revoke API keys",
+    "delete": "Delete API keys"
+  },
+  "usage": {
+    "view": "View usage"
+  },
+  "feedback": {
+    "view": "View recommendation feedback"
+  },
+  "members": {
+    "view": "View members",
+    "manage": "Manage members"
+  }
+}

@@ -46,18 +46,10 @@ export async function createSession(
   return token;
 }
 
-// One statement: s holds the session only if it is live (user active, inside both the absolute and idle limits);
-// touched refreshes last_seen_at from s only when it is older than the touch interval, so most reads stay reads.
-export async function findSessionUser(
-  db: Queryable,
-  token: string,
-): Promise<SessionUser | null> {
-  const idHash = hashSessionToken(token);
-  if (!idHash) return null;
-
-  const result = await db.query(
-    `
-    WITH s AS (
+// s holds the session only if it is live (user active, inside both the absolute and idle limits); touched refreshes
+// last_seen_at from s only when it is older than the touch interval, so most reads stay reads. Binds $1..$3.
+export const SESSION_CTES = `
+    s AS (
       SELECT us.id_hash, us.last_seen_at, u.id, u.email, u.display_name
       FROM user_sessions us
       JOIN users u
@@ -73,11 +65,26 @@ export async function findSessionUser(
       FROM s
       WHERE us.id_hash = s.id_hash
         AND s.last_seen_at < now() - make_interval(secs => $3::double precision / 1000)
-    )
+    )`;
+
+export function sessionParams(idHash: Buffer): [Buffer, number, number] {
+  return [idHash, SESSION_IDLE_MS, SESSION_TOUCH_MS];
+}
+
+export async function findSessionUser(
+  db: Queryable,
+  token: string,
+): Promise<SessionUser | null> {
+  const idHash = hashSessionToken(token);
+  if (!idHash) return null;
+
+  const result = await db.query(
+    `
+    WITH ${SESSION_CTES}
     SELECT s.id, s.email, s.display_name
     FROM s
     `,
-    [idHash, SESSION_IDLE_MS, SESSION_TOUCH_MS],
+    sessionParams(idHash),
   );
 
   const row = result.rows[0];

@@ -71,7 +71,10 @@ async function provisioner(email: string): Promise<Actor> {
 }
 
 async function userByEmail(email: string) {
-  const result = await getTestPool().query(`SELECT id, status, display_name FROM users WHERE email = $1`, [email]);
+  const result = await getTestPool().query(
+    `SELECT id, status, display_name, display_name_source FROM users WHERE email = $1`,
+    [email],
+  );
   return result.rows[0] ?? null;
 }
 
@@ -105,7 +108,7 @@ describe("addBrandMember (integration)", () => {
     });
 
     const stored = await userByEmail("new@x.com");
-    expect(stored).toMatchObject({ status: "invited", display_name: "Newbie" });
+    expect(stored).toMatchObject({ status: "invited", display_name: "Newbie", display_name_source: "staff" });
     expect(member).toEqual({
       userId: stored.id,
       email: "new@x.com",
@@ -115,6 +118,19 @@ describe("addBrandMember (integration)", () => {
       roleName: "Viewer",
     });
     expect(await storedBrandRole(stored.id, brandId)).toEqual({ role_id: viewer, granted_by: lead.access.user.id });
+  });
+
+  it("leaves the name source empty for a new email without a name", async () => {
+    const brandId = await insertBrand("Tenant A", "Brand A");
+    const lead = await brandLead("lead@x.com", brandId, LEAD_ACTIONS);
+    const viewer = await insertRole("Viewer", "brand", ["customerScores.view"]);
+
+    await addBrandMember(getTestPool(), lead.access, lead.brandActions, brandId, {
+      email: "new@x.com",
+      roleId: viewer,
+    });
+
+    expect(await userByEmail("new@x.com")).toMatchObject({ display_name: null, display_name_source: null });
   });
 
   it("adds an existing active user without changing their account", async () => {

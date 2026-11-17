@@ -1,14 +1,23 @@
 import { CONSOLE_ACTIONS } from "@bonlift-ai/contracts";
 import { describe, expect, it } from "vitest";
+import { ForbiddenError } from "../errors.js";
 import { getTestPool } from "../testing/testDb.js";
 import { createBrand, deleteBrand } from "./brand.service.js";
 import { createSession } from "./session.service.js";
 import { createTenant } from "./tenant.service.js";
-import { findSessionUserAccess } from "./userAccess.service.js";
+import { updateUser } from "./user.service.js";
+import { findSessionUserAccess, updateOwnName } from "./userAccess.service.js";
 
-async function signedInUser(): Promise<{ userId: string; token: string }> {
+async function signedInUser(
+  name: string | null = null,
+  source: string | null = null,
+): Promise<{ userId: string; token: string }> {
   const pool = getTestPool();
-  const result = await pool.query(`INSERT INTO users (email, status) VALUES ('alice@x.com', 'active') RETURNING id`);
+  const result = await pool.query(
+    `INSERT INTO users (email, status, display_name, display_name_source)
+     VALUES ('alice@x.com', 'active', $1, $2) RETURNING id`,
+    [name, source],
+  );
   const userId = result.rows[0].id;
   return { userId, token: await createSession(pool, userId, null) };
 }
@@ -89,5 +98,94 @@ describe("findSessionUserAccess (integration)", () => {
 
   it("returns null for an unknown session", async () => {
     expect(await findSessionUserAccess(getTestPool(), "a".repeat(43))).toBeNull();
+  });
+});
+
+async function nameOf(userId: string) {
+  const result = await getTestPool().query(`SELECT display_name, display_name_source FROM users WHERE id = $1`, [
+    userId,
+  ]);
+  return result.rows[0];
+}
+
+describe("name flags on /auth/me (integration)", () => {
+  it("asks a user with a Google name to confirm it", async () => {
+    const { token } = await signedInUser("Alice G", "provider");
+
+    expect(await findSessionUserAccess(getTestPool(), token)).toMatchObject({
+      displayName: "Alice G",
+      nameLocked: false,
+      needsNameConfirmation: true,
+    });
+  });
+
+  it("locks a staff name and does not ask to confirm it", async () => {
+    const { token } = await signedInUser("Alice", "staff");
+
+    expect(await findSessionUserAccess(getTestPool(), token)).toMatchObject({
+      nameLocked: true,
+      needsNameConfirmation: false,
+    });
+  });
+});
+
+describe("updateOwnName (integration)", () => {
+  it("sets a Google name as chosen by the user and returns the /auth/me shape", async () => {
+    const { userId, token } = await signedInUser("Alice G", "provider");
+
+    const result = await updateOwnName(getTestPool(), token, { displayName: "  Alice Tan " });
+
+    expect(result).toMatchObject({
+      id: userId,
+      displayName: "Alice Tan",
+      nameLocked: false,
+      needsNameConfirmation: false,
+      console: null,
+      brands: [],
+    });
+    expect(await nameOf(userId)).toEqual({ display_name: "Alice Tan", display_name_source: "self" });
+  });
+
+  it("sets a name for a user who has none", async () => {
+    const { userId, token } = await signedInUser();
+
+    await updateOwnName(getTestPool(), token, { displayName: "Alice" });
+
+    expect(await nameOf(userId)).toEqual({ display_name: "Alice", display_name_source: "self" });
+  });
+
+  it("lets a user change a name they chose before", async () => {
+    const { userId, token } = await signedInUser("Alice", "self");
+
+    await updateOwnName(getTestPool(), token, { displayName: "Ally" });
+
+    expect(await nameOf(userId)).toEqual({ display_name: "Ally", display_name_source: "self" });
+  });
+
+  it("refuses a staff name with 403 and writes nothing", async () => {
+    const { userId, token } = await signedInUser("Alice", "staff");
+
+    await expect(updateOwnName(getTestPool(), token, { displayName: "Hacked" })).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+
+    expect(await nameOf(userId)).toEqual({ display_name: "Alice", display_name_source: "staff" });
+  });
+
+  it("allows a change once staff clear the name", async () => {
+    const { userId, token } = await signedInUser("Alice", "staff");
+    const admin = { user: { id: userId, email: "alice@x.com", displayName: null }, isAdmin: true, consoleActions: [] };
+    await updateUser(getTestPool(), admin, userId, { displayName: null });
+
+    const result = await updateOwnName(getTestPool(), token, { displayName: "Ally" });
+
+    expect(result).toMatchObject({ displayName: "Ally", nameLocked: false });
+    expect(await nameOf(userId)).toEqual({ display_name: "Ally", display_name_source: "self" });
+  });
+
+  it("refuses an unknown session", async () => {
+    await expect(updateOwnName(getTestPool(), "a".repeat(43), { displayName: "Alice" })).rejects.toMatchObject({
+      statusCode: 401,
+    });
   });
 });

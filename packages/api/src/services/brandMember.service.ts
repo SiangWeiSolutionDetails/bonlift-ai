@@ -14,7 +14,7 @@ import { isCheckViolationOf } from "../utils/pgErrors.js";
 import { assertValid } from "../utils/validate.js";
 import type { RequestAccess } from "./authorization.service.js";
 import type { Queryable } from "./session.service.js";
-import { assertNotSelf } from "./user.service.js";
+import { assertNotSelf, staffNameSource } from "./user.service.js";
 
 const OWN_BRAND_ROLE_ERROR = "You cannot change your own brand role.";
 
@@ -146,7 +146,7 @@ const REMOVE_BRAND_MEMBER_SQL = `
   LEFT JOIN target t ON true
   LEFT JOIN written w ON true`;
 
-// $1 brand, $2 email, $3 role, $4 actor, $5 unlimited, $6 the actor's brand actions, $7 display name.
+// $1 brand, $2 email, $3 role, $4 actor, $5 unlimited, $6 the actor's brand actions, $7 display name, $8 its source.
 // `allowed` holds the flags; both the user insert and the assignment read it, so a failed flag writes nothing.
 const ADD_BRAND_MEMBER_SQL = `
   WITH ${brandCte},
@@ -161,8 +161,8 @@ const ADD_BRAND_MEMBER_SQL = `
       AND ($5::boolean OR (ro.new_subset AND COALESCE(e.current_subset, true)))
   ),
   created AS (
-    INSERT INTO users (email, display_name)
-    SELECT $2::text, $7::text
+    INSERT INTO users (email, display_name, display_name_source)
+    SELECT $2::text, $7::text, $8::text
     FROM allowed
     WHERE NOT EXISTS (SELECT 1 FROM existing)
     ON CONFLICT (email) DO NOTHING
@@ -287,6 +287,7 @@ export async function addBrandMember(
       actor.user.id,
       ...limitParams(limit),
       body.displayName ?? null,
+      staffNameSource(body.displayName),
     ]);
     const row = result.rows[0];
     assertBrandMemberGuards(row, limit, "User does not exist.");

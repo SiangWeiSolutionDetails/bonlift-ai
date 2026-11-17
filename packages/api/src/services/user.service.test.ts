@@ -84,6 +84,9 @@ describe("resolveUserFromIdentity — known identity", () => {
     const [sql, params] = poolQueryMock.mock.calls[0];
     expect(sql).toMatch(/last_login_at\s*=\s*now\(\)/);
     expect(sql).toMatch(/COALESCE\(\s*u\.display_name, NULLIF\(\$3, ''\)\)/);
+    expect(sql).toMatch(
+      /display_name_source = CASE\s+WHEN u\.display_name IS NULL AND NULLIF\(\$3, ''\) IS NOT NULL THEN 'provider'\s+ELSE u\.display_name_source\s+END/,
+    );
     expect(sql).toMatch(/status IN \('active', 'invited'\)/);
     expect(params).toEqual(["google", "google-sub-1", "Alice"]);
     expect(connectMock).not.toHaveBeenCalled();
@@ -136,6 +139,9 @@ describe("resolveUserFromIdentity — first link", () => {
     const [activateSql, activateParams] = clientQueryMock.mock.calls[1];
     expect(activateSql).toMatch(/status = 'invited'/);
     expect(activateSql).toMatch(/COALESCE\(display_name, NULLIF\(\$2, ''\)\)/);
+    expect(activateSql).toMatch(
+      /display_name_source = CASE\s+WHEN display_name IS NULL AND NULLIF\(\$2, ''\) IS NOT NULL THEN 'provider'\s+ELSE display_name_source\s+END/,
+    );
     expect(activateParams[0]).toBe("alice@x.com");
     expect(clientQueryMock.mock.calls[2][1]).toEqual([USER_ID, "google", "google-sub-1"]);
     expect(releaseMock).toHaveBeenCalled();
@@ -240,6 +246,7 @@ function userRow(overrides: Record<string, unknown> = {}) {
     id: TARGET_ID,
     email: "bob@x.com",
     display_name: "Bob",
+    display_name_source: "staff",
     status: "active",
     last_login_at: LOGIN_AT,
     role_id: ROLE_ID,
@@ -254,6 +261,7 @@ const expectedUser = {
   id: TARGET_ID,
   email: "bob@x.com",
   displayName: "Bob",
+  displayNameSource: "staff",
   status: "active",
   lastLoginAt: "2026-11-17T08:00:00.000Z",
   consoleRole: { id: ROLE_ID, name: "Support", isBuiltin: false },
@@ -320,6 +328,7 @@ describe("listUsers", () => {
           id: USER_ID,
           email: "new@x.com",
           display_name: null,
+          display_name_source: null,
           status: "invited",
           last_login_at: null,
           ...noRole,
@@ -336,6 +345,7 @@ describe("listUsers", () => {
         id: USER_ID,
         email: "new@x.com",
         displayName: null,
+        displayNameSource: null,
         status: "invited",
         lastLoginAt: null,
         consoleRole: null,
@@ -353,8 +363,28 @@ describe("inviteUser", () => {
 
     const user = await inviteUser(fakePool, { email: "Bob@X.com", displayName: "Bob" });
 
-    expect(poolQueryMock.mock.calls[0][1]).toEqual(["bob@x.com", "Bob"]);
+    expect(poolQueryMock.mock.calls[0][1]).toEqual(["bob@x.com", "Bob", "staff"]);
     expect(user).toMatchObject({ email: "bob@x.com", status: "invited", consoleRole: null, brandCount: 0 });
+  });
+
+  it("marks a typed name as set by staff and maps the source", async () => {
+    poolQueryMock.mockResolvedValueOnce(pgResult([userRow({ status: "invited", last_login_at: null, ...noRole })]));
+
+    const user = await inviteUser(fakePool, { email: "bob@x.com", displayName: "Bob" });
+
+    expect(poolQueryMock.mock.calls[0][0]).toMatch(/display_name_source/);
+    expect(user.displayNameSource).toBe("staff");
+  });
+
+  it("leaves the source empty without a name", async () => {
+    poolQueryMock.mockResolvedValueOnce(
+      pgResult([userRow({ display_name: null, display_name_source: null, status: "invited", ...noRole })]),
+    );
+
+    const user = await inviteUser(fakePool, { email: "bob@x.com" });
+
+    expect(poolQueryMock.mock.calls[0][1]).toEqual(["bob@x.com", null, null]);
+    expect(user.displayNameSource).toBeNull();
   });
 
   it("returns 409 for a duplicate email", async () => {
@@ -615,7 +645,15 @@ describe("updateUser", () => {
     const user = await updateUser(fakePool, editor, TARGET_ID, { displayName: "  Bobby  " });
 
     expect(user).toEqual({ ...expectedUser, displayName: "Bobby" });
-    expect(poolQueryMock.mock.calls[0][1]).toEqual([TARGET_ID, "Bobby", false]);
+    expect(poolQueryMock.mock.calls[0][1]).toEqual([TARGET_ID, "Bobby", false, "staff"]);
+  });
+
+  it("writes the name source with the name", async () => {
+    poolQueryMock.mockResolvedValueOnce(pgResult([statusFlags()]));
+
+    await updateUser(fakePool, editor, TARGET_ID, { displayName: "Bob" });
+
+    expect(poolQueryMock.mock.calls[0][0]).toMatch(/display_name_source = \$4/);
   });
 
   it("stores an empty name as null", async () => {
@@ -623,7 +661,7 @@ describe("updateUser", () => {
 
     await updateUser(fakePool, editor, TARGET_ID, { displayName: "   " });
 
-    expect(poolQueryMock.mock.calls[0][1]).toEqual([TARGET_ID, null, false]);
+    expect(poolQueryMock.mock.calls[0][1]).toEqual([TARGET_ID, null, false, null]);
   });
 
   it("stores null as null", async () => {
@@ -631,7 +669,7 @@ describe("updateUser", () => {
 
     await updateUser(fakePool, editor, TARGET_ID, { displayName: null });
 
-    expect(poolQueryMock.mock.calls[0][1]).toEqual([TARGET_ID, null, false]);
+    expect(poolQueryMock.mock.calls[0][1]).toEqual([TARGET_ID, null, false, null]);
   });
 
   it("refuses a non-Admin editing an Admin", async () => {
@@ -646,7 +684,7 @@ describe("updateUser", () => {
     const user = await updateUser(fakePool, admin, TARGET_ID, { displayName: "X" });
 
     expect(user.displayName).toBe("X");
-    expect(poolQueryMock.mock.calls[0][1]).toEqual([TARGET_ID, "X", true]);
+    expect(poolQueryMock.mock.calls[0][1]).toEqual([TARGET_ID, "X", true, "staff"]);
   });
 
   it("returns 404 for an unknown user", async () => {
@@ -660,7 +698,7 @@ describe("updateUser", () => {
 
     await updateUser(fakePool, editor, ACTOR_ID, { displayName: "Me" });
 
-    expect(poolQueryMock.mock.calls[0][1]).toEqual([ACTOR_ID, "Me", false]);
+    expect(poolQueryMock.mock.calls[0][1]).toEqual([ACTOR_ID, "Me", false, "staff"]);
   });
 
   it("rejects a name over 200 characters", async () => {

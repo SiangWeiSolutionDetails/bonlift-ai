@@ -54,7 +54,7 @@ export async function createSession(
 // last_seen_at from s only when it is older than the touch interval, so most reads stay reads. Binds $1..$3.
 export const SESSION_CTES = `
     s AS (
-      SELECT us.id_hash, us.last_seen_at, u.id, u.email, u.display_name
+      SELECT us.id_hash, us.last_seen_at, u.id, u.email, u.display_name, u.display_name_source
       FROM user_sessions us
       JOIN users u
         ON u.id = us.user_id

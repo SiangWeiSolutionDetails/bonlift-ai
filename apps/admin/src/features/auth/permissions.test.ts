@@ -24,6 +24,8 @@ function me(overrides: Partial<AuthMeResponseSchemaType> = {}): AuthMeResponseSc
     displayName: null,
     console: null,
     brands: [],
+    nameLocked: false,
+    needsNameConfirmation: false,
     ...overrides,
   };
 }

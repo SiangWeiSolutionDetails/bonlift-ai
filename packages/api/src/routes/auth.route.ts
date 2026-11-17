@@ -5,6 +5,8 @@ import {
   AuthMeResponseSchema,
   AuthProviderParamsSchema,
   AuthProviderParamsSchemaType,
+  UpdateOwnNameBodySchema,
+  UpdateOwnNameBodySchemaType,
 } from "@bonlift-ai/contracts";
 import { getPool } from "@bonlift-ai/db";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
@@ -19,7 +21,7 @@ import {
   deleteSession,
   SESSION_ABSOLUTE_MS,
 } from "../services/session.service.js";
-import { findSessionUserAccess } from "../services/userAccess.service.js";
+import { findSessionUserAccess, updateOwnName } from "../services/userAccess.service.js";
 import { resolveUserFromIdentity } from "../services/user.service.js";
 
 export const SESSION_COOKIE = "sid";
@@ -184,6 +186,23 @@ export async function authRoutes(app: FastifyInstance) {
       const token = readSessionCookie(request);
       const user = token ? await findSessionUserAccess(getPool(), token) : null;
       if (!user) throw new UnauthorizedError("Not signed in");
+      reply.header("Cache-Control", "no-store");
+      return user;
+    },
+  );
+
+  // onRequest runs before body validation, so a cross-site or signed-out request is refused whatever it sends.
+  app.patch<{ Body: UpdateOwnNameBodySchemaType }>(
+    "/auth/me",
+    {
+      onRequest: async (request) => {
+        assertSameOriginWrite(request);
+        if (!readSessionCookie(request)) throw new UnauthorizedError("Not signed in");
+      },
+      schema: { body: UpdateOwnNameBodySchema, response: { 200: AuthMeResponseSchema } },
+    },
+    async (request, reply) => {
+      const user = await updateOwnName(getPool(), readSessionCookie(request)!, request.body);
       reply.header("Cache-Control", "no-store");
       return user;
     },

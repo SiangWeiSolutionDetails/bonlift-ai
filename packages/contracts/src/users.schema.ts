@@ -8,6 +8,13 @@ export const UserStatusSchema = Type.Union([
 ]);
 export type UserStatus = Static<typeof UserStatusSchema>;
 
+export const DisplayNameSourceSchema = Type.Union([
+  Type.Literal("staff"),
+  Type.Literal("provider"),
+  Type.Literal("self"),
+]);
+export type DisplayNameSource = Static<typeof DisplayNameSourceSchema>;
+
 const ConsoleRoleSummarySchema = Type.Object(
   {
     id: Type.String({ format: "uuid" }),
@@ -22,6 +29,7 @@ export const UserRecordSchema = Type.Object(
     id: Type.String({ format: "uuid" }),
     email: Type.String(),
     displayName: Type.Union([Type.String(), Type.Null()]),
+    displayNameSource: Type.Union([DisplayNameSourceSchema, Type.Null()]),
     status: UserStatusSchema,
     lastLoginAt: Type.Union([Type.String({ format: "date-time" }), Type.Null()]),
     consoleRole: Type.Union([ConsoleRoleSummarySchema, Type.Null()]),

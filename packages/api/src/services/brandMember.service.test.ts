@@ -255,7 +255,8 @@ describe("addBrandMember", () => {
     expect(sql).toMatch(/INSERT INTO users/);
     expect(sql).toMatch(/ON CONFLICT \(email\) DO NOTHING/);
     expect(sql).toMatch(/INSERT INTO user_brand_roles/);
-    expect(params).toEqual([BRAND_ID, "bob@x.com", ROLE_ID, ACTOR_ID, false, LEAD_BRAND_ACTIONS, "Bob"]);
+    expect(sql).toMatch(/INSERT INTO users \(email, display_name, display_name_source\)/);
+    expect(params).toEqual([BRAND_ID, "bob@x.com", ROLE_ID, ACTOR_ID, false, LEAD_BRAND_ACTIONS, "Bob", "staff"]);
   });
 
   it("rejects a disabled user with 409", async () => {
@@ -278,7 +279,7 @@ describe("addBrandMember", () => {
 
     await addBrandMember(fakePool, provisioner, null, BRAND_ID, { email: "Bob@X.com", roleId: ROLE_ID });
 
-    expect(poolQueryMock.mock.calls[0][1]).toEqual([BRAND_ID, "bob@x.com", ROLE_ID, ACTOR_ID, true, [], null]);
+    expect(poolQueryMock.mock.calls[0][1]).toEqual([BRAND_ID, "bob@x.com", ROLE_ID, ACTOR_ID, true, [], null, null]);
   });
 
   it("through members.manage, refuses a role the actor lacks or replacing a broader current role", async () => {

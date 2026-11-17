@@ -4,7 +4,16 @@ import { describe, expect, it } from "vitest";
 import { ConflictError, ForbiddenError, NotFoundError } from "../errors.js";
 import { getTestPool } from "../testing/testDb.js";
 import type { RequestAccess } from "./authorization.service.js";
-import { clearConsoleRole, deleteUser, disableUser, setConsoleRole, updateUser } from "./user.service.js";
+import {
+  clearConsoleRole,
+  deleteUser,
+  disableUser,
+  inviteUser,
+  resolveUserFromIdentity,
+  setConsoleRole,
+  updateUser,
+  type VerifiedIdentity,
+} from "./user.service.js";
 
 async function userNamed(email: string, status = "active"): Promise<string> {
   const result = await getTestPool().query(`INSERT INTO users (email, status) VALUES ($1, $2) RETURNING id`, [
@@ -484,5 +493,94 @@ describe("updateUser (integration)", () => {
     await expect(
       updateUser(getTestPool(), actor, "99999999-9999-9999-9999-999999999999", { displayName: "X" }),
     ).rejects.toBeInstanceOf(NotFoundError);
+  });
+});
+
+async function nameOf(userId: string) {
+  const result = await getTestPool().query(`SELECT display_name, display_name_source FROM users WHERE id = $1`, [
+    userId,
+  ]);
+  return result.rows[0];
+}
+
+async function userWithName(email: string, name: string | null, source: string | null, status = "invited") {
+  const result = await getTestPool().query(
+    `INSERT INTO users (email, display_name, display_name_source, status) VALUES ($1, $2, $3, $4) RETURNING id`,
+    [email, name, source, status],
+  );
+  return result.rows[0].id as string;
+}
+
+function googleIdentity(email: string, name: string | null, subject = `sub-${email}`): VerifiedIdentity {
+  return { provider: "google", subject, email, emailVerified: true, name };
+}
+
+describe("name source (integration)", () => {
+  it("marks a name typed at invite as set by staff", async () => {
+    const user = await inviteUser(getTestPool(), { email: "bob@x.com", displayName: "Bob" });
+
+    expect(user.displayNameSource).toBe("staff");
+    expect(await nameOf(user.id)).toEqual({ display_name: "Bob", display_name_source: "staff" });
+  });
+
+  it("leaves the source empty for an invite without a name", async () => {
+    const user = await inviteUser(getTestPool(), { email: "bob@x.com" });
+
+    expect(user.displayNameSource).toBeNull();
+    expect(await nameOf(user.id)).toEqual({ display_name: null, display_name_source: null });
+  });
+
+  it("fills an empty name from Google at first sign-in and marks it as from the provider", async () => {
+    const invited = await inviteUser(getTestPool(), { email: "bob@x.com" });
+
+    await resolveUserFromIdentity(getTestPool(), googleIdentity("bob@x.com", "Bob Google"));
+
+    expect(await nameOf(invited.id)).toEqual({ display_name: "Bob Google", display_name_source: "provider" });
+  });
+
+  it("keeps a staff name at first sign-in", async () => {
+    const invited = await inviteUser(getTestPool(), { email: "bob@x.com", displayName: "Bob" });
+
+    await resolveUserFromIdentity(getTestPool(), googleIdentity("bob@x.com", "Bob Google"));
+
+    expect(await nameOf(invited.id)).toEqual({ display_name: "Bob", display_name_source: "staff" });
+  });
+
+  it("leaves name and source empty when Google sends no name", async () => {
+    const invited = await inviteUser(getTestPool(), { email: "bob@x.com" });
+
+    await resolveUserFromIdentity(getTestPool(), googleIdentity("bob@x.com", ""));
+
+    expect(await nameOf(invited.id)).toEqual({ display_name: null, display_name_source: null });
+  });
+
+  it("fills an empty name for a known identity, and keeps a self-chosen or staff name", async () => {
+    const empty = await userWithName("empty@x.com", null, null, "active");
+    const chosen = await userWithName("chosen@x.com", "Chosen", "self", "active");
+    const staff = await userWithName("staff@x.com", "Staff Name", "staff", "active");
+    for (const [id, email] of [[empty, "empty@x.com"], [chosen, "chosen@x.com"], [staff, "staff@x.com"]]) {
+      await getTestPool().query(
+        `INSERT INTO user_identities (user_id, provider, provider_subject) VALUES ($1, 'google', $2)`,
+        [id, `sub-${email}`],
+      );
+      await resolveUserFromIdentity(getTestPool(), googleIdentity(email, "From Google"));
+    }
+
+    expect(await nameOf(empty)).toEqual({ display_name: "From Google", display_name_source: "provider" });
+    expect(await nameOf(chosen)).toEqual({ display_name: "Chosen", display_name_source: "self" });
+    expect(await nameOf(staff)).toEqual({ display_name: "Staff Name", display_name_source: "staff" });
+  });
+
+  it("locks a name set in the Edit dialog and unlocks it when cleared", async () => {
+    const actor = await adminActor("admin@x.com");
+    const target = await userWithName("bob@x.com", "Bob Google", "provider", "active");
+
+    const renamed = await updateUser(getTestPool(), actor, target, { displayName: "Robert" });
+    expect(renamed.displayNameSource).toBe("staff");
+    expect(await nameOf(target)).toEqual({ display_name: "Robert", display_name_source: "staff" });
+
+    const cleared = await updateUser(getTestPool(), actor, target, { displayName: "  " });
+    expect(cleared.displayNameSource).toBeNull();
+    expect(await nameOf(target)).toEqual({ display_name: null, display_name_source: null });
   });
 });

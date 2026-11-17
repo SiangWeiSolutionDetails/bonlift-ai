@@ -3,6 +3,7 @@ import {
   SetConsoleRoleBodySchema,
   UpdateUserBodySchema,
   UserParamsSchema,
+  type DisplayNameSource,
   type InviteUserBodySchemaType,
   type UpdateUserBodySchemaType,
   type UserRecordSchemaType,
@@ -25,6 +26,11 @@ export interface VerifiedIdentity {
 
 // Thrown inside the transaction so it rolls back; never leaves this module.
 class InviteNotFoundError extends Error {}
+
+// A name typed by staff locks it for the user; no name leaves the source empty.
+export function staffNameSource(name: string | null | undefined): DisplayNameSource | null {
+  return name ? "staff" : null;
+}
 
 function isInviteRace(error: unknown): boolean {
   return error instanceof InviteNotFoundError || isUniqueViolationOf(error, "user_identities_pkey");
@@ -67,6 +73,10 @@ async function signInKnownIdentity(
       SET status = 'active',
           last_login_at = now(),
           display_name = COALESCE(u.display_name, NULLIF($3, '')),
+          display_name_source = CASE
+            WHEN u.display_name IS NULL AND NULLIF($3, '') IS NOT NULL THEN 'provider'
+            ELSE u.display_name_source
+          END,
           updated_at = now()
       FROM user_identities ui
       WHERE ui.provider = $1
@@ -110,6 +120,10 @@ async function activateInvitedUser(
     SET status = 'active',
         last_login_at = now(),
         display_name = COALESCE(display_name, NULLIF($2, '')),
+        display_name_source = CASE
+          WHEN display_name IS NULL AND NULLIF($2, '') IS NOT NULL THEN 'provider'
+          ELSE display_name_source
+        END,
         updated_at = now()
     WHERE email = $1
       AND status = 'invited'
@@ -179,7 +193,8 @@ const brandCountOf = (alias: string) => `
    WHERE ubr.user_id = ${alias}.id AND b.deleted_at IS NULL)`;
 
 const userRecordColumns = (userAlias: string, roleAlias: string) => `
-  ${userAlias}.id, ${userAlias}.email, ${userAlias}.display_name, ${userAlias}.status, ${userAlias}.last_login_at,
+  ${userAlias}.id, ${userAlias}.email, ${userAlias}.display_name, ${userAlias}.display_name_source,
+  ${userAlias}.status, ${userAlias}.last_login_at,
   ${roleAlias}.id AS role_id, ${roleAlias}.name AS role_name, ${roleAlias}.is_builtin AS role_is_builtin,
   ${brandCountOf(userAlias)} AS brand_count`;
 
@@ -205,7 +220,7 @@ const lockedRoleWithin = (roleId: string, isAdminParam: string, actionsParam: st
 // $1 is the target user. With no console role, the current role is empty, so it is a subset.
 const consoleTargetCte = (actionsParam: string) => `
   target AS (
-    SELECT u.id, u.email, u.display_name, u.status, u.last_login_at,
+    SELECT u.id, u.email, u.display_name, u.display_name_source, u.status, u.last_login_at,
            ucr.role_id AS current_role_id,
            COALESCE(cr.is_builtin, false) AS target_is_admin,
            ${isSubsetOf("ucr.role_id", actionsParam)} AS current_subset
@@ -280,7 +295,7 @@ const statusChangeSql = (toStatus: string, fromStatus: string, afterChange = "")
     WHERE u.id = t.id
       AND u.status ${fromStatus}
       AND ($2::boolean OR NOT t.target_is_admin)
-    RETURNING u.id, u.email, u.display_name, u.status, u.last_login_at
+    RETURNING u.id, u.email, u.display_name, u.display_name_source, u.status, u.last_login_at
   )${afterChange}
   SELECT
     t.id IS NOT NULL AS target_found,
@@ -304,7 +319,7 @@ const DISABLE_USER_SQL = statusChangeSql(
 
 const REINVITE_USER_SQL = statusChangeSql("invited", "= 'disabled'");
 
-// $1 is the target, $2 the new name (NULL clears it), $3 whether the actor is an Admin.
+// $1 is the target, $2 the new name (NULL clears it), $3 whether the actor is an Admin, $4 the name source.
 // FOR SHARE makes a concurrent change of the target's existing console role finish first, so the Admin check sees it;
 // a role row inserted concurrently for a user who had none is not covered (as in disable/reinvite).
 const UPDATE_USER_SQL = `
@@ -322,11 +337,11 @@ const UPDATE_USER_SQL = `
   ),
   changed AS (
     UPDATE users u
-    SET display_name = $2, updated_at = now()
+    SET display_name = $2, display_name_source = $4, updated_at = now()
     FROM target t
     WHERE u.id = t.id
       AND ($3::boolean OR NOT t.target_is_admin)
-    RETURNING u.id, u.email, u.display_name, u.status, u.last_login_at
+    RETURNING u.id, u.email, u.display_name, u.display_name_source, u.status, u.last_login_at
   )
   SELECT
     t.id IS NOT NULL AS target_found,
@@ -376,6 +391,7 @@ function toUserRecord(row: any): UserRecordSchemaType {
     id: row.id,
     email: row.email,
     displayName: row.display_name,
+    displayNameSource: row.display_name_source ?? null,
     status: row.status,
     lastLoginAt: row.last_login_at?.toISOString() ?? null,
     consoleRole: row.role_id ? { id: row.role_id, name: row.role_name, isBuiltin: row.role_is_builtin } : null,
@@ -439,9 +455,9 @@ export async function inviteUser(db: Queryable, body: InviteUserBodySchemaType):
   try {
     const result = await db.query(
       `
-      INSERT INTO users (email, display_name) VALUES ($1, $2)
-      RETURNING id, email, display_name, status, last_login_at`,
-      [email, body.displayName ?? null],
+      INSERT INTO users (email, display_name, display_name_source) VALUES ($1, $2, $3)
+      RETURNING id, email, display_name, display_name_source, status, last_login_at`,
+      [email, body.displayName ?? null, staffNameSource(body.displayName)],
     );
     return toUserRecord(result.rows[0]);
   } catch (error) {
@@ -459,7 +475,7 @@ export async function updateUser(
   assertValid(UpdateUserBodySchema, body);
   const displayName = body.displayName?.trim() || null;
 
-  const result = await db.query(UPDATE_USER_SQL, [userId, displayName, actor.isAdmin]);
+  const result = await db.query(UPDATE_USER_SQL, [userId, displayName, actor.isAdmin, staffNameSource(displayName)]);
   const row = result.rows[0];
   if (!row.target_found) throw new NotFoundError("User does not exist.");
   if (row.target_is_admin && !actor.isAdmin) throw new ForbiddenError(ADMIN_TARGET_ERROR);

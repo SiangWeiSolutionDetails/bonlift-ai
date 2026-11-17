@@ -290,7 +290,7 @@ function toUserRecord(row: any): UserRecordSchemaType {
   };
 }
 
-function assertNotSelf(actor: RequestAccess, userId: string, message: string): void {
+export function assertNotSelf(actor: RequestAccess, userId: string, message: string): void {
   // Postgres compares UUIDs case-insensitively, so this must too.
   if (actor.user.id.toLowerCase() === userId.toLowerCase()) throw new ForbiddenError(message);
 }

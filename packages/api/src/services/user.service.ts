@@ -173,6 +173,16 @@ interface ConsoleRoleFlags {
   new_subset?: boolean;
 }
 
+interface InviteFlags {
+  console_role_found: boolean;
+  console_role_builtin: boolean;
+  console_subset: boolean;
+  brand_roles_found: boolean;
+  brands_found: boolean;
+}
+
+type InviteBrandRole = NonNullable<InviteUserBodySchemaType["brandRoles"]>[number];
+
 interface DeleteFlags {
   target_found: boolean;
   target_disabled: boolean;
@@ -386,6 +396,60 @@ const DELETE_USER_SQL = `
   LEFT JOIN target t ON true
   LEFT JOIN deleted d ON true`;
 
+// $1 email, $2 name, $3 name source, $4 actor, $5 console role (or NULL), $6/$7 brand/role pairs,
+// $8 whether the actor is an Admin, $9 the actor's console actions.
+// `allowed` holds the flags; the user insert reads it and every assignment reads the user, so a failed flag writes nothing.
+// The main query can't see this statement's inserts, so the brand count comes from `brands_assigned`.
+const INVITE_USER_SQL = `
+  WITH console_role AS (
+    SELECT r.id, r.name, r.is_builtin, ${isSubsetOf("r.id", "$9")} AS new_subset
+    FROM roles r
+    WHERE r.id = $5::uuid AND r.kind = 'console'
+  ),
+  brand_pairs AS (
+    SELECT q.brand_id, q.role_id, b.id IS NOT NULL AS brand_found, r.id IS NOT NULL AS role_found
+    FROM unnest($6::uuid[], $7::uuid[]) AS q (brand_id, role_id)
+    LEFT JOIN (
+      brands b JOIN tenants t ON t.id = b.tenant_id AND t.deleted_at IS NULL
+    ) ON b.id = q.brand_id AND b.deleted_at IS NULL
+    LEFT JOIN roles r ON r.id = q.role_id AND r.kind = 'brand'
+  ),
+  flags AS (
+    SELECT
+      ($5::uuid IS NULL OR EXISTS (SELECT 1 FROM console_role)) AS console_role_found,
+      EXISTS (SELECT 1 FROM console_role WHERE is_builtin) AS console_role_builtin,
+      NOT EXISTS (SELECT 1 FROM console_role WHERE NOT new_subset) AS console_subset,
+      NOT EXISTS (SELECT 1 FROM brand_pairs WHERE NOT role_found) AS brand_roles_found,
+      NOT EXISTS (SELECT 1 FROM brand_pairs WHERE NOT brand_found) AS brands_found
+  ),
+  allowed AS (
+    SELECT 1 FROM flags f
+    WHERE f.console_role_found AND f.brand_roles_found AND f.brands_found
+      AND ($8::boolean OR (NOT f.console_role_builtin AND f.console_subset))
+  ),
+  created AS (
+    INSERT INTO users (email, display_name, display_name_source)
+    SELECT $1::text, $2::text, $3::text FROM allowed
+    RETURNING id, email, display_name, display_name_source, status, last_login_at
+  ),
+  console_assigned AS (
+    INSERT INTO user_console_roles (user_id, role_id, granted_by)
+    SELECT c.id, cr.id, $4 FROM created c CROSS JOIN console_role cr
+  ),
+  brands_assigned AS (
+    INSERT INTO user_brand_roles (user_id, brand_id, role_id, granted_by)
+    SELECT c.id, bp.brand_id, bp.role_id, $4 FROM created c CROSS JOIN brand_pairs bp
+    RETURNING brand_id
+  )
+  SELECT
+    f.console_role_found, f.console_role_builtin, f.console_subset, f.brand_roles_found, f.brands_found,
+    c.id, c.email, c.display_name, c.display_name_source, c.status, c.last_login_at,
+    cr.id AS role_id, cr.name AS role_name, cr.is_builtin AS role_is_builtin,
+    (SELECT count(*) FROM brands_assigned) AS brand_count
+  FROM flags f
+  LEFT JOIN created c ON true
+  LEFT JOIN console_role cr ON c.id IS NOT NULL`;
+
 function toUserRecord(row: any): UserRecordSchemaType {
   return {
     id: row.id,
@@ -431,6 +495,27 @@ function assertDeleted(actor: RequestAccess, flags: DeleteFlags): void {
   if (!flags.target_disabled || !flags.deleted) throw new ConflictError("Disable the user before deleting them.");
 }
 
+function assertInviteRoles(actor: RequestAccess, consoleRoleId: string | undefined, brandRoles: InviteBrandRole[]): void {
+  if (!consoleRoleId && brandRoles.length === 0) throw new ValidationError("Assign at least one role.");
+  if (consoleRoleId && !actor.consoleActions.includes("users.assignConsoleRoles")) {
+    throw new ForbiddenError("You cannot assign console roles.");
+  }
+  if (brandRoles.length > 0 && !actor.consoleActions.includes("users.assignBrandRoles")) {
+    throw new ForbiddenError("You cannot assign brand roles.");
+  }
+  // Postgres compares UUIDs case-insensitively, so this must too.
+  const brandIds = new Set(brandRoles.map((pair) => pair.brandId.toLowerCase()));
+  if (brandIds.size !== brandRoles.length) throw new ValidationError("Each brand can have only one role.");
+}
+
+function assertInviteGuards(actor: RequestAccess, flags: InviteFlags): void {
+  if (!flags.console_role_found || !flags.brand_roles_found) throw new NotFoundError("Role not found.");
+  if (!flags.brands_found) throw new NotFoundError("Brand not found.");
+  if (actor.isAdmin) return;
+  if (flags.console_role_builtin) throw new ForbiddenError("Only an Admin can assign the Admin role.");
+  if (!flags.console_subset) throw new ForbiddenError("A console role can only hold console actions you hold.");
+}
+
 function toInviteError(error: unknown, email: string): Error | null {
   if (isUniqueViolationOf(error, "users_email_key")) return new ConflictError(`User ${email} already exists.`);
   if (isCheckViolationOf(error, "users_email_check")) return new ValidationError("Invalid email.");
@@ -448,18 +533,31 @@ export async function listUsers(db: Queryable): Promise<UserRecordSchemaType[]> 
   return result.rows.map(toUserRecord);
 }
 
-export async function inviteUser(db: Queryable, body: InviteUserBodySchemaType): Promise<UserRecordSchemaType> {
+export async function inviteUser(
+  db: Queryable,
+  actor: RequestAccess,
+  body: InviteUserBodySchemaType,
+): Promise<UserRecordSchemaType> {
   assertValid(InviteUserBodySchema, body);
+  const brandRoles = body.brandRoles ?? [];
+  assertInviteRoles(actor, body.consoleRoleId, brandRoles);
   const email = body.email.toLowerCase();
 
   try {
-    const result = await db.query(
-      `
-      INSERT INTO users (email, display_name, display_name_source) VALUES ($1, $2, $3)
-      RETURNING id, email, display_name, display_name_source, status, last_login_at`,
-      [email, body.displayName ?? null, staffNameSource(body.displayName)],
-    );
-    return toUserRecord(result.rows[0]);
+    const result = await db.query(INVITE_USER_SQL, [
+      email,
+      body.displayName ?? null,
+      staffNameSource(body.displayName),
+      actor.user.id,
+      body.consoleRoleId ?? null,
+      brandRoles.map((pair) => pair.brandId),
+      brandRoles.map((pair) => pair.roleId),
+      actor.isAdmin,
+      actor.consoleActions,
+    ]);
+    const row = result.rows[0];
+    assertInviteGuards(actor, row);
+    return toUserRecord(row);
   } catch (error) {
     throw toInviteError(error, email) ?? error;
   }

@@ -48,7 +48,7 @@ export async function userRoutes(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const user = await inviteUser(getPool(), request.body);
+      const user = await inviteUser(getPool(), request.access!, request.body);
       reply.status(201);
       return user;
     },

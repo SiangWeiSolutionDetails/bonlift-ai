@@ -356,52 +356,190 @@ describe("listUsers", () => {
 });
 
 describe("inviteUser", () => {
-  it("lowercases the email", async () => {
-    poolQueryMock.mockResolvedValueOnce(
-      pgResult([userRow({ status: "invited", last_login_at: null, ...noRole, brand_count: 0 })]),
-    );
+  const BRAND_ID = "55555555-5555-5555-5555-555555555555";
+  const BRAND_ROLE_ID = "66666666-6666-6666-6666-666666666666";
+  const OTHER_BRAND_ID = "77777777-7777-7777-7777-777777777777";
+  const inviter = actorWith(["users.view", "users.invite", "users.assignConsoleRoles", "users.assignBrandRoles"]);
+  const withConsoleRole = { consoleRoleId: ROLE_ID };
 
-    const user = await inviteUser(fakePool, { email: "Bob@X.com", displayName: "Bob" });
+  function inviteFlags(overrides: Record<string, unknown> = {}) {
+    return {
+      console_role_found: true,
+      console_role_builtin: false,
+      console_subset: true,
+      brand_roles_found: true,
+      brands_found: true,
+      ...userRow({ status: "invited", last_login_at: null, brand_count: "0" }),
+      ...overrides,
+    };
+  }
 
-    expect(poolQueryMock.mock.calls[0][1]).toEqual(["bob@x.com", "Bob", "staff"]);
-    expect(user).toMatchObject({ email: "bob@x.com", status: "invited", consoleRole: null, brandCount: 0 });
+  it("lowercases the email and binds the console role", async () => {
+    poolQueryMock.mockResolvedValueOnce(pgResult([inviteFlags()]));
+
+    const user = await inviteUser(fakePool, inviter, { email: "Bob@X.com", displayName: "Bob", ...withConsoleRole });
+
+    expect(poolQueryMock.mock.calls[0][1]).toEqual([
+      "bob@x.com",
+      "Bob",
+      "staff",
+      ACTOR_ID,
+      ROLE_ID,
+      [],
+      [],
+      false,
+      inviter.consoleActions,
+    ]);
+    expect(user).toMatchObject({
+      email: "bob@x.com",
+      status: "invited",
+      consoleRole: { id: ROLE_ID, name: "Support", isBuiltin: false },
+      brandCount: 0,
+    });
+  });
+
+  it("binds brand roles as parallel uuid arrays and returns the brand count", async () => {
+    poolQueryMock.mockResolvedValueOnce(pgResult([inviteFlags({ ...noRole, brand_count: "2" })]));
+
+    const user = await inviteUser(fakePool, inviter, {
+      email: "bob@x.com",
+      brandRoles: [
+        { brandId: BRAND_ID, roleId: BRAND_ROLE_ID },
+        { brandId: OTHER_BRAND_ID, roleId: BRAND_ROLE_ID },
+      ],
+    });
+
+    const [sql, params] = poolQueryMock.mock.calls[0];
+    expect(sql).toMatch(/unnest\(\$6::uuid\[\], \$7::uuid\[\]\)/);
+    expect(params.slice(4, 7)).toEqual([null, [BRAND_ID, OTHER_BRAND_ID], [BRAND_ROLE_ID, BRAND_ROLE_ID]]);
+    expect(user).toMatchObject({ consoleRole: null, brandCount: 2 });
   });
 
   it("marks a typed name as set by staff and maps the source", async () => {
-    poolQueryMock.mockResolvedValueOnce(pgResult([userRow({ status: "invited", last_login_at: null, ...noRole })]));
+    poolQueryMock.mockResolvedValueOnce(pgResult([inviteFlags()]));
 
-    const user = await inviteUser(fakePool, { email: "bob@x.com", displayName: "Bob" });
+    const user = await inviteUser(fakePool, inviter, { email: "bob@x.com", displayName: "Bob", ...withConsoleRole });
 
     expect(poolQueryMock.mock.calls[0][0]).toMatch(/display_name_source/);
     expect(user.displayNameSource).toBe("staff");
   });
 
   it("leaves the source empty without a name", async () => {
+    poolQueryMock.mockResolvedValueOnce(pgResult([inviteFlags({ display_name: null, display_name_source: null })]));
+
+    const user = await inviteUser(fakePool, inviter, { email: "bob@x.com", ...withConsoleRole });
+
+    expect(poolQueryMock.mock.calls[0][1].slice(0, 3)).toEqual(["bob@x.com", null, null]);
+    expect(user.displayNameSource).toBeNull();
+  });
+
+  it("refuses an invite without any role, before any query", async () => {
+    await expect(inviteUser(fakePool, inviter, { email: "bob@x.com" })).rejects.toThrow(
+      new ValidationError("Assign at least one role."),
+    );
+    await expect(inviteUser(fakePool, inviter, { email: "bob@x.com", brandRoles: [] })).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+    expect(poolQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("refuses a console role without users.assignConsoleRoles, before any query", async () => {
+    const actor = actorWith(["users.invite", "users.assignBrandRoles"]);
+
+    await expect(inviteUser(fakePool, actor, { email: "bob@x.com", ...withConsoleRole })).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+    expect(poolQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("refuses brand roles without users.assignBrandRoles, before any query", async () => {
+    const actor = actorWith(["users.invite", "users.assignConsoleRoles"]);
+
+    await expect(
+      inviteUser(fakePool, actor, { email: "bob@x.com", brandRoles: [{ brandId: BRAND_ID, roleId: BRAND_ROLE_ID }] }),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+    expect(poolQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("refuses the same brand twice, in any letter case, before any query", async () => {
+    await expect(
+      inviteUser(fakePool, inviter, {
+        email: "bob@x.com",
+        brandRoles: [
+          { brandId: BRAND_ID, roleId: BRAND_ROLE_ID },
+          { brandId: OTHER_BRAND_ID.toUpperCase(), roleId: BRAND_ROLE_ID },
+          { brandId: OTHER_BRAND_ID, roleId: ROLE_ID },
+        ],
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(poolQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 for an invalid email", async () => {
+    await expect(inviteUser(fakePool, inviter, { email: "not-an-email", ...withConsoleRole })).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+    expect(poolQueryMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["the console role is missing", { console_role_found: false }, "Role not found."],
+    ["a brand role is missing", { brand_roles_found: false }, "Role not found."],
+    ["a brand is missing", { brands_found: false }, "Brand not found."],
+  ])("returns 404 when %s", async (_case, flags, message) => {
+    poolQueryMock.mockResolvedValueOnce(pgResult([inviteFlags({ ...flags, id: null })]));
+
+    await expect(inviteUser(fakePool, inviter, { email: "bob@x.com", ...withConsoleRole })).rejects.toThrow(
+      new NotFoundError(message),
+    );
+  });
+
+  it("checks a missing role before the Admin rule", async () => {
     poolQueryMock.mockResolvedValueOnce(
-      pgResult([userRow({ display_name: null, display_name_source: null, status: "invited", ...noRole })]),
+      pgResult([inviteFlags({ brand_roles_found: false, console_role_builtin: true, id: null })]),
     );
 
-    const user = await inviteUser(fakePool, { email: "bob@x.com" });
+    await expect(inviteUser(fakePool, inviter, { email: "bob@x.com", ...withConsoleRole })).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+  });
 
-    expect(poolQueryMock.mock.calls[0][1]).toEqual(["bob@x.com", null, null]);
-    expect(user.displayNameSource).toBeNull();
+  it.each([
+    ["the Admin role", { console_role_builtin: true }],
+    ["a broader console role", { console_subset: false }],
+  ])("returns 403 for a non-Admin giving %s", async (_case, flags) => {
+    poolQueryMock.mockResolvedValueOnce(pgResult([inviteFlags({ ...flags, id: null })]));
+
+    await expect(inviteUser(fakePool, inviter, { email: "bob@x.com", ...withConsoleRole })).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+  });
+
+  it("lets an Admin give the Admin role", async () => {
+    poolQueryMock.mockResolvedValueOnce(
+      pgResult([inviteFlags({ console_role_builtin: true, console_subset: false, role_is_builtin: true })]),
+    );
+
+    const user = await inviteUser(fakePool, admin, { email: "bob@x.com", ...withConsoleRole });
+
+    expect(poolQueryMock.mock.calls[0][1][7]).toBe(true);
+    expect(user.consoleRole?.isBuiltin).toBe(true);
   });
 
   it("returns 409 for a duplicate email", async () => {
     poolQueryMock.mockRejectedValueOnce({ code: UNIQUE_VIOLATION, constraint: "users_email_key" });
 
-    await expect(inviteUser(fakePool, { email: "bob@x.com" })).rejects.toBeInstanceOf(ConflictError);
-  });
-
-  it("returns 400 for an invalid email", async () => {
-    await expect(inviteUser(fakePool, { email: "not-an-email" })).rejects.toBeInstanceOf(ValidationError);
-    expect(poolQueryMock).not.toHaveBeenCalled();
+    await expect(inviteUser(fakePool, inviter, { email: "bob@x.com", ...withConsoleRole })).rejects.toBeInstanceOf(
+      ConflictError,
+    );
   });
 
   it("maps the lowercase check to a validation error", async () => {
     poolQueryMock.mockRejectedValueOnce({ code: CHECK_VIOLATION, constraint: "users_email_check" });
 
-    await expect(inviteUser(fakePool, { email: "bob@x.com" })).rejects.toBeInstanceOf(ValidationError);
+    await expect(inviteUser(fakePool, inviter, { email: "bob@x.com", ...withConsoleRole })).rejects.toBeInstanceOf(
+      ValidationError,
+    );
   });
 });
 

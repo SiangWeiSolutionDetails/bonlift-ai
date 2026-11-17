@@ -517,21 +517,21 @@ function googleIdentity(email: string, name: string | null, subject = `sub-${ema
 
 describe("name source (integration)", () => {
   it("marks a name typed at invite as set by staff", async () => {
-    const user = await inviteUser(getTestPool(), { email: "bob@x.com", displayName: "Bob" });
+    const user = await inviteWithRole("bob@x.com", "Bob");
 
     expect(user.displayNameSource).toBe("staff");
     expect(await nameOf(user.id)).toEqual({ display_name: "Bob", display_name_source: "staff" });
   });
 
   it("leaves the source empty for an invite without a name", async () => {
-    const user = await inviteUser(getTestPool(), { email: "bob@x.com" });
+    const user = await inviteWithRole("bob@x.com");
 
     expect(user.displayNameSource).toBeNull();
     expect(await nameOf(user.id)).toEqual({ display_name: null, display_name_source: null });
   });
 
   it("fills an empty name from Google at first sign-in and marks it as from the provider", async () => {
-    const invited = await inviteUser(getTestPool(), { email: "bob@x.com" });
+    const invited = await inviteWithRole("bob@x.com");
 
     await resolveUserFromIdentity(getTestPool(), googleIdentity("bob@x.com", "Bob Google"));
 
@@ -539,7 +539,7 @@ describe("name source (integration)", () => {
   });
 
   it("keeps a staff name at first sign-in", async () => {
-    const invited = await inviteUser(getTestPool(), { email: "bob@x.com", displayName: "Bob" });
+    const invited = await inviteWithRole("bob@x.com", "Bob");
 
     await resolveUserFromIdentity(getTestPool(), googleIdentity("bob@x.com", "Bob Google"));
 
@@ -547,7 +547,7 @@ describe("name source (integration)", () => {
   });
 
   it("leaves name and source empty when Google sends no name", async () => {
-    const invited = await inviteUser(getTestPool(), { email: "bob@x.com" });
+    const invited = await inviteWithRole("bob@x.com");
 
     await resolveUserFromIdentity(getTestPool(), googleIdentity("bob@x.com", ""));
 
@@ -582,5 +582,233 @@ describe("name source (integration)", () => {
     const cleared = await updateUser(getTestPool(), actor, target, { displayName: "  " });
     expect(cleared.displayNameSource).toBeNull();
     expect(await nameOf(target)).toEqual({ display_name: null, display_name_source: null });
+  });
+});
+
+async function inviteWithRole(email: string, displayName?: string) {
+  const actor = await adminActor("inviter@x.com");
+  const consoleRoleId = await insertRole("Viewer", ["users.view"]);
+  return inviteUser(getTestPool(), actor, { email, ...(displayName ? { displayName } : {}), consoleRoleId });
+}
+
+async function newBrandRole(name: string, actions: string[]): Promise<string> {
+  const result = await getTestPool().query(
+    `
+    WITH role AS (
+      INSERT INTO roles (name, kind) VALUES ($1, 'brand') RETURNING id
+    ),
+    perms AS (
+      INSERT INTO role_permissions (role_id, action)
+      SELECT role.id, a.action FROM role, unnest($2::text[]) AS a(action)
+    )
+    SELECT id FROM role
+    `,
+    [name, actions],
+  );
+  return result.rows[0].id;
+}
+
+async function insertBrand(name: string): Promise<string> {
+  const result = await getTestPool().query(
+    `
+    WITH tenant AS (
+      INSERT INTO tenants (name) VALUES ($1) RETURNING id
+    )
+    INSERT INTO brands (tenant_id, name) SELECT id, $1 FROM tenant RETURNING id
+    `,
+    [name],
+  );
+  return result.rows[0].id;
+}
+
+async function invitedRows(email: string) {
+  const result = await getTestPool().query(
+    `
+    SELECT u.id,
+           (SELECT json_build_object('role_id', ucr.role_id, 'granted_by', ucr.granted_by)
+            FROM user_console_roles ucr WHERE ucr.user_id = u.id) AS console_role,
+           (SELECT json_agg(
+                     json_build_object('brand_id', ubr.brand_id, 'role_id', ubr.role_id, 'granted_by', ubr.granted_by)
+                     ORDER BY ubr.brand_id)
+            FROM user_brand_roles ubr WHERE ubr.user_id = u.id) AS brand_roles
+    FROM users u WHERE u.email = $1
+    `,
+    [email],
+  );
+  return result.rows[0] ?? null;
+}
+
+async function assignmentCount(): Promise<number> {
+  const result = await getTestPool().query(
+    `SELECT (SELECT count(*) FROM user_console_roles) + (SELECT count(*) FROM user_brand_roles) AS n`,
+  );
+  return Number(result.rows[0].n);
+}
+
+const INVITER_ACTIONS: RequestAccess["consoleActions"] = [
+  "users.view",
+  "users.invite",
+  "users.assignConsoleRoles",
+  "users.assignBrandRoles",
+];
+
+describe("inviteUser (integration)", () => {
+  it("creates the user with a console role only, granted by the actor", async () => {
+    const actor = await actorWithRole("inviter@x.com", INVITER_ACTIONS);
+    const roleId = await insertRole("Viewer", ["users.view"]);
+
+    const user = await inviteUser(getTestPool(), actor, { email: "Bob@x.com", consoleRoleId: roleId });
+
+    expect(user).toMatchObject({
+      email: "bob@x.com",
+      status: "invited",
+      consoleRole: { id: roleId, name: "Viewer", isBuiltin: false },
+      brandCount: 0,
+    });
+    expect(await invitedRows("bob@x.com")).toEqual({
+      id: user.id,
+      console_role: { role_id: roleId, granted_by: actor.user.id },
+      brand_roles: null,
+    });
+  });
+
+  it("creates the user with brand roles only", async () => {
+    const actor = await actorWithRole("inviter@x.com", INVITER_ACTIONS);
+    const [first, second] = [await insertBrand("Alpha"), await insertBrand("Beta")].sort();
+    const roleId = await newBrandRole("Manager", ["outlets.view"]);
+
+    const user = await inviteUser(getTestPool(), actor, {
+      email: "bob@x.com",
+      brandRoles: [
+        { brandId: second, roleId },
+        { brandId: first, roleId },
+      ],
+    });
+
+    expect(user).toMatchObject({ consoleRole: null, brandCount: 2 });
+    expect(await invitedRows("bob@x.com")).toEqual({
+      id: user.id,
+      console_role: null,
+      brand_roles: [
+        { brand_id: first, role_id: roleId, granted_by: actor.user.id },
+        { brand_id: second, role_id: roleId, granted_by: actor.user.id },
+      ],
+    });
+  });
+
+  it("creates the user with a console role and a brand role", async () => {
+    const actor = await adminActor("admin@x.com");
+    const adminRole = await adminRoleId();
+    const brandId = await insertBrand("Alpha");
+    const brandRoleId = await newBrandRole("Manager", ["outlets.view"]);
+
+    const user = await inviteUser(getTestPool(), actor, {
+      email: "bob@x.com",
+      displayName: "Bob",
+      consoleRoleId: adminRole,
+      brandRoles: [{ brandId, roleId: brandRoleId }],
+    });
+
+    expect(user).toMatchObject({
+      displayName: "Bob",
+      displayNameSource: "staff",
+      consoleRole: { id: adminRole, isBuiltin: true },
+      brandCount: 1,
+    });
+    expect(await invitedRows("bob@x.com")).toEqual({
+      id: user.id,
+      console_role: { role_id: adminRole, granted_by: actor.user.id },
+      brand_roles: [{ brand_id: brandId, role_id: brandRoleId, granted_by: actor.user.id }],
+    });
+  });
+
+  it("writes nothing when a non-Admin gives the Admin role", async () => {
+    const actor = await actorWithRole("inviter@x.com", INVITER_ACTIONS);
+    const adminRole = await adminRoleId();
+    const brandId = await insertBrand("Alpha");
+    const brandRoleId = await newBrandRole("Manager", ["outlets.view"]);
+    const before = await assignmentCount();
+
+    await expect(
+      inviteUser(getTestPool(), actor, {
+        email: "bob@x.com",
+        consoleRoleId: adminRole,
+        brandRoles: [{ brandId, roleId: brandRoleId }],
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+
+    expect(await invitedRows("bob@x.com")).toBeNull();
+    expect(await assignmentCount()).toBe(before);
+  });
+
+  it("writes nothing for a console role broader than the actor", async () => {
+    const actor = await actorWithRole("inviter@x.com", INVITER_ACTIONS);
+    const broader = await insertRole("Broader", ["users.view", "users.delete"]);
+    const before = await assignmentCount();
+
+    await expect(
+      inviteUser(getTestPool(), actor, { email: "bob@x.com", consoleRoleId: broader }),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+
+    expect(await invitedRows("bob@x.com")).toBeNull();
+    expect(await assignmentCount()).toBe(before);
+  });
+
+  it("writes nothing when a console role is passed as a brand role", async () => {
+    const actor = await actorWithRole("inviter@x.com", INVITER_ACTIONS);
+    const consoleRoleId = await insertRole("Viewer", ["users.view"]);
+    const brandId = await insertBrand("Alpha");
+    const before = await assignmentCount();
+
+    await expect(
+      inviteUser(getTestPool(), actor, {
+        email: "bob@x.com",
+        consoleRoleId,
+        brandRoles: [{ brandId, roleId: consoleRoleId }],
+      }),
+    ).rejects.toThrow(new NotFoundError("Role not found."));
+
+    expect(await invitedRows("bob@x.com")).toBeNull();
+    expect(await assignmentCount()).toBe(before);
+  });
+
+  it("writes nothing for a soft-deleted brand or a brand of a soft-deleted tenant", async () => {
+    const actor = await actorWithRole("inviter@x.com", INVITER_ACTIONS);
+    const deletedBrand = await insertBrand("Alpha");
+    const tenantDeletedBrand = await insertBrand("Beta");
+    const roleId = await newBrandRole("Manager", ["outlets.view"]);
+    await getTestPool().query(`UPDATE brands SET deleted_at = now() WHERE id = $1`, [deletedBrand]);
+    await getTestPool().query(
+      `UPDATE tenants SET deleted_at = now() WHERE id = (SELECT tenant_id FROM brands WHERE id = $1)`,
+      [tenantDeletedBrand],
+    );
+    const before = await assignmentCount();
+
+    for (const brandId of [deletedBrand, tenantDeletedBrand]) {
+      await expect(
+        inviteUser(getTestPool(), actor, { email: "bob@x.com", brandRoles: [{ brandId, roleId }] }),
+      ).rejects.toThrow(new NotFoundError("Brand not found."));
+    }
+
+    expect(await invitedRows("bob@x.com")).toBeNull();
+    expect(await assignmentCount()).toBe(before);
+  });
+
+  it("returns 409 for a taken email and writes no assignment", async () => {
+    const actor = await adminActor("admin@x.com");
+    const existing = await userNamed("bob@x.com");
+    const roleId = await insertRole("Viewer", ["users.view"]);
+    const brandId = await insertBrand("Alpha");
+    const brandRoleId = await newBrandRole("Manager", ["outlets.view"]);
+
+    await expect(
+      inviteUser(getTestPool(), actor, {
+        email: "bob@x.com",
+        consoleRoleId: roleId,
+        brandRoles: [{ brandId, roleId: brandRoleId }],
+      }),
+    ).rejects.toBeInstanceOf(ConflictError);
+
+    expect(await invitedRows("bob@x.com")).toEqual({ id: existing, console_role: null, brand_roles: null });
   });
 });

@@ -53,6 +53,19 @@ export const InviteUserBodySchema = Type.Object(
   {
     email: Type.String({ format: "email", maxLength: 320 }),
     displayName: Type.Optional(NameSchema),
+    consoleRoleId: Type.Optional(Type.String({ format: "uuid" })),
+    brandRoles: Type.Optional(
+      Type.Array(
+        Type.Object(
+          {
+            brandId: Type.String({ format: "uuid" }),
+            roleId: Type.String({ format: "uuid" }),
+          },
+          { additionalProperties: false },
+        ),
+        { maxItems: 100 },
+      ),
+    ),
   },
   { additionalProperties: false },
 );

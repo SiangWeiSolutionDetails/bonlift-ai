@@ -103,20 +103,27 @@ function BrandRoleRow({
   onToggleRemoved,
 }: BrandRoleRowProps) {
   const { t } = useTranslation("users");
-  const label = brandLabel(entry.brandName, entry.tenantName);
   const roleName = roles.find((role) => role.id === entry.roleId)?.name ?? entry.roleName;
 
   return (
     <li className="grid min-w-0 gap-1 rounded-lg border p-3">
       <div className="flex min-w-0 items-center justify-between gap-3">
-        <p
-          className={cn(
-            "min-w-0 truncate text-sm",
-            entry.removed ? "text-muted-foreground line-through" : "font-medium",
+        <div className={cn("grid min-w-0", entry.removed && "line-through")}>
+          <p
+            className={cn(
+              "truncate text-sm font-medium",
+              entry.removed && "font-normal text-muted-foreground",
+            )}
+            title={entry.brandName}
+          >
+            {entry.brandName}
+          </p>
+          {entry.tenantName && (
+            <p className="truncate text-xs text-muted-foreground" title={entry.tenantName}>
+              {entry.tenantName}
+            </p>
           )}
-        >
-          {label}
-        </p>
+        </div>
         {editable ? (
           <div className="flex shrink-0 items-center gap-2">
             {!entry.removed && (

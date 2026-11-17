@@ -25,7 +25,8 @@ const BLOBS: Blob[] = [
 const PUSH_RADIUS = 720;
 const PUSH_STRENGTH = 420;
 const FLUID_SPRING = { stiffness: 35, damping: 14, mass: 1.4 };
-const GLOW_SPRING = { stiffness: 120, damping: 20 };
+const GLOW_SPRING = { stiffness: 12, damping: 14, mass: 2.5 };
+const GLOW_FADE = { stiffness: 8, damping: 12 };
 
 type Center = { x: number; y: number };
 
@@ -61,7 +62,7 @@ export function FluidBackdrop() {
   const glowY = useMotionValue(-9999);
   const glowSpringX = useSpring(glowX, GLOW_SPRING);
   const glowSpringY = useSpring(glowY, GLOW_SPRING);
-  const glowOpacity = useSpring(0, GLOW_SPRING);
+  const glowOpacity = useSpring(0, GLOW_FADE);
 
   useEffect(() => {
     if (reduceMotion) return;
@@ -123,7 +124,7 @@ export function FluidBackdrop() {
           style={{ x: glowSpringX, y: glowSpringY, opacity: glowOpacity }}
         >
           <div
-            className="login-blob size-full bg-[#9B72CB] opacity-30 blur-[110px] dark:opacity-40"
+            className="login-blob size-full bg-[#9B72CB] opacity-20 blur-[120px] dark:opacity-30"
             style={{ animation: "login-morph 11s ease-in-out infinite" }}
           />
         </motion.div>

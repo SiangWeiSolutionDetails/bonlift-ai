@@ -30,6 +30,16 @@ function GoogleMark() {
   );
 }
 
+function GradientBackdrop() {
+  return (
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div className="absolute top-[-20%] left-[10%] size-168 rounded-full bg-[#4285F4] opacity-25 blur-[120px] motion-safe:animate-[login-drift_18s_ease-in-out_infinite] dark:opacity-35" />
+      <div className="absolute top-[20%] right-[-10%] size-144 rounded-full bg-[#9B72CB] opacity-25 blur-[120px] motion-safe:animate-[login-drift_22s_ease-in-out_infinite_reverse] dark:opacity-35" />
+      <div className="absolute bottom-[-25%] left-[30%] size-136 rounded-full bg-[#D96570] opacity-20 blur-[120px] motion-safe:animate-[login-drift_26s_ease-in-out_infinite] dark:opacity-30" />
+    </div>
+  );
+}
+
 function LoginHeader() {
   return (
     <header className="flex h-12 items-center justify-end gap-1 px-4 md:px-6">
@@ -44,7 +54,7 @@ function BrandMark() {
 
   return (
     <div className="flex flex-col items-center gap-4 text-center">
-      <span className="flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
+      <span className="flex size-14 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#4285F4,#9B72CB,#D96570)] text-white shadow-[0_8px_30px_-6px_#9B72CB]">
         <SparklesIcon className="size-6" />
       </span>
       <div className="flex flex-col gap-1">
@@ -77,7 +87,7 @@ function SignInCard() {
   const loginHref = `/api/auth/login/google?returnTo=${encodeURIComponent(returnTo ?? "/")}`;
 
   return (
-    <section className="grid w-full max-w-sm gap-6 rounded-2xl bg-card p-6 text-card-foreground shadow-panel">
+    <section className="grid w-full max-w-sm gap-6 rounded-2xl bg-card/80 p-6 text-card-foreground shadow-panel backdrop-blur-xl">
       <p className="text-center text-sm text-muted-foreground">{t("signInSubtitle")}</p>
       {error !== undefined && (
         <p
@@ -104,9 +114,10 @@ function SignInCard() {
 
 export function LoginPage() {
   return (
-    <div className="flex min-h-svh flex-col bg-background">
+    <div className="relative isolate flex min-h-svh flex-col bg-background">
+      <GradientBackdrop />
       <LoginHeader />
-      <main className="flex flex-1 flex-col items-center justify-center gap-8 px-4 pb-16">
+      <main className="relative flex flex-1 flex-col items-center justify-center gap-8 px-4 pb-16">
         <BrandMark />
         <SignInCard />
         <ModuleBadges />

@@ -150,3 +150,9 @@
     cursor: pointer;
     }
 }
+
+/* Login backdrop: gradient glows drift slowly */
+@keyframes login-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(6%, 4%) scale(1.1); }
+}

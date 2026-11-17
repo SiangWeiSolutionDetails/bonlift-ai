@@ -150,10 +150,3 @@
     cursor: pointer;
     }
 }
-
-/* Login hero: dashes travel along the network edges */
-@keyframes login-flow {
-  to {
-    stroke-dashoffset: -24;
-  }
-}

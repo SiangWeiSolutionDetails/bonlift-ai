@@ -1,7 +1,11 @@
 import { useSearch } from "@tanstack/react-router";
 import { ShieldCheckIcon, SparklesIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { ThemeSwitcher } from "@/components/theme-switcher";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
 const KNOWN_ERROR_CODES = ["ACCOUNT_NOT_APPROVED", "SIGN_IN_FAILED"] as const;
 
@@ -9,64 +13,10 @@ type LoginErrorCode = (typeof KNOWN_ERROR_CODES)[number];
 
 const MODULE_KEYS = ["outletPopularity", "customerAffinity", "alsoOrdered"] as const;
 
-const NODES = [
-  { x: 60, y: 70 }, { x: 180, y: 40 }, { x: 300, y: 90 }, { x: 110, y: 170 },
-  { x: 240, y: 190 }, { x: 360, y: 200 }, { x: 70, y: 280 }, { x: 200, y: 300 },
-  { x: 330, y: 310 },
-];
-
-const EDGES: [number, number][] = [
-  [0, 1], [1, 2], [0, 3], [1, 4], [2, 5], [3, 4], [4, 5], [3, 6], [4, 7], [5, 8], [6, 7], [7, 8], [2, 4],
-];
-
 function toLoginErrorCode(error: string): LoginErrorCode {
   return KNOWN_ERROR_CODES.includes(error as LoginErrorCode)
     ? (error as LoginErrorCode)
     : "SIGN_IN_FAILED";
-}
-
-function NetworkGraphic() {
-  return (
-    <svg viewBox="0 0 420 360" className="h-full w-full" aria-hidden="true">
-      <defs>
-        <linearGradient id="login-edge" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="oklch(0.75 0.17 250)" />
-          <stop offset="100%" stopColor="oklch(0.7 0.22 300)" />
-        </linearGradient>
-        <radialGradient id="login-node">
-          <stop offset="0%" stopColor="oklch(0.95 0.05 250)" />
-          <stop offset="100%" stopColor="oklch(0.7 0.18 260 / 0)" />
-        </radialGradient>
-      </defs>
-      {EDGES.map(([from, to]) => (
-        <line
-          key={`${from}-${to}`}
-          x1={NODES[from].x}
-          y1={NODES[from].y}
-          x2={NODES[to].x}
-          y2={NODES[to].y}
-          stroke="url(#login-edge)"
-          strokeOpacity="0.55"
-          strokeWidth="1.2"
-          strokeDasharray="4 8"
-          className="motion-safe:animate-[login-flow_3s_linear_infinite]"
-        />
-      ))}
-      {NODES.map((node, index) => (
-        <g key={index}>
-          <circle
-            cx={node.x}
-            cy={node.y}
-            r="14"
-            fill="url(#login-node)"
-            className="motion-safe:animate-pulse"
-            style={{ animationDelay: `${index * 0.35}s` }}
-          />
-          <circle cx={node.x} cy={node.y} r="3" fill="oklch(0.97 0.02 250)" />
-        </g>
-      ))}
-    </svg>
-  );
 }
 
 function GoogleMark() {
@@ -80,85 +30,87 @@ function GoogleMark() {
   );
 }
 
-function HeroPanel() {
-  const { t } = useTranslation("auth");
-
+function LoginHeader() {
   return (
-    <section className="relative flex min-h-64 flex-col justify-between overflow-hidden bg-[oklch(0.16_0.03_265)] p-8 text-white lg:min-h-svh lg:p-12">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(oklch(1_0_0/4%)_1px,transparent_1px),linear-gradient(90deg,oklch(1_0_0/4%)_1px,transparent_1px)] bg-[size:32px_32px]" />
-      <div className="pointer-events-none absolute -top-32 -left-24 size-96 rounded-full bg-[oklch(0.6_0.2_260/35%)] blur-3xl" />
-      <div className="pointer-events-none absolute -right-24 -bottom-32 size-96 rounded-full bg-[oklch(0.6_0.22_300/30%)] blur-3xl" />
-      <div className="pointer-events-none absolute inset-x-8 top-20 bottom-72 hidden opacity-80 lg:block">
-        <NetworkGraphic />
-      </div>
-
-      <div className="relative flex items-center gap-2 text-sm font-medium tracking-wide text-white/80">
-        <SparklesIcon className="size-4 text-[oklch(0.8_0.15_250)]" />
-        {t("hero.eyebrow")}
-      </div>
-
-      <div className="relative mt-10 max-w-md space-y-4 lg:mt-0">
-        <h2 className="text-3xl font-semibold tracking-tight text-balance lg:text-4xl">
-          {t("hero.title")}
-        </h2>
-        <p className="text-white/70">{t("hero.body")}</p>
-        <ul className="flex flex-wrap gap-2 pt-2">
-          {MODULE_KEYS.map((key) => (
-            <li
-              key={key}
-              className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/85 backdrop-blur"
-            >
-              <span className="size-1.5 rounded-full bg-[oklch(0.8_0.17_160)] shadow-[0_0_8px_oklch(0.8_0.17_160)]" />
-              {t(`hero.modules.${key}`)}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </section>
+    <header className="flex h-12 items-center justify-end gap-1 px-4 md:px-6">
+      <ThemeSwitcher />
+      <LanguageSwitcher />
+    </header>
   );
 }
 
-function SignInPanel() {
+function BrandMark() {
+  const { t } = useTranslation("auth");
+
+  return (
+    <div className="flex flex-col items-center gap-4 text-center">
+      <span className="flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
+        <SparklesIcon className="size-6" />
+      </span>
+      <div className="flex flex-col gap-1">
+        <h1 className="text-[28px] font-bold tracking-tight">{t("signInTitle")}</h1>
+        <p className="text-sm text-muted-foreground">{t("tagline")}</p>
+      </div>
+    </div>
+  );
+}
+
+function ModuleBadges() {
+  const { t } = useTranslation("auth");
+
+  return (
+    <ul className="flex flex-wrap justify-center gap-2">
+      {MODULE_KEYS.map((key) => (
+        <li key={key}>
+          <Badge variant="outline" className="bg-card text-muted-foreground shadow-panel">
+            {t(`modules.${key}`)}
+          </Badge>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function SignInCard() {
   const { t } = useTranslation("auth");
   const { error, returnTo } = useSearch({ from: "/login" });
   const loginHref = `/api/auth/login/google?returnTo=${encodeURIComponent(returnTo ?? "/")}`;
 
   return (
-    <section className="relative flex items-center justify-center overflow-hidden bg-background px-4 py-12">
-      <div className="pointer-events-none absolute top-1/2 left-1/2 size-[28rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-3xl" />
-      <div className="relative grid w-full max-w-sm gap-6 rounded-2xl border bg-card/70 p-8 shadow-panel backdrop-blur-xl">
-        <div className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight">{t("signInTitle")}</h1>
-          <p className="text-sm text-muted-foreground">{t("signInSubtitle")}</p>
-        </div>
-        {error !== undefined && (
-          <p
-            role="alert"
-            className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-          >
-            {t(`errors.${toLoginErrorCode(error)}`)}
-          </p>
-        )}
-        <Button asChild variant="outline" size="lg" className="w-full gap-3">
-          <a href={loginHref}>
-            <GoogleMark />
-            {t("signInWithGoogle")}
-          </a>
-        </Button>
-        <p className="flex items-center gap-2 text-xs text-muted-foreground">
-          <ShieldCheckIcon className="size-4 shrink-0" />
-          {t("accessNote")}
+    <section className="grid w-full max-w-sm gap-6 rounded-2xl bg-card p-6 text-card-foreground shadow-panel">
+      <p className="text-center text-sm text-muted-foreground">{t("signInSubtitle")}</p>
+      {error !== undefined && (
+        <p
+          role="alert"
+          className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        >
+          {t(`errors.${toLoginErrorCode(error)}`)}
         </p>
-      </div>
+      )}
+      <Button asChild variant="outline" size="lg" className="w-full gap-3">
+        <a href={loginHref}>
+          <GoogleMark />
+          {t("signInWithGoogle")}
+        </a>
+      </Button>
+      <Separator />
+      <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+        <ShieldCheckIcon className="size-4 shrink-0" />
+        {t("accessNote")}
+      </p>
     </section>
   );
 }
 
 export function LoginPage() {
   return (
-    <main className="grid min-h-svh lg:grid-cols-[1.1fr_1fr]">
-      <HeroPanel />
-      <SignInPanel />
-    </main>
+    <div className="flex min-h-svh flex-col bg-background">
+      <LoginHeader />
+      <main className="flex flex-1 flex-col items-center justify-center gap-8 px-4 pb-16">
+        <BrandMark />
+        <SignInCard />
+        <ModuleBadges />
+      </main>
+    </div>
   );
 }

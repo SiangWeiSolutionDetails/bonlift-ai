@@ -11,26 +11,18 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { usePermissions } from "@/features/auth/permissions";
 import { meQueryOptions, useCurrentUser } from "@/features/auth/queries";
 import { brandMemberKeys } from "@/features/brand-members/queries";
 import { roleKeys, useRoles } from "@/features/roles/queries";
-import type { Role } from "@/features/roles/type";
 import { getErrorMessage } from "@/lib/error-message";
 import { runSaveStep } from "../api";
 import { userKeys, useUserBrandRoles } from "../queries";
 import type { UserBrandRole, UserRecord } from "../type";
 import { applySaveStep, planUserSave, type SaveStep, type UserEditState } from "../user-save-plan";
+import { ConsoleRoleSelect } from "./console-role-select";
 import { UserBrandRolesField, type BrandRoleEntry } from "./user-brand-roles-field";
 
-const NO_ROLE = "none";
 const DISPLAY_NAME_MAX = 200;
 
 type SavedChanges = { userId: string; brandIds: Set<string> };
@@ -369,17 +361,6 @@ function LockHint({ access, canSection }: { access: EditAccess; canSection: bool
   return null;
 }
 
-// The built-in Admin role is only offered to Admins; a held role the viewer can't offer still shows
-function consoleRoleOptions(roles: Role[], isAdmin: boolean, user: UserRecord) {
-  const options: { id: string; name: string; disabled?: boolean }[] = roles.filter(
-    (role) => !role.isBuiltin || isAdmin,
-  );
-  if (user.consoleRole && !options.some((role) => role.id === user.consoleRole?.id)) {
-    options.push({ id: user.consoleRole.id, name: user.consoleRole.name, disabled: true });
-  }
-  return options;
-}
-
 type ConsoleRoleFieldProps = {
   user: UserRecord;
   value: string | null;
@@ -390,31 +371,19 @@ type ConsoleRoleFieldProps = {
 
 function ConsoleRoleField({ user, value, editable, disabled, onChange }: ConsoleRoleFieldProps) {
   const { t } = useTranslation("users");
-  const isAdmin = useCurrentUser().console?.isAdmin ?? false;
-  const { data: roles = [] } = useRoles("console");
 
   if (!editable) {
     return <p className="text-sm">{user.consoleRole?.name ?? t("table.noRole")}</p>;
   }
 
   return (
-    <Select
-      value={value ?? NO_ROLE}
-      onValueChange={(next) => onChange(next === NO_ROLE ? null : next)}
+    <ConsoleRoleSelect
+      id="user-console-role"
+      value={value}
+      heldRole={user.consoleRole}
       disabled={disabled}
-    >
-      <SelectTrigger id="user-console-role" className="w-full">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={NO_ROLE}>{t("table.noRole")}</SelectItem>
-        {consoleRoleOptions(roles, isAdmin, user).map((role) => (
-          <SelectItem key={role.id} value={role.id} disabled={role.disabled}>
-            {role.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      onChange={onChange}
+    />
   );
 }
 

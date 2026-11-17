@@ -38,7 +38,8 @@
     "displayName": "名称（可选）",
     "displayNameHint": "填写名称后，用户将无法自行修改。留空则由用户在首次登录时自行设置。",
     "submit": "邀请",
-    "submitting": "邀请中…"
+    "submitting": "邀请中…",
+    "roleRequired": "请至少分配一个角色。"
   },
   "disable": {
     "title": "停用 {{email}}？",

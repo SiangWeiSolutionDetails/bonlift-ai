@@ -26,6 +26,8 @@ export function UsersPage() {
   const me = useCurrentUser();
   const { canConsole } = usePermissions();
   const canInvite = canConsole("users.invite");
+  const canOpenInvite =
+    canInvite && (canConsole("users.assignConsoleRoles") || canConsole("users.assignBrandRoles"));
   const canEdit =
     canConsole("users.edit") ||
     canConsole("users.assignConsoleRoles") ||
@@ -58,7 +60,7 @@ export function UsersPage() {
       <PageHeader
         title={t("page.title")}
         action={
-          canInvite && (
+          canOpenInvite && (
             <Button onClick={() => setInviteOpen(true)}>
               <PlusIcon data-icon="inline-start" />
               {t("page.invite")}

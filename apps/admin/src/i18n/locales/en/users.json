@@ -38,7 +38,8 @@
     "displayName": "Name (optional)",
     "displayNameHint": "If you enter a name, the user can't change it. Leave it blank to let them choose their own when they first sign in.",
     "submit": "Invite",
-    "submitting": "Inviting…"
+    "submitting": "Inviting…",
+    "roleRequired": "Assign at least one role."
   },
   "disable": {
     "title": "Disable {{email}}?",

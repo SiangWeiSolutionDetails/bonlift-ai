@@ -1,0 +1,100 @@
+{
+  "groups": {
+    "tenants": "租户",
+    "brands": "品牌",
+    "users": "用户",
+    "roles": "角色",
+    "outlets": "门店",
+    "dataSource": "数据源",
+    "snapshots": "订单快照",
+    "calculations": "计算",
+    "configs": "配置",
+    "results": "门店商品评分",
+    "customerScores": "顾客商品评分",
+    "itemAffinity": "商品关联",
+    "channels": "渠道",
+    "apiKeys": "API 密钥",
+    "usage": "用量",
+    "feedback": "推荐反馈",
+    "members": "成员"
+  },
+  "tenants": {
+    "view": "查看租户",
+    "create": "创建租户",
+    "edit": "编辑租户",
+    "delete": "删除租户"
+  },
+  "brands": {
+    "view": "查看所有品牌",
+    "create": "创建品牌",
+    "edit": "编辑品牌",
+    "delete": "删除品牌"
+  },
+  "users": {
+    "view": "查看用户",
+    "invite": "邀请用户",
+    "edit": "编辑用户",
+    "disable": "停用用户",
+    "delete": "删除用户",
+    "assignConsoleRoles": "分配后台角色",
+    "assignBrandRoles": "分配品牌角色"
+  },
+  "roles": {
+    "view": "查看角色",
+    "manage": "管理角色"
+  },
+  "outlets": {
+    "view": "查看门店",
+    "create": "创建门店",
+    "edit": "编辑门店",
+    "delete": "删除门店"
+  },
+  "dataSource": {
+    "view": "查看数据源",
+    "edit": "编辑数据源"
+  },
+  "snapshots": {
+    "view": "查看订单快照",
+    "viewCustomerIds": "查看快照中的顾客 ID",
+    "upload": "上传订单快照"
+  },
+  "calculations": {
+    "view": "查看计算",
+    "trigger": "触发计算",
+    "editSchedule": "编辑计算计划",
+    "publish": "发布计算结果"
+  },
+  "configs": {
+    "view": "查看配置",
+    "edit": "编辑配置"
+  },
+  "results": {
+    "view": "查看门店商品评分"
+  },
+  "customerScores": {
+    "view": "查看顾客商品评分"
+  },
+  "itemAffinity": {
+    "view": "查看商品关联"
+  },
+  "channels": {
+    "view": "查看渠道",
+    "edit": "编辑渠道"
+  },
+  "apiKeys": {
+    "view": "查看 API 密钥",
+    "create": "创建 API 密钥",
+    "revoke": "吊销 API 密钥",
+    "delete": "删除 API 密钥"
+  },
+  "usage": {
+    "view": "查看用量"
+  },
+  "feedback": {
+    "view": "查看推荐反馈"
+  },
+  "members": {
+    "view": "查看成员",
+    "manage": "管理成员"
+  }
+}

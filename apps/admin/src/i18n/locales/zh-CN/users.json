@@ -1,0 +1,91 @@
+{
+  "page": {
+    "title": "用户",
+    "invite": "邀请用户"
+  },
+  "search": {
+    "placeholder": "按邮箱或姓名搜索",
+    "noMatches": "没有匹配“{{text}}”的结果"
+  },
+  "table": {
+    "email": "邮箱",
+    "name": "名称",
+    "status": "状态",
+    "consoleRole": "后台角色",
+    "brands": "品牌数",
+    "lastLogin": "最近登录",
+    "rowActions": "行操作",
+    "empty": "暂无用户。",
+    "noRole": "无",
+    "ownRow": "你不能更改自己的权限。",
+    "reinvite": "重新邀请",
+    "reinviteUser": "重新邀请 {{email}}",
+    "disable": "停用",
+    "disableUser": "停用 {{email}}",
+    "delete": "删除",
+    "deleteUser": "删除 {{email}}",
+    "editUser": "编辑 {{email}}",
+    "viewUser": "查看 {{email}}"
+  },
+  "status": {
+    "invited": "已邀请",
+    "active": "正常",
+    "disabled": "已停用"
+  },
+  "invite": {
+    "title": "邀请用户",
+    "email": "邮箱",
+    "displayName": "名称（可选）",
+    "displayNameHint": "填写名称后，用户将无法自行修改。留空则由用户在首次登录时自行设置。",
+    "submit": "邀请",
+    "submitting": "邀请中…",
+    "roleRequired": "请至少分配一个角色。"
+  },
+  "disable": {
+    "title": "停用 {{email}}？",
+    "description": "该用户将立即退出登录，重新邀请前无法登录。"
+  },
+  "reinviteConfirm": {
+    "title": "重新邀请 {{email}}？",
+    "description": "该用户将从已停用变为已邀请，并可使用同一 Google 账号重新登录。"
+  },
+  "delete": {
+    "title": "删除 {{email}}？",
+    "description": "该账号、登录链接、会话和角色将被永久删除。之后可将此人作为新账号重新邀请。"
+  },
+  "brandRoles": {
+    "title": "品牌角色",
+    "empty": "尚未分配品牌角色。",
+    "roleFor": "{{brand}} 的角色",
+    "removeFrom": "移除 {{brand}} 的权限",
+    "remove": "移除",
+    "brand": "品牌",
+    "brandPlaceholder": "选择品牌",
+    "role": "角色",
+    "rolePlaceholder": "选择角色",
+    "add": "添加",
+    "undo": "撤销",
+    "undoFor": "保留 {{brand}} 的权限"
+  },
+  "edit": {
+    "loading": "加载中…",
+    "displayName": "显示名称",
+    "displayNameHint": "留空即可清除，用户将在下次登录时自行设置名称。",
+    "nameSource": {
+      "staff": "由管理员设置，用户无法修改",
+      "provider": "来自 Google，用户仍可修改",
+      "self": "由用户自行设置"
+    },
+    "consoleRole": "后台角色",
+    "adminLocked": "只有管理员可以更改管理员的名称或后台角色。",
+    "keepOneRole": "用户必须至少保留一个角色。",
+    "steps": {
+      "name": "名称",
+      "consoleRole": "后台角色",
+      "brandRole": "{{brand}} 的品牌角色"
+    },
+    "listSeparator": "、",
+    "savedSummary": "已保存：{{items}}。",
+    "notSavedSummary": "未保存：{{item}} — {{reason}}"
+  }
+}

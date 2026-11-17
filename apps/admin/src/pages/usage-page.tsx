@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useBrands } from "@/features/brands/queries";
+import { useBrandsWith } from "@/features/brands/queries";
 import { BrandUsageReport } from "@/features/brand-usage/components/brand-usage-report";
 import { toIsoDate } from "@/lib/date-format";
 
@@ -27,7 +27,7 @@ export function UsagePage() {
   const { t } = useTranslation("usage");
   const search = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
-  const { data: brands = [] } = useBrands();
+  const brands = useBrandsWith("usage.view");
   const range = search.from && search.to ? { from: search.from, to: search.to } : defaultRange();
 
   // replace: picking filters should not fill the back button history

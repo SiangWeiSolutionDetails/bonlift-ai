@@ -18,12 +18,12 @@ import {
   revokeBrandApiKeyById,
 } from "../services/brandApiKey.service.js";
 
-// Guarded by the admin session hook: any signed-in user can create a key for any brand until per-brand permissions
-// exist. The api-key command line script remains available for creating keys without the API.
+// The api-key command line script remains available for creating keys without the API.
 export async function brandApiKeyRoutes(app: FastifyInstance) {
   app.get<{ Params: BrandParamsSchemaType }>(
     "/brands/:brandId/api-keys",
     {
+      config: { access: { brand: "apiKeys.view", from: "params.brandId" } },
       schema: {
         params: BrandParamsSchema,
         response: { 200: BrandApiKeyListSchema },
@@ -41,6 +41,7 @@ export async function brandApiKeyRoutes(app: FastifyInstance) {
   }>(
     "/brands/:brandId/api-keys",
     {
+      config: { access: { brand: "apiKeys.create", from: "params.brandId" } },
       schema: {
         params: BrandParamsSchema,
         body: CreateBrandApiKeyBodySchema,
@@ -52,8 +53,8 @@ export async function brandApiKeyRoutes(app: FastifyInstance) {
       const created = await createBrandApiKey(pool, {
         brandId: request.params.brandId,
         ...request.body,
-        // Set by the admin session hook.
-        createdBy: `user:${request.user!.id}`,
+        // Set by the admin access hook.
+        createdBy: `user:${request.access!.user.id}`,
       });
       // The only response that carries the secret: no browser or proxy may keep a copy.
       reply.status(201).header("Cache-Control", "no-store");
@@ -64,6 +65,7 @@ export async function brandApiKeyRoutes(app: FastifyInstance) {
   app.post<{ Params: BrandApiKeyParamsSchemaType }>(
     "/brands/:brandId/api-keys/:keyId/revoke",
     {
+      config: { access: { brand: "apiKeys.revoke", from: "params.brandId" } },
       schema: {
         params: BrandApiKeyParamsSchema,
         response: { 200: BrandApiKeyRecordSchema },
@@ -83,6 +85,7 @@ export async function brandApiKeyRoutes(app: FastifyInstance) {
   app.delete<{ Params: BrandApiKeyParamsSchemaType }>(
     "/brands/:brandId/api-keys/:keyId",
     {
+      config: { access: { brand: "apiKeys.delete", from: "params.brandId" } },
       schema: {
         params: BrandApiKeyParamsSchema,
       },

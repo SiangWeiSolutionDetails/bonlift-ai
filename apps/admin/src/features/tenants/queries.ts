@@ -20,10 +20,11 @@ export const tenantKeys = {
   detail: (tenantId: string) => [...tenantKeys.details(), tenantId] as const,
 };
 
-export function useTenants() {
+export function useTenants({ enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: tenantKeys.lists(),
     queryFn: ({ signal }) => listTenants(signal),
+    enabled,
   });
 }
 

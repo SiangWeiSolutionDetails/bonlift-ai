@@ -20,6 +20,16 @@ export async function brandChannelRoutes(app: FastifyInstance) {
   app.get<{ Params: BrandParamsSchemaType }>(
     "/brands/:brandId/channels",
     {
+      // The API key dialog and the feedback filters pick from this list too.
+      config: {
+        access: {
+          anyOf: [
+            { brand: "channels.view", from: "params.brandId" },
+            { brand: "apiKeys.create", from: "params.brandId" },
+            { brand: "feedback.view", from: "params.brandId" },
+          ],
+        },
+      },
       schema: {
         params: BrandParamsSchema,
         response: { 200: BrandChannelListSchema },
@@ -37,6 +47,7 @@ export async function brandChannelRoutes(app: FastifyInstance) {
   }>(
     "/brands/:brandId/channels/:channelId",
     {
+      config: { access: { brand: "channels.edit", from: "params.brandId" } },
       schema: {
         params: BrandChannelParamsSchema,
         body: UpdateBrandChannelBodySchema,

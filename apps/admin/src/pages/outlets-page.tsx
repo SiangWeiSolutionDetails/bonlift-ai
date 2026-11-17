@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { usePermissions } from "@/features/auth/permissions";
 import { useBrands } from "@/features/brands/queries";
 import { CreateOutletDialog } from "@/features/outlets/components/create-outlet-dialog";
 import { OutletDialog } from "@/features/outlets/components/outlet-dialog";
@@ -32,6 +33,7 @@ export function OutletsPage() {
   const [selectedOutlet, setSelectedOutlet] = useState<Outlet | null>(null);
   const [outletToDelete, setOutletToDelete] = useState<Outlet | null>(null);
   const deleteOutletMutation = useDeleteOutlet();
+  const { canBrand } = usePermissions();
   // Not reset on close, so the title doesn't flip while the dialog animates out
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [brandFilter, setBrandFilter] = useState(ALL_BRANDS);
@@ -48,17 +50,25 @@ export function OutletsPage() {
   const { data: outlets, isPending, error } = useOutlets(listParams);
   // Feeds the filter, the create dialog and the brand column
   const { data: brands = [] } = useBrands();
-  const filteredOutlets = filterByName(outlets, searchText);
+  // GET /outlets lists every brand role's outlets; this page shows only brands with outlets.view
+  const viewableBrands = brands.filter((brand) => canBrand(brand.id, "outlets.view"));
+  const creatableBrands = brands.filter((brand) => canBrand(brand.id, "outlets.create"));
+  const filteredOutlets = filterByName(
+    outlets?.filter((outlet) => canBrand(outlet.brandId, "outlets.view")),
+    searchText,
+  );
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title={t("page.title")}
         action={
-          <Button onClick={() => setIsCreateOpen(true)}>
-            <PlusIcon data-icon="inline-start" />
-            {t("page.newOutlet")}
-          </Button>
+          creatableBrands.length > 0 && (
+            <Button onClick={() => setIsCreateOpen(true)}>
+              <PlusIcon data-icon="inline-start" />
+              {t("page.newOutlet")}
+            </Button>
+          )
         }
       />
 
@@ -72,7 +82,7 @@ export function OutletsPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL_BRANDS}>{t("filter.allBrands")}</SelectItem>
-            {brands.map((brand) => (
+            {viewableBrands.map((brand) => (
               <SelectItem key={brand.id} value={brand.id}>
                 {brand.name}
               </SelectItem>
@@ -101,6 +111,8 @@ export function OutletsPage() {
         emptyMessage={searchText.trim() ? t("search.noMatches") : undefined}
         isPending={isPending}
         error={error}
+        canEdit={(outlet) => canBrand(outlet.brandId, "outlets.edit")}
+        canDelete={(outlet) => canBrand(outlet.brandId, "outlets.delete")}
         onEdit={(outlet) => openOutlet(outlet, false)}
         onView={(outlet) => openOutlet(outlet, true)}
         onDelete={setOutletToDelete}
@@ -121,8 +133,10 @@ export function OutletsPage() {
       <CreateOutletDialog
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
-        brands={brands}
-        defaultBrandId={brandFilter === ALL_BRANDS ? undefined : brandFilter}
+        brands={creatableBrands}
+        defaultBrandId={
+          brandFilter !== ALL_BRANDS && canBrand(brandFilter, "outlets.create") ? brandFilter : undefined
+        }
       />
       <OutletDialog
         outlet={selectedOutlet}

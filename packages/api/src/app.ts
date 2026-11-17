@@ -26,6 +26,9 @@ import { authRoutes } from "./routes/auth.route.js";
 import { brandChannelRoutes } from "./routes/brandChannel.route.js";
 import { brandUsageRoutes } from "./routes/brandUsage.route.js";
 import { recommendationFeedbackReportRoutes } from "./routes/recommendationFeedbackReport.route.js";
+import { roleRoutes } from "./routes/role.route.js";
+import { userRoutes } from "./routes/user.route.js";
+import { brandMemberRoutes } from "./routes/brandMember.route.js";
 import { getPool } from "@bonlift-ai/db";
 import {
   createServingAuthHook,
@@ -34,7 +37,7 @@ import {
 } from "./plugins/servingAuth.js";
 import { createServingUsageHook } from "./plugins/servingUsage.js";
 import { registerApiDocs } from "./plugins/apiDocs.js";
-import { createAdminSessionHook } from "./plugins/adminAuth.js";
+import { registerAdminAccess } from "./plugins/adminAccess.js";
 import { areDevRoutesEnabled, readAuthConfig, readCustomerIdSecret } from "./config/env.js";
 
 const CALLBACK_PATH_PREFIX = "/auth/callback/";
@@ -91,10 +94,9 @@ export function buildApp(): FastifyInstance {
   app.register(healthRoutes);
   app.register(authRoutes);
 
-  // Admin surface: the session hook is encapsulated to this scope only.
+  // Admin surface: the access hooks are encapsulated to this scope only.
   app.register(async (admin) => {
-    admin.decorateRequest("user", null);
-    admin.addHook("onRequest", createAdminSessionHook(getPool));
+    registerAdminAccess(admin, getPool);
     admin.register(tenantRoutes);
     admin.register(brandRoutes);
     admin.register(outletRoutes);
@@ -115,6 +117,9 @@ export function buildApp(): FastifyInstance {
     admin.register(recommendationFeedbackReportRoutes);
     admin.register(brandChannelRoutes);
     admin.register(brandApiKeyRoutes);
+    admin.register(roleRoutes);
+    admin.register(userRoutes);
+    admin.register(brandMemberRoutes);
 
     if (areDevRoutesEnabled()) {
       admin.register(mockDatasetRoutes);

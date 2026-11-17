@@ -3,6 +3,7 @@ import { getRouteApi } from "@tanstack/react-router";
 import { PageHeader } from "@/components/page-header";
 import { OrderSnapshotsCard } from "@/features/order-snapshots/components/order-snapshots-card";
 import type { SnapshotsSearch } from "@/features/order-snapshots/search";
+import { usePermissions } from "@/features/auth/permissions";
 import { OutletPicker } from "@/features/outlet-item-scores/components/outlet-picker";
 
 const routeApi = getRouteApi("/_app/snapshots");
@@ -11,6 +12,7 @@ export function OrderSnapshotsPage() {
   const { t } = useTranslation("snapshots");
   const search = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
+  const { canBrand } = usePermissions();
 
   // replace: picking an outlet should not fill the back button history
   // resetScroll: a filter change should keep the user's scroll position
@@ -23,6 +25,7 @@ export function OrderSnapshotsPage() {
       <PageHeader title={t("page.title")} />
 
       <OutletPicker
+        action="snapshots.view"
         brandId={search.brandId}
         outletId={search.outletId}
         onBrandChange={(brandId) => updateSearch({ brandId, outletId: undefined })}
@@ -34,7 +37,11 @@ export function OrderSnapshotsPage() {
           {t("page.noOutlet")}
         </p>
       ) : (
-        <OrderSnapshotsCard key={search.outletId} outletId={search.outletId} />
+        <OrderSnapshotsCard
+          key={search.outletId}
+          outletId={search.outletId}
+          canViewDays={canBrand(search.brandId, "snapshots.viewCustomerIds")}
+        />
       )}
     </div>
   );

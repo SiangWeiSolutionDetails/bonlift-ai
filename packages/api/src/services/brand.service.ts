@@ -60,7 +60,8 @@ export async function getBrand(
 
 export async function getBrands(
   pool: Pool,
-  options: BrandQuerySchemaType = {},
+  options: BrandQuerySchemaType,
+  scope: { userId: string; all: boolean },
 ): Promise<BrandRecordSchemaType[]> {
   const tenantId = options?.tenantId;
 
@@ -72,6 +73,11 @@ export async function getBrands(
   if (tenantId) {
     values.push(tenantId);
     conditions.push(`b.tenant_id = $${values.length}`);
+  }
+
+  if (!scope.all) {
+    values.push(scope.userId);
+    conditions.push(`b.id IN (SELECT brand_id FROM user_brand_roles WHERE user_id = $${values.length})`);
   }
 
   const result = await pool.query(

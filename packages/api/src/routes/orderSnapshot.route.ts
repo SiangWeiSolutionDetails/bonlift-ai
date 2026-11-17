@@ -22,6 +22,7 @@ export async function orderSnapshotRoutes(app: FastifyInstance) {
     "/outlets/:outletId/order-snapshots",
     {
       bodyLimit: 15 * 1024 * 1024,
+      config: { access: { brand: "snapshots.upload", from: "params.outletId" } },
       schema: {
         params: OutletParamsSchema,
         body: DatasetSchema,
@@ -37,6 +38,7 @@ export async function orderSnapshotRoutes(app: FastifyInstance) {
   app.get<{ Params: OutletParamsSchemaType }>(
     "/outlets/:outletId/order-snapshots",
     {
+      config: { access: { brand: "snapshots.view", from: "params.outletId" } },
       schema: {
         params: OutletParamsSchema,
         response: { 200: OrderSnapshotCoverageSchema },
@@ -51,6 +53,7 @@ export async function orderSnapshotRoutes(app: FastifyInstance) {
   app.get<{ Params: OrderSnapshotParamsSchemaType }>(
     "/outlets/:outletId/order-snapshots/:date",
     {
+      config: { access: { brand: "snapshots.viewCustomerIds", from: "params.outletId" } },
       schema: {
         params: OrderSnapshotParamsSchema,
         response: { 200: DatasetSchema },

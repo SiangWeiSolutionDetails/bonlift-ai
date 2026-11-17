@@ -1,0 +1,58 @@
+{
+  "page": {
+    "title": "角色",
+    "newConsoleRole": "新建后台角色",
+    "newBrandRole": "新建品牌角色",
+    "consoleHint": "后台角色作用于整个后台：租户、品牌列表、用户和角色。每位用户最多一个。",
+    "brandHint": "品牌角色是模板。分配时再选择品牌：在“用户”页面或品牌的“成员”标签页中分配。"
+  },
+  "tabs": {
+    "console": "后台角色",
+    "brand": "品牌角色"
+  },
+  "search": {
+    "placeholder": "按名称搜索角色",
+    "noMatches": "没有匹配“{{text}}”的结果"
+  },
+  "table": {
+    "name": "名称",
+    "actions": "操作数",
+    "assignments": "已分配",
+    "rowActions": "行操作",
+    "empty": "暂无角色。",
+    "builtin": "内置",
+    "allActions": "全部",
+    "editRole": "编辑 {{name}}",
+    "viewRole": "查看 {{name}}",
+    "deleteRole": "删除 {{name}}",
+    "ownRole": "无法修改您自己持有的角色。"
+  },
+  "dialog": {
+    "createConsoleTitle": "新建后台角色",
+    "createBrandTitle": "新建品牌角色",
+    "editTitle": "编辑角色",
+    "viewTitle": "角色详情",
+    "name": "名称",
+    "permissions": "权限",
+    "selectAll": "全选",
+    "toggleGroup": "展开或收起{{group}}操作",
+    "builtinHint": "内置管理员角色拥有所有后台操作权限，无法修改。",
+    "lackedHint": "您只能授予自己持有的后台操作权限。",
+    "brandHint": "该角色不绑定任何品牌。分配时再选择品牌：在“用户”页面或品牌的“成员”标签页中分配。",
+    "assignedUsers": "已分配用户",
+    "assignedUsersHint": "如需更改谁持有该角色，请前往“用户”页面或品牌的“成员”标签页。",
+    "noAssignedUsers": "暂无用户持有该角色。",
+    "assignedSearch": "搜索已分配用户",
+    "assignedFiltered": "{{shown}} / {{total}}",
+    "assignedName": "姓名",
+    "assignedEmail": "邮箱",
+    "assignedStatus": "状态",
+    "assignedBrand": "品牌",
+    "assignedCount_other": "{{count}} 位用户",
+    "assignedCount_one": "{{count}} 位用户"
+  },
+  "delete": {
+    "title": "删除 {{name}}？",
+    "description": "该角色将被永久删除。已分配给用户的角色无法删除。"
+  }
+}

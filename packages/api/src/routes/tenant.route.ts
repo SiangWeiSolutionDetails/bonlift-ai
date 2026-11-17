@@ -23,6 +23,7 @@ export async function tenantRoutes(app: FastifyInstance) {
   app.get(
     "/tenants",
     {
+      config: { access: { console: "tenants.view" } },
       schema: {
         querystring: TenantQuerySchema,
         response: { 200: TenantListSchema },
@@ -38,6 +39,7 @@ export async function tenantRoutes(app: FastifyInstance) {
   app.get<{ Params: TenantParamsSchemaType }>(
     "/tenants/:tenantId",
     {
+      config: { access: { console: "tenants.view" } },
       schema: {
         params: TenantParamsSchema,
         response: { 200: TenantRecordSchema },
@@ -52,6 +54,7 @@ export async function tenantRoutes(app: FastifyInstance) {
   app.post<{ Body: CreateTenantBodySchemaType }>(
     "/tenants",
     {
+      config: { access: { console: "tenants.create" } },
       schema: {
         body: CreateTenantBodySchema,
         response: { 201: TenantRecordSchema },
@@ -71,6 +74,7 @@ export async function tenantRoutes(app: FastifyInstance) {
   }>(
     "/tenants/:tenantId",
     {
+      config: { access: { console: "tenants.edit" } },
       schema: {
         params: TenantParamsSchema,
         body: UpdateTenantBodySchema,
@@ -87,6 +91,7 @@ export async function tenantRoutes(app: FastifyInstance) {
   app.delete<{ Params: TenantParamsSchemaType }>(
     "/tenants/:tenantId",
     {
+      config: { access: { console: "tenants.delete" } },
       schema: {
         params: TenantParamsSchema,
       },

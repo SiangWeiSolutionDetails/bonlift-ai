@@ -5,6 +5,9 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { BrandAction } from "@bonlift-ai/contracts";
+import { usePermissions } from "@/features/auth/permissions";
+import { useCurrentUser } from "@/features/auth/queries";
 import { BrandsTable } from "@/features/brands/components/brands-table";
 import { CreateBrandDialog } from "@/features/brands/components/create-brand-dialog";
 import { BrandDialog } from "@/features/brands/components/brand-dialog";
@@ -14,6 +17,25 @@ import { useTenants } from "@/features/tenants/queries";
 import { getErrorMessage } from "@/lib/error-message";
 import { filterByName } from "@/lib/filter-by-name";
 
+// Without tenants.view, GET /tenants is refused, so the tenants come from the user's own brands
+function useTenantOptions() {
+  const me = useCurrentUser();
+  const { canConsole } = usePermissions();
+  const canViewTenants = canConsole("tenants.view");
+  const { data: tenants = [] } = useTenants({ enabled: canViewTenants });
+  if (canViewTenants) return tenants;
+  const names = new Map(me.brands.map((brand) => [brand.tenantId, brand.tenantName]));
+  return [...names].map(([id, name]) => ({ id, name }));
+}
+
+// The brand dialog's sections each save on their own brand action
+const BRAND_DIALOG_EDIT_ACTIONS: BrandAction[] = [
+  "dataSource.edit",
+  "configs.edit",
+  "calculations.editSchedule",
+  "channels.edit",
+];
+
 export function BrandsPage() {
   const { t } = useTranslation("brands");
   const { t: tCommon } = useTranslation();
@@ -21,6 +43,7 @@ export function BrandsPage() {
   const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
   const [brandToDelete, setBrandToDelete] = useState<Brand | null>(null);
   const deleteBrandMutation = useDeleteBrand();
+  const { canConsole, canBrand } = usePermissions();
   // Not reset on close, so the title doesn't flip while the dialog animates out
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [searchText, setSearchText] = useState("");
@@ -31,7 +54,7 @@ export function BrandsPage() {
   }
 
   const { data: brands, error, isPending } = useBrands();
-  const { data: tenants = [] } = useTenants();
+  const tenants = useTenantOptions();
   // Derived from the list so the open dialog sees saved changes
   const selectedBrand =
     brands?.find((brand) => brand.id === selectedBrandId) ?? null;
@@ -42,10 +65,12 @@ export function BrandsPage() {
       <PageHeader
         title={t("page.title")}
         action={
-          <Button onClick={() => setIsCreateOpen(true)}>
-            <PlusIcon data-icon="inline-start" />
-            {t("page.newBrand")}
-          </Button>
+          canConsole("brands.create") && (
+            <Button onClick={() => setIsCreateOpen(true)}>
+              <PlusIcon data-icon="inline-start" />
+              {t("page.newBrand")}
+            </Button>
+          )
         }
       />
 
@@ -70,9 +95,13 @@ export function BrandsPage() {
         isPending={isPending}
         error={error}
         emptyMessage={searchText.trim() ? t("search.noMatches") : undefined}
+        canEdit={(brand) =>
+          canConsole("brands.edit") ||
+          BRAND_DIALOG_EDIT_ACTIONS.some((action) => canBrand(brand.id, action))
+        }
         onEdit={(brand) => openBrand(brand, false)}
         onView={(brand) => openBrand(brand, true)}
-        onDelete={setBrandToDelete}
+        onDelete={canConsole("brands.delete") ? setBrandToDelete : undefined}
       />
 
       <ConfirmDialog

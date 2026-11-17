@@ -24,6 +24,7 @@ import { Controller, useForm } from "react-hook-form";
 import { typeboxResolver } from "@/lib/typebox-resolver";
 import { UpdateBrandBodySchema } from "@bonlift-ai/contracts";
 import { useUpdateBrand } from "../queries";
+import { usePermissions } from "@/features/auth/permissions";
 import { BrandDataSourceSection } from "@/features/brand-data-source/components/brand-data-source-section";
 import { OutletItemScoresConfigSection } from "@/features/outlet-item-scores-config/components/outlet-item-scores-config-section";
 import { CustomerItemScoresConfigSection } from "@/features/customer-item-scores-config/components/customer-item-scores-config-section";
@@ -31,6 +32,7 @@ import { ItemAffinityConfigSection } from "@/features/item-affinity-config/compo
 import { ServingConfigSection } from "@/features/serving-config/components/serving-config-section";
 import { BrandCalculationScheduleSection } from "@/features/brand-calculation-schedule/components/brand-calculation-schedule-section";
 import { BrandChannelsSection } from "@/features/brand-channels/components/brand-channels-section";
+import { BrandMembersSection } from "@/features/brand-members/components/brand-members-section";
 
 const CALCULATIONS = [
   {
@@ -65,6 +67,17 @@ type BrandDialogProps = {
 export function BrandDialog({ brand, tenantName, readOnly = false, onClose }: BrandDialogProps) {
   const { t } = useTranslation("brands");
   const mode = readOnly ? "view" : "edit";
+  const { canConsole, canBrand } = usePermissions();
+  const brandId = brand?.id;
+  const sections = {
+    dataSource: canBrand(brandId, "dataSource.view"),
+    calculationConfigs: canBrand(brandId, "configs.view"),
+    schedule: canBrand(brandId, "calculations.view"),
+    channels: canBrand(brandId, "channels.view"),
+    members: canBrand(brandId, "members.view") || canConsole("users.view"),
+  };
+  const canManageMembers =
+    canBrand(brandId, "members.manage") || canConsole("users.assignBrandRoles");
 
   return (
     <Dialog open={brand !== null} onOpenChange={(open) => !open && onClose()}>
@@ -81,34 +94,79 @@ export function BrandDialog({ brand, tenantName, readOnly = false, onClose }: Br
               <TabsTrigger value="general" className="flex-none">
                 {t("tabs.general")}
               </TabsTrigger>
-              <TabsTrigger value="dataSource" className="flex-none">
-                {t("dataSource.title")}
-              </TabsTrigger>
-              <TabsTrigger value="calculationConfigs" className="flex-none">
-                {t("tabs.calculationConfigs")}
-              </TabsTrigger>
-              <TabsTrigger value="schedule" className="flex-none">
-                {t("tabs.schedule")}
-              </TabsTrigger>
-              <TabsTrigger value="channels" className="flex-none">
-                {t("tabs.channels")}
-              </TabsTrigger>
+              {sections.dataSource && (
+                <TabsTrigger value="dataSource" className="flex-none">
+                  {t("dataSource.title")}
+                </TabsTrigger>
+              )}
+              {sections.calculationConfigs && (
+                <TabsTrigger value="calculationConfigs" className="flex-none">
+                  {t("tabs.calculationConfigs")}
+                </TabsTrigger>
+              )}
+              {sections.schedule && (
+                <TabsTrigger value="schedule" className="flex-none">
+                  {t("tabs.schedule")}
+                </TabsTrigger>
+              )}
+              {sections.channels && (
+                <TabsTrigger value="channels" className="flex-none">
+                  {t("tabs.channels")}
+                </TabsTrigger>
+              )}
+              {sections.members && (
+                <TabsTrigger value="members" className="flex-none">
+                  {t("tabs.members")}
+                </TabsTrigger>
+              )}
             </TabsList>
             <BrandTab value="general">
-              <BrandForm brand={brand} tenantName={tenantName} readOnly={readOnly} />
+              <BrandForm
+                brand={brand}
+                tenantName={tenantName}
+                readOnly={readOnly || !canConsole("brands.edit")}
+              />
             </BrandTab>
-            <BrandTab value="dataSource">
-              <BrandDataSourceSection brandId={brand.id} readOnly={readOnly} />
-            </BrandTab>
-            <BrandTab value="calculationConfigs">
-              <BrandCalculationConfigs brandId={brand.id} readOnly={readOnly} />
-            </BrandTab>
-            <BrandTab value="schedule">
-              <BrandCalculationScheduleSection brandId={brand.id} readOnly={readOnly} />
-            </BrandTab>
-            <BrandTab value="channels">
-              <BrandChannelsSection brandId={brand.id} readOnly={readOnly} />
-            </BrandTab>
+            {sections.dataSource && (
+              <BrandTab value="dataSource">
+                <BrandDataSourceSection
+                  brandId={brand.id}
+                  readOnly={readOnly || !canBrand(brand.id, "dataSource.edit")}
+                />
+              </BrandTab>
+            )}
+            {sections.calculationConfigs && (
+              <BrandTab value="calculationConfigs">
+                <BrandCalculationConfigs
+                  brandId={brand.id}
+                  readOnly={readOnly || !canBrand(brand.id, "configs.edit")}
+                />
+              </BrandTab>
+            )}
+            {sections.schedule && (
+              <BrandTab value="schedule">
+                <BrandCalculationScheduleSection
+                  brandId={brand.id}
+                  readOnly={readOnly || !canBrand(brand.id, "calculations.editSchedule")}
+                />
+              </BrandTab>
+            )}
+            {sections.channels && (
+              <BrandTab value="channels">
+                <BrandChannelsSection
+                  brandId={brand.id}
+                  readOnly={readOnly || !canBrand(brand.id, "channels.edit")}
+                />
+              </BrandTab>
+            )}
+            {sections.members && (
+              <BrandTab value="members">
+                <BrandMembersSection
+                  brandId={brand.id}
+                  readOnly={readOnly || !canManageMembers}
+                />
+              </BrandTab>
+            )}
           </Tabs>
         )}
       </DialogContent>

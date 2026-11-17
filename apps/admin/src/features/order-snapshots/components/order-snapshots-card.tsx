@@ -48,7 +48,12 @@ function matchesFilter(day: OrderSnapshotDay, filter: DayFilter) {
   return true;
 }
 
-export function OrderSnapshotsCard({ outletId }: { outletId: string }) {
+type OrderSnapshotsCardProps = {
+  outletId: string;
+  canViewDays: boolean;
+};
+
+export function OrderSnapshotsCard({ outletId, canViewDays }: OrderSnapshotsCardProps) {
   const { t } = useTranslation("snapshots");
   const coverage = useOrderSnapshotCoverage(outletId);
   const [dateSort, setDateSort] = useState<SortDirection>("desc");
@@ -127,7 +132,7 @@ export function OrderSnapshotsCard({ outletId }: { outletId: string }) {
               hasAnyDays={Boolean(coverage.data?.days.length)}
               isPending={coverage.isPending}
               error={coverage.error}
-              onView={setViewingDay}
+              onView={canViewDays ? setViewingDay : undefined}
             />
           </TableBody>
         </Table>
@@ -182,7 +187,7 @@ function DayRows({
   hasAnyDays: boolean;
   isPending: boolean;
   error: Error | null;
-  onView: (day: OrderSnapshotDay) => void;
+  onView?: (day: OrderSnapshotDay) => void;
 }) {
   const { t, i18n } = useTranslation("snapshots");
   const { t: tCommon } = useTranslation();
@@ -230,7 +235,7 @@ function DayRows({
         {day.sizeBytes === null ? "—" : formatKilobytes(day.sizeBytes, i18n.language)}
       </TableCell>
       <TableCell className="pr-5 text-right">
-        {day.isStored && (
+        {day.isStored && onView && (
           <Button variant="ghost" size="sm" onClick={() => onView(day)}>
             {t("card.viewSnapshot")}
           </Button>

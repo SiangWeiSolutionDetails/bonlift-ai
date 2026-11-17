@@ -1,0 +1,91 @@
+{
+  "page": {
+    "title": "Users",
+    "invite": "Invite User"
+  },
+  "search": {
+    "placeholder": "Search by email or name",
+    "noMatches": "No matches for “{{text}}”"
+  },
+  "table": {
+    "email": "Email",
+    "name": "Name",
+    "status": "Status",
+    "consoleRole": "Console role",
+    "brands": "Brands",
+    "lastLogin": "Last login",
+    "rowActions": "Row actions",
+    "empty": "No users yet.",
+    "noRole": "None",
+    "ownRow": "You can't change your own access.",
+    "reinvite": "Reinvite",
+    "reinviteUser": "Reinvite {{email}}",
+    "disable": "Disable",
+    "disableUser": "Disable {{email}}",
+    "delete": "Delete",
+    "deleteUser": "Delete {{email}}",
+    "editUser": "Edit {{email}}",
+    "viewUser": "View {{email}}"
+  },
+  "status": {
+    "invited": "Invited",
+    "active": "Active",
+    "disabled": "Disabled"
+  },
+  "invite": {
+    "title": "Invite User",
+    "email": "Email",
+    "displayName": "Name (optional)",
+    "displayNameHint": "If you enter a name, the user can't change it. Leave it blank to let them choose their own when they first sign in.",
+    "submit": "Invite",
+    "submitting": "Inviting…",
+    "roleRequired": "Assign at least one role."
+  },
+  "disable": {
+    "title": "Disable {{email}}?",
+    "description": "This user is signed out immediately and can't sign in until reinvited."
+  },
+  "reinviteConfirm": {
+    "title": "Reinvite {{email}}?",
+    "description": "This user moves from disabled to invited and can sign in again with the same Google account."
+  },
+  "delete": {
+    "title": "Delete {{email}}?",
+    "description": "The account, its sign-in link, sessions and roles are removed permanently. The person can be invited again later as a new account."
+  },
+  "brandRoles": {
+    "title": "Brand roles",
+    "empty": "No brand roles assigned.",
+    "roleFor": "Role on {{brand}}",
+    "removeFrom": "Remove access to {{brand}}",
+    "remove": "Remove",
+    "brand": "Brand",
+    "brandPlaceholder": "Select a brand",
+    "role": "Role",
+    "rolePlaceholder": "Select a role",
+    "add": "Add",
+    "undo": "Undo",
+    "undoFor": "Keep access to {{brand}}"
+  },
+  "edit": {
+    "loading": "Loading…",
+    "displayName": "Display name",
+    "displayNameHint": "Leave empty to clear it. The user then chooses their own name at their next sign-in.",
+    "nameSource": {
+      "staff": "Set by staff; the user can't change it",
+      "provider": "From Google; the user can still change it",
+      "self": "Chosen by the user"
+    },
+    "consoleRole": "Console role",
+    "adminLocked": "Only an Admin can change an Admin's name or console role.",
+    "keepOneRole": "A user must keep at least one role.",
+    "steps": {
+      "name": "name",
+      "consoleRole": "console role",
+      "brandRole": "brand role on {{brand}}"
+    },
+    "listSeparator": ", ",
+    "savedSummary": "Saved: {{items}}.",
+    "notSavedSummary": "Not saved: {{item}} — {{reason}}"
+  }
+}

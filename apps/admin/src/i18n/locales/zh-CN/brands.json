@@ -39,7 +39,26 @@
     "general": "基本信息",
     "calculationConfigs": "计算配置",
     "schedule": "计划任务",
-    "channels": "渠道"
+    "channels": "渠道",
+    "members": "成员"
+  },
+  "members": {
+    "description": "可以处理此品牌的人员及其在该品牌上的角色。",
+    "empty": "暂无成员。",
+    "roleFor": "{{name}} 的角色",
+    "remove": "移除",
+    "removeNamed": "移除 {{name}}",
+    "removeConfirmTitle": "移除 {{name}}？",
+    "removeConfirmDescription": "该成员将失去此品牌的访问权限。",
+    "addTitle": "添加成员",
+    "email": "邮箱",
+    "displayName": "名称（可选）",
+    "displayNameHint": "填写名称后，用户将无法自行修改。留空则由用户在首次登录时自行设置。",
+    "role": "角色",
+    "rolePlaceholder": "选择角色",
+    "add": "添加",
+    "adding": "添加中…",
+    "accountDisabled": "此人的账号已停用，请联系管理员。"
   },
   "dataSource": {
     "title": "数据源",

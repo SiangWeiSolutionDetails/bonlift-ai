@@ -3,6 +3,7 @@ import { ApiError } from "./api-client";
 
 const TRANSLATED_ERROR_CODES = [
   "NOT_FOUND",
+  "FORBIDDEN",
   "VALIDATION_ERROR",
   "INTERNAL_ERROR",
   "NETWORK_ERROR",

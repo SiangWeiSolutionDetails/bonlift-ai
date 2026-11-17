@@ -7,6 +7,7 @@ export async function calculationsOverviewRoutes(app: FastifyInstance) {
   app.get<{ Params: BrandParamsSchemaType }>(
     "/brands/:brandId/calculations/overview",
     {
+      config: { access: { brand: "calculations.view", from: "params.brandId" } },
       schema: {
         params: BrandParamsSchema,
         response: { 200: CalculationsOverviewSchema },

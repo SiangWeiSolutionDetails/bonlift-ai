@@ -30,6 +30,8 @@
     "integration": "集成",
     "insights": "洞察",
     "tenants": "租户",
+    "roles": "角色",
+    "users": "用户",
     "brands": "品牌",
     "outlets": "门店",
     "snapshots": "订单快照",
@@ -61,6 +63,7 @@
   },
   "errors": {
     "NOT_FOUND": "找不到请求的记录。",
+    "FORBIDDEN": "你没有执行此操作的权限。",
     "VALIDATION_ERROR": "部分输入的信息无效。",
     "INTERNAL_ERROR": "系统出现问题，请稍后重试。",
     "NETWORK_ERROR": "无法连接服务器，请检查网络后重试。",
@@ -71,5 +74,8 @@
     "open": "选择时间",
     "hour": "小时",
     "minute": "分钟"
+  },
+  "noAccess": {
+    "message": "你没有访问此页面的权限。"
   }
 }

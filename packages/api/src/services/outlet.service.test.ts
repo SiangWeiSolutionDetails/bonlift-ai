@@ -16,6 +16,9 @@ const OTHER_OUTLET_ID = "22222222-2222-2222-2222-222222222222";
 const BRAND_ID = "33333333-3333-3333-3333-333333333333";
 const TENANT_ID = "44444444-4444-4444-4444-444444444444";
 const INVALID_ID = "invalid-id";
+const USER_ID = "55555555-5555-5555-5555-555555555555";
+const SCOPE = { userId: USER_ID };
+const ROLE_FILTER = "o.brand_id IN (SELECT brand_id FROM user_brand_roles WHERE user_id = ";
 
 const DEFAULT_OUTLET: OutletRecordSchemaType = {
   id: OUTLET_ID,
@@ -64,7 +67,7 @@ describe("getOutlets", () => {
     { field: "brandId", options: { brandId: INVALID_ID } },
     { field: "tenantId", options: { tenantId: INVALID_ID } },
   ])("throws ValidationError when the $field filter is invalid", async ({ options }) => {
-    await expect(getOutlets(fakePool, options)).rejects.toThrow(
+    await expect(getOutlets(fakePool, options, SCOPE)).rejects.toThrow(
       ValidationError,
     );
     expect(queryMock).not.toHaveBeenCalled();
@@ -81,11 +84,11 @@ describe("getOutlets", () => {
       pgResult([fakeOutletRow(), fakeOutletRow(inactiveOutlet)]),
     );
 
-    const result = await getOutlets(fakePool, {});
+    const result = await getOutlets(fakePool, {}, SCOPE);
 
     expect(queryMock).toHaveBeenCalledWith(
-      expect.stringContaining("WHERE o.deleted_at IS NULL\n"),
-      [],
+      expect.stringContaining(`WHERE o.deleted_at IS NULL AND ${ROLE_FILTER}$1)\n`),
+      [USER_ID],
     );
     expect(result).toStrictEqual([DEFAULT_OUTLET, inactiveOutlet]);
   });
@@ -93,11 +96,11 @@ describe("getOutlets", () => {
   it("filters outlets by brand id", async () => {
     queryMock.mockResolvedValueOnce(pgResult([fakeOutletRow()]));
 
-    const result = await getOutlets(fakePool, { brandId: BRAND_ID });
+    const result = await getOutlets(fakePool, { brandId: BRAND_ID }, SCOPE);
 
     expect(queryMock).toHaveBeenCalledWith(
-      expect.stringContaining("WHERE o.deleted_at IS NULL AND o.brand_id = $1"),
-      [BRAND_ID],
+      expect.stringContaining(`WHERE o.deleted_at IS NULL AND o.brand_id = $1 AND ${ROLE_FILTER}$2)`),
+      [BRAND_ID, USER_ID],
     );
     expect(result).toStrictEqual([DEFAULT_OUTLET]);
   });
@@ -105,11 +108,11 @@ describe("getOutlets", () => {
   it("filters outlets by tenant id", async () => {
     queryMock.mockResolvedValueOnce(pgResult([fakeOutletRow()]));
 
-    const result = await getOutlets(fakePool, { tenantId: TENANT_ID });
+    const result = await getOutlets(fakePool, { tenantId: TENANT_ID }, SCOPE);
 
     expect(queryMock).toHaveBeenCalledWith(
-      expect.stringContaining("WHERE o.deleted_at IS NULL AND o.tenant_id = $1"),
-      [TENANT_ID],
+      expect.stringContaining(`WHERE o.deleted_at IS NULL AND o.tenant_id = $1 AND ${ROLE_FILTER}$2)`),
+      [TENANT_ID, USER_ID],
     );
     expect(result).toStrictEqual([DEFAULT_OUTLET]);
   });
@@ -117,31 +120,31 @@ describe("getOutlets", () => {
   it("combines the tenant and brand filters", async () => {
     queryMock.mockResolvedValueOnce(pgResult([fakeOutletRow()]));
 
-    await getOutlets(fakePool, { tenantId: TENANT_ID, brandId: BRAND_ID });
+    await getOutlets(fakePool, { tenantId: TENANT_ID, brandId: BRAND_ID }, SCOPE);
 
     expect(queryMock).toHaveBeenCalledWith(
       expect.stringContaining(
-        "WHERE o.deleted_at IS NULL AND o.tenant_id = $1 AND o.brand_id = $2",
+        `WHERE o.deleted_at IS NULL AND o.tenant_id = $1 AND o.brand_id = $2 AND ${ROLE_FILTER}$3)`,
       ),
-      [TENANT_ID, BRAND_ID],
+      [TENANT_ID, BRAND_ID, USER_ID],
     );
   });
 
   it("orders outlets by name, then id", async () => {
     queryMock.mockResolvedValueOnce(pgResult([]));
 
-    await getOutlets(fakePool, {});
+    await getOutlets(fakePool, {}, SCOPE);
 
     expect(queryMock).toHaveBeenCalledWith(
       expect.stringContaining("ORDER BY o.name, o.id"),
-      [],
+      [USER_ID],
     );
   });
 
   it("returns an empty array when there are no outlets", async () => {
     queryMock.mockResolvedValueOnce(pgResult([]));
 
-    const result = await getOutlets(fakePool, {});
+    const result = await getOutlets(fakePool, {}, SCOPE);
 
     expect(result).toStrictEqual([]);
   });

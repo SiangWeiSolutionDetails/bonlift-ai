@@ -23,13 +23,14 @@ const SKELETON_ROW_COUNT = 5;
 
 type BrandsTableProps = {
   brands: Brand[] | undefined;
-  tenants: Tenant[];
+  tenants: Pick<Tenant, "id" | "name">[];
   isPending: boolean;
   error: Error | null;
   emptyMessage?: string;
+  canEdit: (brand: Brand) => boolean;
   onEdit: (brand: Brand) => void;
   onView: (brand: Brand) => void;
-  onDelete: (brand: Brand) => void;
+  onDelete?: (brand: Brand) => void;
 };
 
 export function BrandsTable(props: BrandsTableProps) {
@@ -62,6 +63,7 @@ function BrandsTableRows({
   isPending,
   error,
   emptyMessage,
+  canEdit,
   onEdit,
   onView,
   onDelete,
@@ -103,14 +105,16 @@ function BrandsTableRows({
       </TableCell>
       <TableCell className="text-right">
         <CopyBrandIdButton brand={brand} />
-        <Button
-          variant="ghost"
-          size="sm"
-          aria-label={t("table.editBrand", { name: brand.name })}
-          onClick={() => onEdit(brand)}
-        >
-          {tCommon("actions.edit")}
-        </Button>
+        {canEdit(brand) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={t("table.editBrand", { name: brand.name })}
+            onClick={() => onEdit(brand)}
+          >
+            {tCommon("actions.edit")}
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="sm"
@@ -119,15 +123,17 @@ function BrandsTableRows({
         >
           {tCommon("actions.view")}
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-destructive hover:text-destructive"
-          aria-label={t("table.deleteBrand", { name: brand.name })}
-          onClick={() => onDelete(brand)}
-        >
-          {tCommon("actions.delete")}
-        </Button>
+        {onDelete && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-destructive hover:text-destructive"
+            aria-label={t("table.deleteBrand", { name: brand.name })}
+            onClick={() => onDelete(brand)}
+          >
+            {tCommon("actions.delete")}
+          </Button>
+        )}
       </TableCell>
     </TableRow>
   ));

@@ -5,6 +5,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { usePermissions } from "@/features/auth/permissions";
 import { CreateTenantDialog } from "@/features/tenants/components/create-tenant-dialog";
 import { TenantDialog } from "@/features/tenants/components/tenant-dialog";
 import { TenantsTable } from "@/features/tenants/components/tenants-table";
@@ -20,6 +21,7 @@ export function TenantsPage() {
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [tenantToDelete, setTenantToDelete] = useState<Tenant | null>(null);
   const deleteTenantMutation = useDeleteTenant();
+  const { canConsole } = usePermissions();
   // Not reset on close, so the title doesn't flip while the dialog animates out
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [searchText, setSearchText] = useState("");
@@ -37,10 +39,12 @@ export function TenantsPage() {
       <PageHeader
         title={t("page.title")}
         action={
-          <Button onClick={() => setIsCreateOpen(true)}>
-            <PlusIcon data-icon="inline-start" />
-            {t("page.newTenant")}
-          </Button>
+          canConsole("tenants.create") && (
+            <Button onClick={() => setIsCreateOpen(true)}>
+              <PlusIcon data-icon="inline-start" />
+              {t("page.newTenant")}
+            </Button>
+          )
         }
       />
 
@@ -64,9 +68,9 @@ export function TenantsPage() {
         emptyMessage={searchText.trim() ? t("search.noMatches") : undefined}
         isPending={isPending}
         error={error}
-        onEdit={(tenant) => openTenant(tenant, false)}
+        onEdit={canConsole("tenants.edit") ? (tenant) => openTenant(tenant, false) : undefined}
         onView={(tenant) => openTenant(tenant, true)}
-        onDelete={setTenantToDelete}
+        onDelete={canConsole("tenants.delete") ? setTenantToDelete : undefined}
       />
 
       <ConfirmDialog

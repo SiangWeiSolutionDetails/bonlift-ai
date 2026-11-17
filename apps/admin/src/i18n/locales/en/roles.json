@@ -1,0 +1,58 @@
+{
+  "page": {
+    "title": "Roles",
+    "newConsoleRole": "New Console Role",
+    "newBrandRole": "New Brand Role",
+    "consoleHint": "Console roles apply across the whole console: tenants, the brand list, users and roles. Each user has at most one.",
+    "brandHint": "Brand roles are templates. You choose which brand when you assign one, on the Users page or a brand’s Members tab."
+  },
+  "tabs": {
+    "console": "Console roles",
+    "brand": "Brand roles"
+  },
+  "search": {
+    "placeholder": "Search roles by name",
+    "noMatches": "No matches for “{{text}}”"
+  },
+  "table": {
+    "name": "Name",
+    "actions": "Actions",
+    "assignments": "Assigned",
+    "rowActions": "Row actions",
+    "empty": "No roles yet.",
+    "builtin": "Built-in",
+    "allActions": "All",
+    "editRole": "Edit {{name}}",
+    "viewRole": "View {{name}}",
+    "deleteRole": "Delete {{name}}",
+    "ownRole": "You can't change a role you hold."
+  },
+  "dialog": {
+    "createConsoleTitle": "New Console Role",
+    "createBrandTitle": "New Brand Role",
+    "editTitle": "Edit Role",
+    "viewTitle": "Role Details",
+    "name": "Name",
+    "permissions": "Permissions",
+    "selectAll": "Select all",
+    "toggleGroup": "Show or hide {{group}} actions",
+    "builtinHint": "The built-in Admin role holds every console action and can't be changed.",
+    "lackedHint": "You can only grant console actions you hold yourself.",
+    "brandHint": "This role isn’t tied to a brand. You choose the brand when you assign it, on the Users page or a brand’s Members tab.",
+    "assignedUsers": "Assigned users",
+    "assignedUsersHint": "To change who holds this role, use the Users page or the brand's Members tab.",
+    "noAssignedUsers": "No one holds this role.",
+    "assignedSearch": "Search assigned users",
+    "assignedFiltered": "{{shown}} of {{total}}",
+    "assignedName": "Name",
+    "assignedEmail": "Email",
+    "assignedStatus": "Status",
+    "assignedBrand": "Brand",
+    "assignedCount_one": "{{count}} user",
+    "assignedCount_other": "{{count}} users"
+  },
+  "delete": {
+    "title": "Delete {{name}}?",
+    "description": "This role will be removed permanently. A role that is assigned to users can't be deleted."
+  }
+}

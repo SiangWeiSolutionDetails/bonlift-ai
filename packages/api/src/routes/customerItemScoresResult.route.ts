@@ -37,6 +37,7 @@ export async function customerItemScoresResultRoutes(app: FastifyInstance) {
   }>(
     "/brands/:brandId/runs/customer-item-scores",
     {
+      config: { access: { brand: "customerScores.view", from: "params.brandId" } },
       schema: {
         params: BrandParamsSchema,
         querystring: CustomerItemScoresRunListQuerySchema,
@@ -61,6 +62,7 @@ export async function customerItemScoresResultRoutes(app: FastifyInstance) {
   }>(
     "/brands/:brandId/published-runs/customer-item-scores",
     {
+      config: { access: { brand: "calculations.publish", from: "params.brandId" } },
       schema: {
         params: BrandParamsSchema,
         body: PublishCustomerItemScoresRunBodySchema,
@@ -80,6 +82,7 @@ export async function customerItemScoresResultRoutes(app: FastifyInstance) {
   app.get<{ Params: RunParamsSchemaType }>(
     "/runs/:runId/customer-item-scores",
     {
+      config: { access: { brand: "customerScores.view", from: "params.runId" } },
       schema: {
         params: RunParamsSchema,
         response: { 200: CustomerItemScoresRunRecordSchema },
@@ -97,6 +100,7 @@ export async function customerItemScoresResultRoutes(app: FastifyInstance) {
   }>(
     "/runs/:runId/customer-item-scores/customers",
     {
+      config: { access: { brand: "customerScores.view", from: "params.runId" } },
       schema: {
         params: RunParamsSchema,
         querystring: CustomerItemScoresCustomerListQuerySchema,
@@ -115,6 +119,7 @@ export async function customerItemScoresResultRoutes(app: FastifyInstance) {
   }>(
     "/runs/:runId/customer-item-scores/customers/search",
     {
+      config: { access: { brand: "customerScores.view", from: "params.runId" } },
       schema: {
         params: RunParamsSchema,
         body: CustomerItemScoresCustomerSearchBodySchema,
@@ -135,6 +140,7 @@ export async function customerItemScoresResultRoutes(app: FastifyInstance) {
   app.get<{ Params: CustomerItemScoresCustomerParamsSchemaType }>(
     "/runs/:runId/customer-item-scores/customers/:customerId",
     {
+      config: { access: { brand: "customerScores.view", from: "params.runId" } },
       schema: {
         params: CustomerItemScoresCustomerParamsSchema,
         response: { 200: CustomerItemScoresCustomerResultSchema },

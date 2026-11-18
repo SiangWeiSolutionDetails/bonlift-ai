@@ -122,7 +122,7 @@ describe("createRole", () => {
   });
 
   it("returns 409 for a duplicate name", async () => {
-    queryMock.mockRejectedValueOnce({ code: UNIQUE_VIOLATION, constraint: "roles_kind_name_key" });
+    queryMock.mockRejectedValueOnce({ code: UNIQUE_VIOLATION, constraint: "roles_console_name_key" });
 
     await expect(
       createRole(fakePool, admin, { name: "Viewer", kind: "brand", actions: [] }),
@@ -241,7 +241,7 @@ describe("updateRole", () => {
   });
 
   it("returns 409 for a duplicate name", async () => {
-    queryMock.mockRejectedValueOnce({ code: UNIQUE_VIOLATION, constraint: "roles_kind_name_key" });
+    queryMock.mockRejectedValueOnce({ code: UNIQUE_VIOLATION, constraint: "roles_brand_tenant_name_key" });
 
     await expect(updateRole(fakePool, admin, ROLE_ID, { name: "Viewer" })).rejects.toBeInstanceOf(ConflictError);
   });

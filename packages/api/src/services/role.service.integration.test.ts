@@ -19,11 +19,17 @@ async function actorFor(email: string): Promise<RequestAccess> {
   return { user: { id, email, displayName: null }, isAdmin: true, consoleActions: [...CONSOLE_ACTIONS] };
 }
 
-async function insertRole(kind: "console" | "brand", name: string, actions: string[], isBuiltin = false) {
+async function insertRole(
+  kind: "console" | "brand",
+  name: string,
+  actions: string[],
+  isBuiltin = false,
+  tenantId: string | null = null,
+) {
   const result = await getTestPool().query(
     `
     WITH role AS (
-      INSERT INTO roles (name, kind, is_builtin) VALUES ($1, $2, $3) RETURNING id
+      INSERT INTO roles (name, kind, is_builtin, tenant_id) VALUES ($1, $2, $3, $5) RETURNING id
     ),
     perms AS (
       INSERT INTO role_permissions (role_id, action)
@@ -31,10 +37,13 @@ async function insertRole(kind: "console" | "brand", name: string, actions: stri
     )
     SELECT id FROM role
     `,
-    [name, kind, isBuiltin, actions],
+    [name, kind, isBuiltin, actions, tenantId],
   );
   return result.rows[0].id as string;
 }
+
+const insertBrandRole = (tenantId: string, name: string, actions: string[]) =>
+  insertRole("brand", name, actions, false, tenantId);
 
 async function storedRole(roleId: string) {
   const result = await getTestPool().query(
@@ -47,17 +56,21 @@ async function storedRole(roleId: string) {
   return result.rows[0] ?? null;
 }
 
-async function brandNamed(name: string): Promise<string> {
-  const tenant = await createTenant(getTestPool(), { name: `${name} Group` });
-  return (await createBrand(getTestPool(), { tenantId: tenant.id, name })).id;
+async function tenantNamed(name: string): Promise<string> {
+  return (await createTenant(getTestPool(), { name })).id;
+}
+
+async function brandIn(tenantId: string, name: string): Promise<string> {
+  return (await createBrand(getTestPool(), { tenantId, name })).id;
 }
 
 async function assignBrandRole(userId: string, brandId: string, roleId: string) {
-  await getTestPool().query(`INSERT INTO user_brand_roles (user_id, brand_id, role_id) VALUES ($1, $2, $3)`, [
-    userId,
-    brandId,
-    roleId,
-  ]);
+  await getTestPool().query(
+    `
+    INSERT INTO user_brand_roles (user_id, brand_id, tenant_id, role_id)
+    SELECT $1, b.id, b.tenant_id, $3 FROM brands b WHERE b.id = $2`,
+    [userId, brandId, roleId],
+  );
 }
 
 async function assignConsoleRole(userId: string, roleId: string) {
@@ -110,7 +123,7 @@ describe("console roles broader than a non-Admin actor (integration)", () => {
 
   it("leaves brand roles to the actor's roles.manage", async () => {
     const actor = await roleManagerFor("lead@x.com");
-    const roleId = await insertRole("brand", "Owner", ["outlets.view", "customerScores.view"]);
+    const roleId = await insertBrandRole(await tenantNamed("Alpha Group"), "Owner", ["outlets.view", "customerScores.view"]);
 
     await updateRole(getTestPool(), actor, roleId, { actions: [] });
 
@@ -121,7 +134,7 @@ describe("console roles broader than a non-Admin actor (integration)", () => {
 describe("updateRole (integration)", () => {
   it("replaces the actions exactly and renames", async () => {
     const actor = await actorFor("admin@x.com");
-    const roleId = await insertRole("brand", "Viewer", ["outlets.view", "results.view", "usage.view"]);
+    const roleId = await insertBrandRole(await tenantNamed("Alpha Group"), "Viewer", ["outlets.view", "results.view", "usage.view"]);
 
     const role = await updateRole(getTestPool(), actor, roleId, {
       name: "Reader",
@@ -137,7 +150,8 @@ describe("updateRole (integration)", () => {
 
   it("clears the actions with an empty list", async () => {
     const actor = await actorFor("admin@x.com");
-    const roleId = await insertRole("brand", "Viewer", ["outlets.view"]);
+    const tenantId = await tenantNamed("Alpha Group");
+    const roleId = await insertBrandRole(tenantId, "Viewer", ["outlets.view"]);
 
     await updateRole(getTestPool(), actor, roleId, { actions: [] });
 
@@ -146,7 +160,8 @@ describe("updateRole (integration)", () => {
 
   it("leaves the actions alone on a rename only", async () => {
     const actor = await actorFor("admin@x.com");
-    const roleId = await insertRole("brand", "Viewer", ["outlets.view"]);
+    const tenantId = await tenantNamed("Alpha Group");
+    const roleId = await insertBrandRole(tenantId, "Viewer", ["outlets.view"]);
 
     const role = await updateRole(getTestPool(), actor, roleId, { name: "Reader" });
 
@@ -167,8 +182,9 @@ describe("updateRole (integration)", () => {
 
   it("refuses a brand role the actor holds on any brand and writes nothing", async () => {
     const actor = await actorFor("lead@x.com");
-    const roleId = await insertRole("brand", "Viewer", ["outlets.view"]);
-    await assignBrandRole(actor.user.id, await brandNamed("Alpha"), roleId);
+    const tenantId = await tenantNamed("Alpha Group");
+    const roleId = await insertBrandRole(tenantId, "Viewer", ["outlets.view"]);
+    await assignBrandRole(actor.user.id, await brandIn(tenantId, "Alpha"), roleId);
 
     await expect(
       updateRole(getTestPool(), actor, roleId, { name: "Viewer Plus", actions: ["outlets.view", "customerScores.view"] }),
@@ -191,10 +207,11 @@ describe("updateRole (integration)", () => {
 
   it("counts the role's assignments", async () => {
     const actor = await actorFor("admin@x.com");
-    const roleId = await insertRole("brand", "Viewer", ["outlets.view"]);
+    const tenantId = await tenantNamed("Alpha Group");
+    const roleId = await insertBrandRole(tenantId, "Viewer", ["outlets.view"]);
     const other = await userNamed("bob@x.com");
-    await assignBrandRole(other, await brandNamed("Alpha"), roleId);
-    await assignBrandRole(other, await brandNamed("Beta"), roleId);
+    await assignBrandRole(other, await brandIn(tenantId, "Alpha"), roleId);
+    await assignBrandRole(other, await brandIn(tenantId, "Beta"), roleId);
 
     const role = await updateRole(getTestPool(), actor, roleId, { name: "Reader" });
 
@@ -205,7 +222,8 @@ describe("updateRole (integration)", () => {
 describe("deleteRole (integration)", () => {
   it("deletes an unused role and its permissions", async () => {
     const actor = await actorFor("admin@x.com");
-    const roleId = await insertRole("brand", "Viewer", ["outlets.view"]);
+    const tenantId = await tenantNamed("Alpha Group");
+    const roleId = await insertBrandRole(tenantId, "Viewer", ["outlets.view"]);
 
     await deleteRole(getTestPool(), actor, roleId);
 
@@ -216,8 +234,9 @@ describe("deleteRole (integration)", () => {
 
   it("refuses a role in use", async () => {
     const actor = await actorFor("admin@x.com");
-    const roleId = await insertRole("brand", "Viewer", ["outlets.view"]);
-    await assignBrandRole(await userNamed("bob@x.com"), await brandNamed("Alpha"), roleId);
+    const tenantId = await tenantNamed("Alpha Group");
+    const roleId = await insertBrandRole(tenantId, "Viewer", ["outlets.view"]);
+    await assignBrandRole(await userNamed("bob@x.com"), await brandIn(tenantId, "Alpha"), roleId);
 
     await expect(deleteRole(getTestPool(), actor, roleId)).rejects.toBeInstanceOf(ConflictError);
 
@@ -235,8 +254,9 @@ describe("deleteRole (integration)", () => {
 
   it("refuses a role the actor holds", async () => {
     const actor = await actorFor("lead@x.com");
-    const roleId = await insertRole("brand", "Viewer", ["outlets.view"]);
-    await assignBrandRole(actor.user.id, await brandNamed("Alpha"), roleId);
+    const tenantId = await tenantNamed("Alpha Group");
+    const roleId = await insertBrandRole(tenantId, "Viewer", ["outlets.view"]);
+    await assignBrandRole(actor.user.id, await brandIn(tenantId, "Alpha"), roleId);
 
     await expect(deleteRole(getTestPool(), actor, roleId)).rejects.toBeInstanceOf(ForbiddenError);
 
@@ -261,11 +281,12 @@ describe("listRoleAssignments (integration)", () => {
 
   it("lists one row per brand and leaves out a soft-deleted brand", async () => {
     const actor = await actorFor("admin@x.com");
-    const roleId = await insertRole("brand", "Viewer", ["outlets.view"]);
+    const tenantId = await tenantNamed("Alpha Group");
+    const roleId = await insertBrandRole(tenantId, "Viewer", ["outlets.view"]);
     const userId = await userNamed("bob@x.com");
-    const alphaId = await brandNamed("Alpha");
-    const betaId = await brandNamed("Beta");
-    const goneId = await brandNamed("Gone");
+    const alphaId = await brandIn(tenantId, "Alpha");
+    const betaId = await brandIn(tenantId, "Beta");
+    const goneId = await brandIn(tenantId, "Gone");
     for (const brandId of [alphaId, betaId, goneId]) await assignBrandRole(userId, brandId, roleId);
     await getTestPool().query(`UPDATE brands SET deleted_at = now() WHERE id = $1`, [goneId]);
 
@@ -273,55 +294,49 @@ describe("listRoleAssignments (integration)", () => {
 
     expect(rows.map((row) => [row.brandName, row.tenantName])).toEqual([
       ["Alpha", "Alpha Group"],
-      ["Beta", "Beta Group"],
+      ["Beta", "Alpha Group"],
     ]);
     expect(rows[0]).toMatchObject({ userId, email: "bob@x.com", brandId: alphaId });
   });
 
   it("leaves out a brand whose tenant is soft-deleted", async () => {
     const actor = await actorFor("admin@x.com");
-    const roleId = await insertRole("brand", "Viewer", ["outlets.view"]);
+    const tenantId = await tenantNamed("Alpha Group");
+    const roleId = await insertBrandRole(tenantId, "Viewer", ["outlets.view"]);
     const userId = await userNamed("bob@x.com");
-    await assignBrandRole(userId, await brandNamed("Alpha"), roleId);
-    const orphanedId = await brandNamed("Beta");
-    await assignBrandRole(userId, orphanedId, roleId);
-    await getTestPool().query(
-      `UPDATE tenants SET deleted_at = now() WHERE id = (SELECT tenant_id FROM brands WHERE id = $1)`,
-      [orphanedId],
-    );
+    await assignBrandRole(userId, await brandIn(tenantId, "Alpha"), roleId);
+    await getTestPool().query(`UPDATE tenants SET deleted_at = now() WHERE id = $1`, [tenantId]);
 
     const rows = await listRoleAssignments(getTestPool(), actor, roleId);
 
-    expect(rows.map((row) => row.brandName)).toEqual(["Alpha"]);
+    expect(rows).toEqual([]);
   });
 
-  it("orders by email, then tenant, then brand", async () => {
+  it("orders by email, then brand", async () => {
     const actor = await actorFor("admin@x.com");
-    const roleId = await insertRole("brand", "Viewer", ["outlets.view"]);
+    const tenantId = await tenantNamed("Zeta Group");
+    const roleId = await insertBrandRole(tenantId, "Viewer", ["outlets.view"]);
     const zed = await userNamed("zed@x.com");
     const amy = await userNamed("amy@x.com");
-    const brandIn = async (tenantName: string, name: string) => {
-      const tenant = await createTenant(getTestPool(), { name: tenantName });
-      return (await createBrand(getTestPool(), { tenantId: tenant.id, name })).id;
-    };
-    const zetaAlpha = await brandIn("Zeta Group", "Alpha");
-    const betaZulu = await brandIn("Beta Group", "Zulu");
-    await assignBrandRole(zed, zetaAlpha, roleId);
-    await assignBrandRole(amy, zetaAlpha, roleId);
-    await assignBrandRole(amy, betaZulu, roleId);
+    const zulu = await brandIn(tenantId, "Zulu");
+    const alpha = await brandIn(tenantId, "Alpha");
+    await assignBrandRole(zed, alpha, roleId);
+    await assignBrandRole(amy, zulu, roleId);
+    await assignBrandRole(amy, alpha, roleId);
 
     const rows = await listRoleAssignments(getTestPool(), actor, roleId);
 
     expect(rows.map((row) => [row.email, row.tenantName, row.brandName])).toEqual([
-      ["amy@x.com", "Beta Group", "Zulu"],
       ["amy@x.com", "Zeta Group", "Alpha"],
+      ["amy@x.com", "Zeta Group", "Zulu"],
       ["zed@x.com", "Zeta Group", "Alpha"],
     ]);
   });
 
   it("returns an empty list for an unused role", async () => {
     const actor = await actorFor("admin@x.com");
-    const roleId = await insertRole("brand", "Viewer", ["outlets.view"]);
+    const tenantId = await tenantNamed("Alpha Group");
+    const roleId = await insertBrandRole(tenantId, "Viewer", ["outlets.view"]);
 
     expect(await listRoleAssignments(getTestPool(), actor, roleId)).toEqual([]);
   });

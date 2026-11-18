@@ -41,11 +41,31 @@ async function assignConsoleRole(userId: string, roleId: string) {
 }
 
 async function assignBrandRole(userId: string, brandId: string, roleId: string) {
-  await getTestPool().query(`INSERT INTO user_brand_roles (user_id, brand_id, role_id) VALUES ($1, $2, $3)`, [
-    userId,
-    brandId,
-    roleId,
-  ]);
+  await getTestPool().query(
+    `
+    INSERT INTO user_brand_roles (user_id, brand_id, tenant_id, role_id)
+    SELECT $1, b.id, b.tenant_id, $3 FROM brands b WHERE b.id = $2`,
+    [userId, brandId, roleId],
+  );
+}
+
+async function createBrandRole(brandId: string, name: string, actions: string[]) {
+  const result = await getTestPool().query(
+    `
+    WITH role AS (
+      INSERT INTO roles (name, kind, tenant_id)
+      SELECT $1, 'brand', b.tenant_id FROM brands b WHERE b.id = $2
+      RETURNING id
+    ),
+    perms AS (
+      INSERT INTO role_permissions (role_id, action)
+      SELECT role.id, a.action FROM role, unnest($3::text[]) AS a(action)
+    )
+    SELECT id FROM role
+    `,
+    [name, brandId, actions],
+  );
+  return result.rows[0].id as string;
 }
 
 async function insertRun(brandId: string): Promise<string> {
@@ -86,7 +106,7 @@ describe("authorization.service (integration)", () => {
   it("forbids a brand action the brand role lacks and lists the actions it holds", async () => {
     const brandId = await createTestBrand();
     const { userId, token } = await createSignedInUser();
-    await assignBrandRole(userId, brandId, await createRole("brand", "Viewer", ["apiKeys.view", "gone.action"]));
+    await assignBrandRole(userId, brandId, await createBrandRole(brandId, "Viewer", ["apiKeys.view", "gone.action"]));
 
     const result = await authorizeRequest(
       getTestPool(),
@@ -138,7 +158,7 @@ describe("authorization.service (integration)", () => {
     const outletId = (await createOutlet(getTestPool(), { brandId, name: "Orchard" })).id;
     const otherOutletId = (await createOutlet(getTestPool(), { brandId: otherBrandId, name: "Bugis" })).id;
     const { userId, token } = await createSignedInUser();
-    await assignBrandRole(userId, brandId, await createRole("brand", "Viewer", ["outlets.view"]));
+    await assignBrandRole(userId, brandId, await createBrandRole(brandId, "Viewer", ["outlets.view"]));
     const access = { brand: "outlets.view", from: "params.outletId" } as const;
 
     const own = await authorizeRequest(getTestPool(), token, access, { "params.outletId": outletId });
@@ -154,7 +174,7 @@ describe("authorization.service (integration)", () => {
     const runId = await insertRun(brandId);
     const otherRunId = await insertRun(otherBrandId);
     const { userId, token } = await createSignedInUser();
-    await assignBrandRole(userId, brandId, await createRole("brand", "Analyst", ["customerScores.view"]));
+    await assignBrandRole(userId, brandId, await createBrandRole(brandId, "Analyst", ["customerScores.view"]));
     const access = { brand: "customerScores.view", from: "params.runId" } as const;
 
     const own = await authorizeRequest(getTestPool(), token, access, { "params.runId": runId });
@@ -167,7 +187,7 @@ describe("authorization.service (integration)", () => {
   it("returns notFound for a soft-deleted brand despite a role on it", async () => {
     const brandId = await createTestBrand();
     const { userId, token } = await createSignedInUser();
-    await assignBrandRole(userId, brandId, await createRole("brand", "Owner", ["outlets.view"]));
+    await assignBrandRole(userId, brandId, await createBrandRole(brandId, "Owner", ["outlets.view"]));
     await deleteBrand(getTestPool(), brandId);
 
     const result = await authorizeRequest(

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ConflictError, NotFoundError, ValidationError } from "../errors.js";
-import type { TenantRecordSchemaType } from "@bonlift-ai/contracts";
+import { BRAND_ACTIONS, type TenantRecordSchemaType } from "@bonlift-ai/contracts";
 import { pgResult } from "../utils/pg.test-helpers.js";
 import { UNIQUE_VIOLATION } from "../utils/pgErrors.js";
 import {
@@ -153,9 +153,20 @@ describe("createTenant", () => {
 
     expect(queryMock).toHaveBeenCalledWith(
       expect.stringContaining("INSERT INTO tenants (name) VALUES ($1)"),
-      [CREATE_DATA.name],
+      [CREATE_DATA.name, BRAND_ACTIONS],
     );
     expect(result).toStrictEqual(DEFAULT_TENANT);
+  });
+
+  it("inserts the tenant's built-in Brand Owner with every brand action in the same statement", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([fakeTenantRow()]));
+
+    await createTenant(fakePool, CREATE_DATA);
+
+    const [sql, params] = queryMock.mock.calls[0];
+    expect(sql).toMatch(/INSERT INTO roles \(name, kind, is_builtin, tenant_id\)\s+SELECT 'Brand Owner', 'brand', true, tenant\.id FROM tenant/);
+    expect(sql).toMatch(/INSERT INTO role_permissions \(role_id, action\)[\s\S]*unnest\(\$2::text\[\]\)/);
+    expect(params[1]).toStrictEqual(BRAND_ACTIONS);
   });
 });
 

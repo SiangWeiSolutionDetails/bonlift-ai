@@ -5,6 +5,7 @@ import { isUniqueViolation } from "../utils/pgErrors.js";
 import { withTransaction } from "../utils/transaction.js";
 import { assertValid } from "../utils/validate.js";
 import {
+  BRAND_ACTIONS,
   CreateTenantBodySchema,
   CreateTenantBodySchemaType,
   TenantParamsSchema,
@@ -70,15 +71,28 @@ export async function createTenant(
   try {
     assertValid(CreateTenantBodySchema, data);
 
-    const { columns, placeholders, values } = buildAssignments({
+    const { columns, placeholders, values, nextPlaceholder } = buildAssignments({
       name: data.name,
     });
 
+    // The tenant's built-in Brand Owner stores every brand action as rows, so access checks treat it like any role.
     const result = await pool.query(
       `
-    INSERT INTO tenants (${columns}) VALUES (${placeholders})
-    RETURNING ${TENANT_COLUMNS}`,
-      values,
+    WITH tenant AS (
+      INSERT INTO tenants (${columns}) VALUES (${placeholders})
+      RETURNING ${TENANT_COLUMNS}
+    ),
+    owner AS (
+      INSERT INTO roles (name, kind, is_builtin, tenant_id)
+      SELECT 'Brand Owner', 'brand', true, tenant.id FROM tenant
+      RETURNING id
+    ),
+    permissions AS (
+      INSERT INTO role_permissions (role_id, action)
+      SELECT owner.id, a.action FROM owner CROSS JOIN unnest(${nextPlaceholder}::text[]) AS a(action)
+    )
+    SELECT ${TENANT_COLUMNS} FROM tenant`,
+      [...values, BRAND_ACTIONS],
     );
 
     return mapTenantRow(result.rows[0]);

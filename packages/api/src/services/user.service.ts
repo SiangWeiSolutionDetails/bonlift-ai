@@ -431,7 +431,7 @@ const INVITE_USER_SQL = `
     WHERE r.id = $5::uuid AND r.kind = 'console'
   ),
   brand_pairs AS (
-    SELECT q.brand_id, q.role_id, b.id IS NOT NULL AS brand_found, r.id IS NOT NULL AS role_found
+    SELECT q.brand_id, b.tenant_id, q.role_id, b.id IS NOT NULL AS brand_found, r.id IS NOT NULL AS role_found
     FROM unnest($6::uuid[], $7::uuid[]) AS q (brand_id, role_id)
     LEFT JOIN (
       brands b JOIN tenants t ON t.id = b.tenant_id AND t.deleted_at IS NULL
@@ -461,8 +461,8 @@ const INVITE_USER_SQL = `
     SELECT c.id, cr.id, $4 FROM created c CROSS JOIN console_role cr
   ),
   brands_assigned AS (
-    INSERT INTO user_brand_roles (user_id, brand_id, role_id, granted_by)
-    SELECT c.id, bp.brand_id, bp.role_id, $4 FROM created c CROSS JOIN brand_pairs bp
+    INSERT INTO user_brand_roles (user_id, brand_id, tenant_id, role_id, granted_by)
+    SELECT c.id, bp.brand_id, bp.tenant_id, bp.role_id, $4 FROM created c CROSS JOIN brand_pairs bp
     RETURNING brand_id
   )
   SELECT

@@ -279,7 +279,7 @@ describe("addBrandMember", () => {
     const [sql, params] = poolQueryMock.mock.calls[0];
     expect(sql).toMatch(/INSERT INTO users/);
     expect(sql).toMatch(/ON CONFLICT \(email\) DO NOTHING/);
-    expect(sql).toMatch(/INSERT INTO user_brand_roles/);
+    expect(sql).toMatch(/INSERT INTO user_brand_roles \(user_id, brand_id, tenant_id, role_id, granted_by\)\s+SELECT t\.id, a\.brand_id, a\.tenant_id/);
     expect(sql).toMatch(/INSERT INTO users \(email, display_name, display_name_source\)/);
     expect(params).toEqual([BRAND_ID, "bob@x.com", ROLE_ID, ACTOR_ID, false, LEAD_BRAND_ACTIONS, "Bob", "staff"]);
   });

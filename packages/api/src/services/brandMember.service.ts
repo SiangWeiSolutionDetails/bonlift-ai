@@ -39,7 +39,7 @@ const isSubsetOf = (roleId: string, actionsParam: string) => `NOT EXISTS (
 
 const brandCte = `
   brand AS (
-    SELECT b.id FROM brands b WHERE b.id = $1 AND b.deleted_at IS NULL
+    SELECT b.id, b.tenant_id FROM brands b WHERE b.id = $1 AND b.deleted_at IS NULL
   )`;
 
 const roleCte = (actionsParam: string) => `
@@ -60,7 +60,7 @@ const userWithCurrentRoleCte = (name: string, match: string, actionsParam: strin
 
 // The DO UPDATE re-checks the locked row, so a role changed since the snapshot can't slip past the limit.
 const upsertAssignment = (source: string, unlimitedParam: string, actionsParam: string) => `
-    INSERT INTO user_brand_roles (user_id, brand_id, role_id, granted_by)
+    INSERT INTO user_brand_roles (user_id, brand_id, tenant_id, role_id, granted_by)
     ${source}
     ON CONFLICT (user_id, brand_id) DO UPDATE
     SET role_id = EXCLUDED.role_id, granted_by = EXCLUDED.granted_by, updated_at = now()
@@ -99,7 +99,7 @@ const SET_BRAND_MEMBER_SQL = `
   ${roleCte("$6")},
   ${userWithCurrentRoleCte("target", "u.id = $2", "$6")},
   written AS (${upsertAssignment(
-    `SELECT t.id, b.id, ro.id, $4
+    `SELECT t.id, b.id, b.tenant_id, ro.id, $4
     FROM target t CROSS JOIN brand b CROSS JOIN role ro
     WHERE $5::boolean OR (ro.new_subset AND t.current_subset)`,
     "$5",
@@ -158,7 +158,7 @@ const ADD_BRAND_MEMBER_SQL = `
   ${roleCte("$6")},
   ${userWithCurrentRoleCte("existing", "u.email = $2", "$6")},
   allowed AS (
-    SELECT b.id AS brand_id, ro.id AS role_id
+    SELECT b.id AS brand_id, b.tenant_id, ro.id AS role_id
     FROM brand b
     CROSS JOIN role ro
     LEFT JOIN existing e ON true
@@ -179,7 +179,7 @@ const ADD_BRAND_MEMBER_SQL = `
     SELECT id, email, display_name, status FROM existing
   ),
   written AS (${upsertAssignment(
-    `SELECT t.id, a.brand_id, a.role_id, $4
+    `SELECT t.id, a.brand_id, a.tenant_id, a.role_id, $4
     FROM target t CROSS JOIN allowed a`,
     "$5",
     "$6",

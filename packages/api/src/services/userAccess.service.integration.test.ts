@@ -48,11 +48,31 @@ async function tenantNamed(name: string): Promise<string> {
 }
 
 async function assignBrandRole(userId: string, brandId: string, roleId: string) {
-  await getTestPool().query(`INSERT INTO user_brand_roles (user_id, brand_id, role_id) VALUES ($1, $2, $3)`, [
-    userId,
-    brandId,
-    roleId,
-  ]);
+  await getTestPool().query(
+    `
+    INSERT INTO user_brand_roles (user_id, brand_id, tenant_id, role_id)
+    SELECT $1, b.id, b.tenant_id, $3 FROM brands b WHERE b.id = $2`,
+    [userId, brandId, roleId],
+  );
+}
+
+async function createBrandRole(brandId: string, name: string, actions: string[]) {
+  const result = await getTestPool().query(
+    `
+    WITH role AS (
+      INSERT INTO roles (name, kind, tenant_id)
+      SELECT $1, 'brand', b.tenant_id FROM brands b WHERE b.id = $2
+      RETURNING id
+    ),
+    perms AS (
+      INSERT INTO role_permissions (role_id, action)
+      SELECT role.id, a.action FROM role, unnest($3::text[]) AS a(action)
+    )
+    SELECT id FROM role
+    `,
+    [name, brandId, actions],
+  );
+  return result.rows[0].id as string;
 }
 
 describe("findSessionUserAccess (integration)", () => {
@@ -74,17 +94,17 @@ describe("findSessionUserAccess (integration)", () => {
 
   it("lists live brands by tenant then brand name, drops stale keys and keeps empty roles", async () => {
     const { userId, token } = await signedInUser();
-    const viewer = await createRole("brand", "Viewer", ["apiKeys.view", "gone.action"]);
-    const empty = await createRole("brand", "Empty", []);
     const [zeta, alpha, gamma] = [await tenantNamed("Zeta Group"), await tenantNamed("Alpha Group"), await tenantNamed("Gamma Group")];
     const zetaBrand = await brandIn(zeta, "Alpha");
     const alphaB = await brandIn(alpha, "Beta");
     const alphaA = await brandIn(alpha, "Alpha");
     const deleted = await brandIn(gamma, "Gone");
-    await assignBrandRole(userId, zetaBrand, viewer);
-    await assignBrandRole(userId, alphaB, empty);
-    await assignBrandRole(userId, alphaA, viewer);
-    await assignBrandRole(userId, deleted, viewer);
+    const viewerOn = (brandId: string) => createBrandRole(brandId, "Viewer", ["apiKeys.view", "gone.action"]);
+    const alphaViewer = await viewerOn(alphaA);
+    await assignBrandRole(userId, zetaBrand, await viewerOn(zetaBrand));
+    await assignBrandRole(userId, alphaB, await createBrandRole(alphaB, "Empty", []));
+    await assignBrandRole(userId, alphaA, alphaViewer);
+    await assignBrandRole(userId, deleted, await viewerOn(deleted));
     await deleteBrand(getTestPool(), deleted);
 
     const result = await findSessionUserAccess(getTestPool(), token);

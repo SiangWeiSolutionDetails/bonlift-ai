@@ -18,11 +18,19 @@ async function userNamed(email: string, status = "active"): Promise<string> {
   return result.rows[0].id;
 }
 
-async function insertRole(name: string, kind: "console" | "brand", actions: string[]): Promise<string> {
+// A brand role belongs to the tenant of brandId.
+async function insertRole(
+  name: string,
+  kind: "console" | "brand",
+  actions: string[],
+  brandId: string | null = null,
+): Promise<string> {
   const result = await getTestPool().query(
     `
     WITH role AS (
-      INSERT INTO roles (name, kind) VALUES ($1, $2) RETURNING id
+      INSERT INTO roles (name, kind, tenant_id)
+      VALUES ($1, $2, (SELECT tenant_id FROM brands WHERE id = $4))
+      RETURNING id
     ),
     perms AS (
       INSERT INTO role_permissions (role_id, action)
@@ -30,7 +38,7 @@ async function insertRole(name: string, kind: "console" | "brand", actions: stri
     )
     SELECT id FROM role
     `,
-    [name, kind, actions],
+    [name, kind, actions, brandId],
   );
   return result.rows[0].id;
 }
@@ -48,17 +56,26 @@ async function insertBrand(tenantName: string, brandName: string): Promise<strin
   return result.rows[0].id;
 }
 
+async function insertSiblingBrand(brandId: string, name: string): Promise<string> {
+  const result = await getTestPool().query(
+    `INSERT INTO brands (tenant_id, name) SELECT tenant_id, $2 FROM brands WHERE id = $1 RETURNING id`,
+    [brandId, name],
+  );
+  return result.rows[0].id;
+}
+
 async function assignBrandRole(userId: string, brandId: string, roleId: string): Promise<void> {
-  await getTestPool().query(`INSERT INTO user_brand_roles (user_id, brand_id, role_id) VALUES ($1, $2, $3)`, [
-    userId,
-    brandId,
-    roleId,
-  ]);
+  await getTestPool().query(
+    `
+    INSERT INTO user_brand_roles (user_id, brand_id, tenant_id, role_id)
+    SELECT $1, b.id, b.tenant_id, $3 FROM brands b WHERE b.id = $2`,
+    [userId, brandId, roleId],
+  );
 }
 
 async function brandLead(email: string, brandId: string, actions: BrandAction[]): Promise<Actor> {
   const id = await userNamed(email);
-  await assignBrandRole(id, brandId, await insertRole(`${email} brand role`, "brand", actions));
+  await assignBrandRole(id, brandId, await insertRole(`${email} brand role`, "brand", actions, brandId));
   return { access: { user: { id, email, displayName: null }, isAdmin: false, consoleActions: [] }, brandActions: actions };
 }
 
@@ -99,7 +116,7 @@ describe("addBrandMember (integration)", () => {
   it("creates an invited user plus the assignment for a new email", async () => {
     const brandId = await insertBrand("Tenant A", "Brand A");
     const lead = await brandLead("lead@x.com", brandId, LEAD_ACTIONS);
-    const viewer = await insertRole("Viewer", "brand", ["customerScores.view"]);
+    const viewer = await insertRole("Viewer", "brand", ["customerScores.view"], brandId);
 
     const member = await addBrandMember(getTestPool(), lead.access, lead.brandActions, brandId, {
       email: "New@X.com",
@@ -123,7 +140,7 @@ describe("addBrandMember (integration)", () => {
   it("leaves the name source empty for a new email without a name", async () => {
     const brandId = await insertBrand("Tenant A", "Brand A");
     const lead = await brandLead("lead@x.com", brandId, LEAD_ACTIONS);
-    const viewer = await insertRole("Viewer", "brand", ["customerScores.view"]);
+    const viewer = await insertRole("Viewer", "brand", ["customerScores.view"], brandId);
 
     await addBrandMember(getTestPool(), lead.access, lead.brandActions, brandId, {
       email: "new@x.com",
@@ -136,7 +153,7 @@ describe("addBrandMember (integration)", () => {
   it("adds an existing active user without changing their account", async () => {
     const brandId = await insertBrand("Tenant A", "Brand A");
     const lead = await brandLead("lead@x.com", brandId, LEAD_ACTIONS);
-    const viewer = await insertRole("Viewer", "brand", ["customerScores.view"]);
+    const viewer = await insertRole("Viewer", "brand", ["customerScores.view"], brandId);
     const bob = await userNamed("bob@x.com");
 
     const member = await addBrandMember(getTestPool(), lead.access, lead.brandActions, brandId, {
@@ -151,7 +168,7 @@ describe("addBrandMember (integration)", () => {
   it("refuses a disabled user's email and leaves no rows", async () => {
     const brandId = await insertBrand("Tenant A", "Brand A");
     const lead = await brandLead("lead@x.com", brandId, LEAD_ACTIONS);
-    const viewer = await insertRole("Viewer", "brand", ["customerScores.view"]);
+    const viewer = await insertRole("Viewer", "brand", ["customerScores.view"], brandId);
     const gone = await userNamed("gone@x.com", "disabled");
 
     await expect(
@@ -165,7 +182,7 @@ describe("addBrandMember (integration)", () => {
   it("refuses a role broader than the lead's and creates no user", async () => {
     const brandId = await insertBrand("Tenant A", "Brand A");
     const lead = await brandLead("lead@x.com", brandId, LEAD_ACTIONS);
-    const broader = await insertRole("Owner", "brand", [...LEAD_ACTIONS, "apiKeys.manage"]);
+    const broader = await insertRole("Owner", "brand", [...LEAD_ACTIONS, "apiKeys.manage"], brandId);
 
     await expect(
       addBrandMember(getTestPool(), lead.access, lead.brandActions, brandId, { email: "new@x.com", roleId: broader }),
@@ -178,8 +195,8 @@ describe("addBrandMember (integration)", () => {
   it("refuses replacing a member whose current role exceeds the lead's and writes nothing", async () => {
     const brandId = await insertBrand("Tenant A", "Brand A");
     const lead = await brandLead("lead@x.com", brandId, LEAD_ACTIONS);
-    const owner = await insertRole("Owner", "brand", [...LEAD_ACTIONS, "apiKeys.manage"]);
-    const viewer = await insertRole("Viewer", "brand", ["customerScores.view"]);
+    const owner = await insertRole("Owner", "brand", [...LEAD_ACTIONS, "apiKeys.manage"], brandId);
+    const viewer = await insertRole("Viewer", "brand", ["customerScores.view"], brandId);
     const boss = await userNamed("boss@x.com");
     await assignBrandRole(boss, brandId, owner);
 
@@ -195,8 +212,8 @@ describe("setBrandMember and removeBrandMember (integration)", () => {
   it("through members.manage, refuses downgrading or removing a broader member and writes nothing", async () => {
     const brandId = await insertBrand("Tenant A", "Brand A");
     const lead = await brandLead("lead@x.com", brandId, LEAD_ACTIONS);
-    const owner = await insertRole("Owner", "brand", [...LEAD_ACTIONS, "apiKeys.manage"]);
-    const viewer = await insertRole("Viewer", "brand", ["customerScores.view"]);
+    const owner = await insertRole("Owner", "brand", [...LEAD_ACTIONS, "apiKeys.manage"], brandId);
+    const viewer = await insertRole("Viewer", "brand", ["customerScores.view"], brandId);
     const boss = await userNamed("boss@x.com");
     await assignBrandRole(boss, brandId, owner);
 
@@ -213,7 +230,7 @@ describe("setBrandMember and removeBrandMember (integration)", () => {
   it("through users.assignBrandRoles, assigns any brand role", async () => {
     const brandId = await insertBrand("Tenant A", "Brand A");
     const ops = await provisioner("ops@x.com");
-    const owner = await insertRole("Owner", "brand", [...LEAD_ACTIONS, "apiKeys.manage"]);
+    const owner = await insertRole("Owner", "brand", [...LEAD_ACTIONS, "apiKeys.manage"], brandId);
     const bob = await userNamed("bob@x.com");
 
     const member = await setBrandMember(getTestPool(), ops.access, ops.brandActions, brandId, bob, owner);
@@ -225,11 +242,11 @@ describe("setBrandMember and removeBrandMember (integration)", () => {
   it("through members.manage, replaces and removes a member within the lead's actions", async () => {
     const brandId = await insertBrand("Tenant A", "Brand A");
     const lead = await brandLead("lead@x.com", brandId, LEAD_ACTIONS);
-    const viewer = await insertRole("Viewer", "brand", ["customerScores.view"]);
-    const helper = await insertRole("Helper", "brand", ["members.view", "customerScores.view"]);
+    const viewer = await insertRole("Viewer", "brand", ["customerScores.view"], brandId);
+    const helper = await insertRole("Helper", "brand", ["members.view", "customerScores.view"], brandId);
     const bob = await userNamed("bob@x.com");
     await assignBrandRole(bob, brandId, viewer);
-    await assignBrandRole(bob, await insertBrand("Tenant B", "Brand B"), viewer);
+    await assignBrandRole(bob, await insertSiblingBrand(brandId, "Brand B"), viewer);
 
     await setBrandMember(getTestPool(), lead.access, lead.brandActions, brandId, bob, helper);
     expect(await storedBrandRole(bob, brandId)).toEqual({ role_id: helper, granted_by: lead.access.user.id });
@@ -245,7 +262,7 @@ describe("removeBrandMember last role (integration)", () => {
   async function soleMember() {
     const brandId = await insertBrand("Tenant A", "Brand A");
     const ops = await provisioner("ops@x.com");
-    const viewer = await insertRole("Viewer", "brand", ["customerScores.view"]);
+    const viewer = await insertRole("Viewer", "brand", ["customerScores.view"], brandId);
     const bob = await userNamed("bob@x.com");
     await assignBrandRole(bob, brandId, viewer);
     const remove = () => removeBrandMember(getTestPool(), ops.access, ops.brandActions, brandId, bob);
@@ -272,7 +289,7 @@ describe("removeBrandMember last role (integration)", () => {
 
   it("removes one of two brand roles", async () => {
     const { brandId, viewer, bob, remove } = await soleMember();
-    const other = await insertBrand("Tenant B", "Brand B");
+    const other = await insertSiblingBrand(brandId, "Brand B");
     await assignBrandRole(bob, other, viewer);
 
     await remove();
@@ -283,10 +300,11 @@ describe("removeBrandMember last role (integration)", () => {
 
   it("does not count a brand role on a soft-deleted brand or a brand of a soft-deleted tenant", async () => {
     const { brandId, viewer, bob, remove } = await soleMember();
-    const deletedBrand = await insertBrand("Tenant B", "Brand B");
+    const deletedBrand = await insertSiblingBrand(brandId, "Brand B");
     const tenantDeletedBrand = await insertBrand("Tenant C", "Brand C");
     await assignBrandRole(bob, deletedBrand, viewer);
-    await assignBrandRole(bob, tenantDeletedBrand, viewer);
+    const otherTenantViewer = await insertRole("Viewer", "brand", ["customerScores.view"], tenantDeletedBrand);
+    await assignBrandRole(bob, tenantDeletedBrand, otherTenantViewer);
     await getTestPool().query(`UPDATE brands SET deleted_at = now() WHERE id = $1`, [deletedBrand]);
     await getTestPool().query(
       `UPDATE tenants SET deleted_at = now() WHERE id = (SELECT tenant_id FROM brands WHERE id = $1)`,
@@ -305,9 +323,10 @@ describe("listUserBrandRoles (integration)", () => {
     const acmeB = await insertBrand("Acme", "B brand");
     const gone = await insertBrand("Acme 2", "Deleted brand");
     await getTestPool().query(`UPDATE brands SET deleted_at = now() WHERE id = $1`, [gone]);
-    const viewer = await insertRole("Viewer", "brand", ["customerScores.view"]);
     const bob = await userNamed("bob@x.com");
-    for (const brandId of [zeta, acmeB, gone]) await assignBrandRole(bob, brandId, viewer);
+    for (const brandId of [zeta, acmeB, gone]) {
+      await assignBrandRole(bob, brandId, await insertRole("Viewer", "brand", ["customerScores.view"], brandId));
+    }
 
     const roles = await listUserBrandRoles(getTestPool(), bob);
 

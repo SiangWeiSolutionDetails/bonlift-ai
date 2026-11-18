@@ -95,8 +95,12 @@ function assertGuardsPass(flags: GuardFlags): void {
   if (flags.kind_matches === false) throw new ValidationError("The actions do not match the role's kind.");
 }
 
+const ROLE_NAME_KEYS = ["roles_console_name_key", "roles_brand_tenant_name_key"];
+
 function toRoleError(error: unknown, name?: string): Error | null {
-  if (isUniqueViolationOf(error, "roles_kind_name_key")) return new ConflictError(`Role ${name} already exists.`);
+  if (ROLE_NAME_KEYS.some((key) => isUniqueViolationOf(error, key))) {
+    return new ConflictError(`Role ${name} already exists.`);
+  }
   if (isCheckViolationOf(error, "roles_name_check")) return new ValidationError("Invalid role name.");
   return null;
 }

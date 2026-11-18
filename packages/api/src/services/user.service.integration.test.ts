@@ -408,16 +408,17 @@ describe("disableUser (integration)", () => {
 
 async function insertBrandRole(userId: string, grantedBy: string | null = null): Promise<string> {
   const suffix = randomBytes(4).toString("hex");
-  const role = await getTestPool().query(`INSERT INTO roles (name, kind) VALUES ($1, 'brand') RETURNING id`, [
-    `Brand role ${suffix}`,
-  ]);
   const tenant = await getTestPool().query(`INSERT INTO tenants (name) VALUES ($1) RETURNING id`, [`T ${suffix}`]);
+  const role = await getTestPool().query(
+    `INSERT INTO roles (name, kind, tenant_id) VALUES ($1, 'brand', $2) RETURNING id`,
+    [`Brand role ${suffix}`, tenant.rows[0].id],
+  );
   const brand = await getTestPool().query(`INSERT INTO brands (tenant_id, name) VALUES ($1, 'B') RETURNING id`, [
     tenant.rows[0].id,
   ]);
   await getTestPool().query(
-    `INSERT INTO user_brand_roles (user_id, brand_id, role_id, granted_by) VALUES ($1, $2, $3, $4)`,
-    [userId, brand.rows[0].id, role.rows[0].id, grantedBy],
+    `INSERT INTO user_brand_roles (user_id, brand_id, tenant_id, role_id, granted_by) VALUES ($1, $2, $3, $4, $5)`,
+    [userId, brand.rows[0].id, tenant.rows[0].id, role.rows[0].id, grantedBy],
   );
   return brand.rows[0].id;
 }
@@ -542,16 +543,18 @@ describe("updateUser (integration)", () => {
   it("returns the real brand count", async () => {
     const actor = await adminActor("admin@x.com");
     const target = await userNamed("bob@x.com");
-    const role = await getTestPool().query(`INSERT INTO roles (name, kind) VALUES ('Owner', 'brand') RETURNING id`);
     const tenant = await getTestPool().query(`INSERT INTO tenants (name) VALUES ('T') RETURNING id`);
+    const role = await getTestPool().query(
+      `INSERT INTO roles (name, kind, tenant_id) VALUES ('Owner', 'brand', $1) RETURNING id`,
+      [tenant.rows[0].id],
+    );
     const brand = await getTestPool().query(`INSERT INTO brands (tenant_id, name) VALUES ($1, 'B') RETURNING id`, [
       tenant.rows[0].id,
     ]);
-    await getTestPool().query(`INSERT INTO user_brand_roles (user_id, brand_id, role_id) VALUES ($1, $2, $3)`, [
-      target,
-      brand.rows[0].id,
-      role.rows[0].id,
-    ]);
+    await getTestPool().query(
+      `INSERT INTO user_brand_roles (user_id, brand_id, tenant_id, role_id) VALUES ($1, $2, $3, $4)`,
+      [target, brand.rows[0].id, tenant.rows[0].id, role.rows[0].id],
+    );
 
     const user = await updateUser(getTestPool(), actor, target, { displayName: "Bob" });
 
@@ -698,11 +701,14 @@ async function inviteWithRole(email: string, displayName?: string) {
   return inviteUser(getTestPool(), actor, { email, ...(displayName ? { displayName } : {}), consoleRoleId });
 }
 
-async function newBrandRole(name: string, actions: string[]): Promise<string> {
+// The role belongs to the tenant of brandId.
+async function newBrandRole(name: string, actions: string[], brandId: string): Promise<string> {
   const result = await getTestPool().query(
     `
     WITH role AS (
-      INSERT INTO roles (name, kind) VALUES ($1, 'brand') RETURNING id
+      INSERT INTO roles (name, kind, tenant_id)
+      SELECT $1, 'brand', b.tenant_id FROM brands b WHERE b.id = $3
+      RETURNING id
     ),
     perms AS (
       INSERT INTO role_permissions (role_id, action)
@@ -710,7 +716,15 @@ async function newBrandRole(name: string, actions: string[]): Promise<string> {
     )
     SELECT id FROM role
     `,
-    [name, actions],
+    [name, actions, brandId],
+  );
+  return result.rows[0].id;
+}
+
+async function insertSiblingBrand(brandId: string, name: string): Promise<string> {
+  const result = await getTestPool().query(
+    `INSERT INTO brands (tenant_id, name) SELECT tenant_id, $2 FROM brands WHERE id = $1 RETURNING id`,
+    [brandId, name],
   );
   return result.rows[0].id;
 }
@@ -781,8 +795,9 @@ describe("inviteUser (integration)", () => {
 
   it("creates the user with brand roles only", async () => {
     const actor = await actorWithRole("inviter@x.com", INVITER_ACTIONS);
-    const [first, second] = [await insertBrand("Alpha"), await insertBrand("Beta")].sort();
-    const roleId = await newBrandRole("Manager", ["outlets.view"]);
+    const alpha = await insertBrand("Alpha");
+    const [first, second] = [alpha, await insertSiblingBrand(alpha, "Beta")].sort();
+    const roleId = await newBrandRole("Manager", ["outlets.view"], alpha);
 
     const user = await inviteUser(getTestPool(), actor, {
       email: "bob@x.com",
@@ -807,7 +822,7 @@ describe("inviteUser (integration)", () => {
     const actor = await adminActor("admin@x.com");
     const adminRole = await adminRoleId();
     const brandId = await insertBrand("Alpha");
-    const brandRoleId = await newBrandRole("Manager", ["outlets.view"]);
+    const brandRoleId = await newBrandRole("Manager", ["outlets.view"], brandId);
 
     const user = await inviteUser(getTestPool(), actor, {
       email: "bob@x.com",
@@ -833,7 +848,7 @@ describe("inviteUser (integration)", () => {
     const actor = await actorWithRole("inviter@x.com", INVITER_ACTIONS);
     const adminRole = await adminRoleId();
     const brandId = await insertBrand("Alpha");
-    const brandRoleId = await newBrandRole("Manager", ["outlets.view"]);
+    const brandRoleId = await newBrandRole("Manager", ["outlets.view"], brandId);
     const before = await assignmentCount();
 
     await expect(
@@ -883,7 +898,10 @@ describe("inviteUser (integration)", () => {
     const actor = await actorWithRole("inviter@x.com", INVITER_ACTIONS);
     const deletedBrand = await insertBrand("Alpha");
     const tenantDeletedBrand = await insertBrand("Beta");
-    const roleId = await newBrandRole("Manager", ["outlets.view"]);
+    const roleIds = new Map<string, string>();
+    for (const brandId of [deletedBrand, tenantDeletedBrand]) {
+      roleIds.set(brandId, await newBrandRole("Manager", ["outlets.view"], brandId));
+    }
     await getTestPool().query(`UPDATE brands SET deleted_at = now() WHERE id = $1`, [deletedBrand]);
     await getTestPool().query(
       `UPDATE tenants SET deleted_at = now() WHERE id = (SELECT tenant_id FROM brands WHERE id = $1)`,
@@ -893,7 +911,7 @@ describe("inviteUser (integration)", () => {
 
     for (const brandId of [deletedBrand, tenantDeletedBrand]) {
       await expect(
-        inviteUser(getTestPool(), actor, { email: "bob@x.com", brandRoles: [{ brandId, roleId }] }),
+        inviteUser(getTestPool(), actor, { email: "bob@x.com", brandRoles: [{ brandId, roleId: roleIds.get(brandId)! }] }),
       ).rejects.toThrow(new NotFoundError("Brand not found."));
     }
 
@@ -906,7 +924,7 @@ describe("inviteUser (integration)", () => {
     const existing = await userNamed("bob@x.com");
     const roleId = await insertRole("Viewer", ["users.view"]);
     const brandId = await insertBrand("Alpha");
-    const brandRoleId = await newBrandRole("Manager", ["outlets.view"]);
+    const brandRoleId = await newBrandRole("Manager", ["outlets.view"], brandId);
 
     await expect(
       inviteUser(getTestPool(), actor, {

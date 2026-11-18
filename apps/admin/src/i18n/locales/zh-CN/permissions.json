@@ -16,7 +16,7 @@
     "apiKeys": "API 密钥",
     "usage": "用量",
     "feedback": "推荐反馈",
-    "members": "成员",
+    "members": "用户",
     "provider": "服务商访问",
     "brandRoles": "品牌角色"
   },
@@ -96,8 +96,8 @@
     "view": "查看推荐反馈"
   },
   "members": {
-    "view": "查看成员",
-    "manage": "管理成员"
+    "view": "查看用户",
+    "manage": "管理用户"
   },
   "provider": {
     "view": "以服务商身份查看所有品牌",

@@ -21,6 +21,7 @@ type ConfirmDialogProps = {
   description?: string;
   confirmLabel?: string;
   confirmMatch?: string;
+  destructive?: boolean;
 };
 
 export function ConfirmDialog({
@@ -31,6 +32,7 @@ export function ConfirmDialog({
   description,
   confirmLabel,
   confirmMatch,
+  destructive = false,
 }: ConfirmDialogProps) {
   const { t } = useTranslation();
   const inputId = useId();
@@ -103,7 +105,7 @@ export function ConfirmDialog({
           <AlertDialogCancel>{t("actions.cancel")}</AlertDialogCancel>
           <AlertDialogAction
             ref={confirmRef}
-            variant={requiresMatch ? "destructive" : "default"}
+            variant={destructive || requiresMatch ? "destructive" : "default"}
             disabled={!matches}
             onClick={confirm}
           >

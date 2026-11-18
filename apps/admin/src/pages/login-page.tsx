@@ -1,16 +1,19 @@
 import type { AuthProvider } from "@bonlift-ai/contracts";
 import { useSearch } from "@tanstack/react-router";
-import type { ReactNode } from "react";
-import { ShieldCheckIcon } from "lucide-react";
+import { type ReactNode, useState } from "react";
+import { ShieldCheckIcon, XIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { signInHref } from "@/features/auth/api";
-import { type ProviderButtonState, providerButtonState } from "@/features/auth/providers";
+import { forgetAccount, type KnownAccount } from "@/features/auth/known-accounts";
+import { type ProviderButtonState, isProviderAvailable, providerButtonState } from "@/features/auth/providers";
 import { useAuthProviders } from "@/features/auth/queries";
+import { useKnownAccounts } from "@/features/auth/use-known-accounts";
 
 const KNOWN_ERROR_CODES = ["ACCOUNT_NOT_APPROVED", "SIGN_IN_FAILED"] as const;
 
@@ -57,10 +60,14 @@ function ErrorAlert({ children }: { children: ReactNode }) {
   );
 }
 
+// Saved accounts and provider buttons share one row shape so their icons and text line up
+const ROW_CLASS = "h-11 w-full justify-start gap-3 px-3";
+// Leaves room for the remove button that sits over the row's right edge
+const ACCOUNT_ROW_CLASS = `${ROW_CLASS} pr-12`;
+
 type ProviderButtonProps = { state: ProviderButtonState; href: string; icon: ReactNode; label: string };
 
 function ProviderButton({ state, href, icon, label }: ProviderButtonProps) {
-  const { t } = useTranslation("auth");
   const content = (
     <>
       {icon}
@@ -70,20 +77,104 @@ function ProviderButton({ state, href, icon, label }: ProviderButtonProps) {
 
   if (state === "enabled") {
     return (
-      <Button asChild variant="outline" size="lg" className="w-full gap-3">
+      <Button asChild variant="outline" className={ROW_CLASS}>
         <a href={href}>{content}</a>
       </Button>
     );
   }
 
   return (
-    <div className="grid gap-1">
-      <Button variant="outline" size="lg" className="w-full gap-3" disabled>
+    <Button variant="outline" className={ROW_CLASS} disabled>
+      {content}
+    </Button>
+  );
+}
+
+const PROVIDER_MARKS: Record<AuthProvider, () => ReactNode> = { google: GoogleMark, microsoft: MicrosoftMark };
+
+type KnownAccountButtonProps = { account: KnownAccount; available: boolean; href: string };
+
+function KnownAccountButton({ account, available, href }: KnownAccountButtonProps) {
+  const { t } = useTranslation("auth");
+  const Mark = PROVIDER_MARKS[account.provider];
+  const name = account.displayName ?? account.email;
+  const content = (
+    <>
+      <Mark />
+      <span className="grid min-w-0 flex-1 text-left leading-tight">
+        <span className="truncate font-medium">{name}</span>
+        {name !== account.email && <span className="truncate text-xs text-muted-foreground">{account.email}</span>}
+      </span>
+    </>
+  );
+  if (!available) {
+    return (
+      <Button variant="outline" className={ACCOUNT_ROW_CLASS} disabled>
         {content}
       </Button>
-      {state === "unavailable" && (
-        <p className="text-center text-xs text-muted-foreground">{t("providerUnavailable")}</p>
-      )}
+    );
+  }
+
+  return (
+    <Button asChild variant="outline" className={ACCOUNT_ROW_CLASS}>
+      <a href={href} aria-label={t("continueAs", { email: account.email })} title={account.email}>
+        {content}
+      </a>
+    </Button>
+  );
+}
+
+type KnownAccountListProps = { accounts: KnownAccount[]; hrefFor: (account: KnownAccount) => string };
+
+function RemoveSavedAccountButton({ email, onRemove }: { email: string; onRemove: () => void }) {
+  const { t } = useTranslation("auth");
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      className="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground"
+      aria-label={t("removeSavedAccount", { email })}
+      title={t("removeSavedAccount", { email })}
+      onClick={onRemove}
+    >
+      <XIcon />
+    </Button>
+  );
+}
+
+function KnownAccountList({ accounts, hrefFor }: KnownAccountListProps) {
+  const { t } = useTranslation("auth");
+  const { data: providers } = useAuthProviders();
+  const [emailToRemove, setEmailToRemove] = useState<string | null>(null);
+
+  return (
+    <div className="grid gap-3">
+      <ConfirmDialog
+        open={emailToRemove !== null}
+        title={t("removeAccountConfirm.title", { email: emailToRemove })}
+        description={t("removeAccountConfirm.savedDescription")}
+        confirmLabel={t("removeAccountConfirm.confirm")}
+        destructive
+        onCancel={() => setEmailToRemove(null)}
+        onConfirm={() => {
+          if (emailToRemove) forgetAccount(emailToRemove);
+          setEmailToRemove(null);
+        }}
+      />
+      <p className="text-xs font-medium text-muted-foreground">{t("knownAccounts")}</p>
+      <ul className="grid gap-2">
+        {accounts.map((account) => (
+          <li key={account.email} className="relative">
+            <KnownAccountButton
+              account={account}
+              available={isProviderAvailable(providers, account.provider)}
+              href={hrefFor(account)}
+            />
+            <RemoveSavedAccountButton email={account.email} onRemove={() => setEmailToRemove(account.email)} />
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -128,14 +219,21 @@ function SignInCard() {
   const { t } = useTranslation("auth");
   const { error, returnTo, selectAccount } = useSearch({ from: "/login" });
   const providers = useAuthProviders();
+  const knownAccounts = useKnownAccounts();
   const hrefFor = (provider: AuthProvider) => signInHref(provider, returnTo ?? "/", { selectAccount });
+  const accountHref = ({ provider, email }: KnownAccount) =>
+    signInHref(provider, returnTo ?? "/", { loginHint: email });
 
   return (
     <section className="grid w-full max-w-sm gap-6 rounded-2xl bg-card p-6 text-card-foreground shadow-panel">
       <p className="text-center text-sm text-muted-foreground">{t("signInSubtitle")}</p>
       {error !== undefined && <ErrorAlert>{t(`errors.${toLoginErrorCode(error)}`)}</ErrorAlert>}
       {providers.isError && <ErrorAlert>{t("errors.PROVIDERS_UNAVAILABLE")}</ErrorAlert>}
+      {knownAccounts.length > 0 && <KnownAccountList accounts={knownAccounts} hrefFor={accountHref} />}
       <div className="grid gap-3">
+        {knownAccounts.length > 0 && (
+          <p className="text-xs font-medium text-muted-foreground">{t("orUseAnotherAccount")}</p>
+        )}
         <ProviderButton
           state={providerButtonState(providers, "google")}
           href={hrefFor("google")}

@@ -70,6 +70,7 @@ export function BrandUsersSection({ brandId, readOnly }: BrandUsersSectionProps)
         title={t("users.removeConfirmTitle", { name: removeTitleName })}
         description={t("users.removeConfirmDescription")}
         confirmLabel={t("users.remove")}
+        destructive
         onCancel={() => setToRemove(null)}
         onConfirm={() => {
           if (toRemove && !removeMutation.isPending) removeMutation.mutate(toRemove.userId);

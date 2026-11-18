@@ -1,7 +1,9 @@
 import { useNavigate } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+import { ConfirmDialog } from "@/components/confirm-dialog"
 import { MenuBand } from "@/components/menu-band"
 import { Button } from "@/components/ui/button"
 import {
@@ -133,40 +135,55 @@ export function NavUser() {
   const switchToAccount = useSwitchToAccount()
   const addAccount = useAddAccount()
   const removeThisAccount = useRemoveThisAccount(user.email)
+  const [confirmingRemove, setConfirmingRemove] = useState(false)
   const name = user.displayName ?? user.email
   useRememberCurrentAccount(user.email, user.displayName, user.provider)
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="max-w-48">
-          <span className="truncate">{name}</span>
-          <ChevronDownIcon data-icon="inline-end" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-72 max-w-[calc(100vw-2rem)] p-0">
-        <MenuBand
-          aside={user.console && <span className="max-w-28 shrink-0 truncate normal-case">{user.console.roleName}</span>}
-        >
-          {t("account")}
-        </MenuBand>
-        <div className="flex flex-col gap-1 p-1">
-          <div className="flex px-2 py-1.5 text-sm">
-            <AccountText account={user} bold />
+    <>
+      <ConfirmDialog
+        open={confirmingRemove}
+        title={t("removeAccountConfirm.title", { email: user.email })}
+        description={t("removeAccountConfirm.signedInDescription")}
+        confirmLabel={t("removeAccountConfirm.confirm")}
+        destructive
+        onCancel={() => setConfirmingRemove(false)}
+        onConfirm={() => {
+          setConfirmingRemove(false)
+          void removeThisAccount()
+        }}
+      />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="max-w-48">
+            <span className="truncate">{name}</span>
+            <ChevronDownIcon data-icon="inline-end" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-72 max-w-[calc(100vw-2rem)] p-0">
+          <MenuBand
+            aside={user.console && <span className="max-w-28 shrink-0 truncate normal-case">{user.console.roleName}</span>}
+          >
+            {t("account")}
+          </MenuBand>
+          <div className="flex flex-col gap-1 p-1">
+            <div className="flex px-2 py-1.5 text-sm">
+              <AccountText account={user} bold />
+            </div>
+            <SwitchAccountMenu onSwitch={(account) => void switchToAccount(account)} onAdd={() => void addAccount()} />
           </div>
-          <SwitchAccountMenu onSwitch={(account) => void switchToAccount(account)} onAdd={() => void addAccount()} />
-        </div>
-        <WorkspaceSwitcher />
-        <MenuBand>{t("actions")}</MenuBand>
-        <div className="p-1">
-          <DropdownMenuItem className="cursor-pointer px-2 py-1.5" onSelect={() => void removeThisAccount()}>
-            {t("removeThisAccount")}
-          </DropdownMenuItem>
-          <DropdownMenuItem variant="destructive" className="cursor-pointer px-2 py-1.5" onSelect={() => void logOut()}>
-            {t("logOut")}
-          </DropdownMenuItem>
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          <WorkspaceSwitcher />
+          <MenuBand>{t("actions")}</MenuBand>
+          <div className="p-1">
+            <DropdownMenuItem className="cursor-pointer px-2 py-1.5" onSelect={() => setConfirmingRemove(true)}>
+              {t("removeThisAccount")}
+            </DropdownMenuItem>
+            <DropdownMenuItem variant="destructive" className="cursor-pointer px-2 py-1.5" onSelect={() => void logOut()}>
+              {t("logOut")}
+            </DropdownMenuItem>
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
   )
 }

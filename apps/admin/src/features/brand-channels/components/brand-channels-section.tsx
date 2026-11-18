@@ -44,6 +44,7 @@ export function BrandChannelsSection({ brandId, readOnly }: BrandChannelsSection
         title={t("channels.deactivateConfirmTitle", { name: channelToDeactivate?.name })}
         description={t("channels.deactivateConfirmDescription")}
         confirmLabel={t("channels.deactivate")}
+        destructive
         onCancel={() => setChannelToDeactivate(null)}
         onConfirm={() => channelToDeactivate && setActive(channelToDeactivate, false)}
       />

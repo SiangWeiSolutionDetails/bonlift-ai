@@ -58,6 +58,7 @@ function isTransaction(value: unknown): value is OAuthTransaction {
   return (
     typeof tx === "object" &&
     tx !== null &&
+    (tx.provider === "google" || tx.provider === "microsoft") &&
     typeof tx.state === "string" &&
     typeof tx.nonce === "string" &&
     typeof tx.codeVerifier === "string" &&
@@ -114,13 +115,17 @@ function callbackUrl(request: FastifyRequest): URL {
   return new URL(readAuthConfig().appBaseUrl + "/api" + request.url);
 }
 
-async function signIn(request: FastifyRequest, tx: OAuthTransaction): Promise<string> {
+async function signIn(
+  request: FastifyRequest<{ Params: AuthProviderParamsSchemaType }>,
+  tx: OAuthTransaction,
+): Promise<string> {
   const pool = getPool();
-  const identity = await finishSignIn("google", callbackUrl(request), tx);
+  const { provider } = request.params;
+  const identity = await finishSignIn(provider, callbackUrl(request), tx);
   const user = await resolveUserFromIdentity(pool, identity);
   const previousToken = readSessionCookie(request);
   if (previousToken) await deleteSession(pool, previousToken);
-  return createSession(pool, user.id, request.headers["user-agent"] ?? null);
+  return createSession(pool, user.id, provider, request.headers["user-agent"] ?? null);
 }
 
 export async function authRoutes(app: FastifyInstance) {
@@ -163,8 +168,9 @@ export async function authRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const tx = readTransaction(request);
       reply.clearCookie(TX_COOKIE, txCookieOptions());
-      if (request.validationError || !tx) {
-        request.log.warn("sign-in callback without a valid provider or transaction cookie");
+      // A transaction started for one provider must never be finished by another provider's callback.
+      if (request.validationError || !tx || tx.provider !== request.params.provider) {
+        request.log.warn("sign-in callback without a valid provider or matching transaction cookie");
         return redirectToLogin(reply, "SIGN_IN_FAILED");
       }
 

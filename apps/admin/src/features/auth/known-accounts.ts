@@ -1,4 +1,12 @@
-export type KnownAccount = { email: string; displayName: string | null; lastUsedAt: string };
+import type { AuthProvider } from "@bonlift-ai/contracts";
+
+export type KnownAccount = { email: string; displayName: string | null; provider: AuthProvider; lastUsedAt: string };
+
+type RememberedAccount = Pick<KnownAccount, "email" | "displayName" | "provider">;
+
+const PROVIDERS: readonly AuthProvider[] = ["google", "microsoft"];
+// Entries stored before Microsoft sign-in existed have no provider; they were all Google sessions
+const LEGACY_PROVIDER: AuthProvider = "google";
 
 const STORAGE_KEY = "bonlift.knownAccounts";
 const MAX_ACCOUNTS = 5;
@@ -9,7 +17,7 @@ const sameEmail = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
 const newestFirst = (a: KnownAccount, b: KnownAccount) => b.lastUsedAt.localeCompare(a.lastUsedAt);
 
-function isKnownAccount(value: unknown): value is KnownAccount {
+function isKnownAccount(value: unknown): value is Omit<KnownAccount, "provider"> & { provider?: AuthProvider } {
   const v = value as Partial<KnownAccount> | null;
   return (
     typeof v === "object" &&
@@ -17,6 +25,7 @@ function isKnownAccount(value: unknown): value is KnownAccount {
     typeof v.email === "string" &&
     v.email !== "" &&
     (v.displayName === null || typeof v.displayName === "string") &&
+    (v.provider === undefined || PROVIDERS.includes(v.provider)) &&
     typeof v.lastUsedAt === "string"
   );
 }
@@ -28,7 +37,12 @@ export function parseKnownAccounts(raw: string | null): KnownAccount[] {
     if (!Array.isArray(parsed)) return [];
     return parsed
       .filter(isKnownAccount)
-      .map(({ email, displayName, lastUsedAt }) => ({ email, displayName, lastUsedAt }))
+      .map(({ email, displayName, provider = LEGACY_PROVIDER, lastUsedAt }) => ({
+        email,
+        displayName,
+        provider,
+        lastUsedAt,
+      }))
       .sort(newestFirst)
       .slice(0, MAX_ACCOUNTS);
   } catch {
@@ -38,10 +52,15 @@ export function parseKnownAccounts(raw: string | null): KnownAccount[] {
 
 export function upsertAccount(
   list: KnownAccount[],
-  account: { email: string; displayName: string | null },
+  account: RememberedAccount,
   now: Date,
 ): KnownAccount[] {
-  const entry = { email: account.email, displayName: account.displayName, lastUsedAt: now.toISOString() };
+  const entry = {
+    email: account.email,
+    displayName: account.displayName,
+    provider: account.provider,
+    lastUsedAt: now.toISOString(),
+  };
   return [entry, ...list.filter((a) => !sameEmail(a.email, account.email))]
     .sort(newestFirst)
     .slice(0, MAX_ACCOUNTS);
@@ -77,7 +96,7 @@ export function subscribeKnownAccounts(listener: () => void) {
   return () => void listeners.delete(listener);
 }
 
-export function rememberAccount(account: { email: string; displayName: string | null }) {
+export function rememberAccount(account: RememberedAccount) {
   writeKnownAccounts(upsertAccount(readKnownAccounts(), account, new Date()));
 }
 

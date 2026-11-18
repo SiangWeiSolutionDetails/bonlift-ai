@@ -28,6 +28,7 @@ export interface AuthConfig {
   cookieSecret: string;
   secureCookies: boolean;
   google: { clientId: string; clientSecret: string };
+  microsoft: { clientId: string; clientSecret: string };
 }
 
 let authConfig: AuthConfig | undefined;
@@ -76,6 +77,10 @@ export function readAuthConfig(): AuthConfig {
     google: {
       clientId: readRequired("GOOGLE_CLIENT_ID"),
       clientSecret: readRequired("GOOGLE_CLIENT_SECRET"),
+    },
+    microsoft: {
+      clientId: readRequired("MICROSOFT_CLIENT_ID"),
+      clientSecret: readRequired("MICROSOFT_CLIENT_SECRET"),
     },
   };
   return authConfig;

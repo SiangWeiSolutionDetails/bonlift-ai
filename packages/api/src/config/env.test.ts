@@ -57,6 +57,8 @@ describe("readAuthConfig", () => {
       SESSION_COOKIE_SECRET: VALID_SECRET,
       GOOGLE_CLIENT_ID: "client-id.apps.googleusercontent.com",
       GOOGLE_CLIENT_SECRET: "client-secret",
+      MICROSOFT_CLIENT_ID: "microsoft-client-id",
+      MICROSOFT_CLIENT_SECRET: "microsoft-client-secret",
       ...overrides,
     };
     for (const [name, value] of Object.entries(values)) vi.stubEnv(name, value);
@@ -68,7 +70,14 @@ describe("readAuthConfig", () => {
     return readAuthConfig;
   }
 
-  it.each(["APP_BASE_URL", "SESSION_COOKIE_SECRET", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"])(
+  it.each([
+    "APP_BASE_URL",
+    "SESSION_COOKIE_SECRET",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "MICROSOFT_CLIENT_ID",
+    "MICROSOFT_CLIENT_SECRET",
+  ])(
     "names %s when it is missing",
     async (name) => {
       stubAuthEnv({ [name]: undefined });
@@ -113,6 +122,7 @@ describe("readAuthConfig", () => {
       cookieSecret: VALID_SECRET,
       secureCookies,
       google: { clientId: "client-id.apps.googleusercontent.com", clientSecret: "client-secret" },
+      microsoft: { clientId: "microsoft-client-id", clientSecret: "microsoft-client-secret" },
     });
   });
 

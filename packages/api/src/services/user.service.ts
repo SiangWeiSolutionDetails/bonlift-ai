@@ -1,5 +1,6 @@
 import {
   InviteUserBodySchema,
+  type AuthProvider,
   SetConsoleRoleBodySchema,
   UpdateUserBodySchema,
   UserParamsSchema,
@@ -17,7 +18,7 @@ import type { RequestAccess } from "./authorization.service.js";
 import type { Queryable, SessionUser } from "./session.service.js";
 
 export interface VerifiedIdentity {
-  provider: "google";
+  provider: AuthProvider;
   subject: string;
   email: string;
   emailVerified: boolean;
@@ -25,15 +26,15 @@ export interface VerifiedIdentity {
 }
 
 // Thrown inside the transaction so it rolls back; never leaves this module.
-class InviteNotFoundError extends Error {}
+class LinkableUserNotFoundError extends Error {}
 
 // A name typed by staff locks it for the user; no name leaves the source empty.
 export function staffNameSource(name: string | null | undefined): DisplayNameSource | null {
   return name ? "staff" : null;
 }
 
-function isInviteRace(error: unknown): boolean {
-  return error instanceof InviteNotFoundError || isUniqueViolationOf(error, "user_identities_pkey");
+function isLinkRace(error: unknown): boolean {
+  return error instanceof LinkableUserNotFoundError || isUniqueViolationOf(error, "user_identities_pkey");
 }
 
 interface KnownIdentityResult {
@@ -51,9 +52,9 @@ export async function resolveUserFromIdentity(
   if (!identity.emailVerified) throw new AccountNotApprovedError("email_unverified");
 
   try {
-    return await withTransaction(pool, (client) => linkInvitedUser(client, identity));
+    return await withTransaction(pool, (client) => linkUserByEmail(client, identity));
   } catch (error) {
-    if (!isInviteRace(error)) throw error;
+    if (!isLinkRace(error)) throw error;
     // A racing first sign-in may have linked this identity first; sign in through it, or refuse.
     const retry = await signInKnownIdentity(pool, identity);
     if (!retry.user) throw new AccountNotApprovedError(retry.identityExists ? "disabled" : "unlisted");
@@ -100,16 +101,17 @@ async function signInKnownIdentity(
   return { identityExists: row.identity_exists, user: row.id ? toSessionUser(row) : null };
 }
 
-async function linkInvitedUser(
+// Links a new identity to the invited or active user with its verified email: a first sign-in, or another provider.
+async function linkUserByEmail(
   client: PoolClient,
   identity: VerifiedIdentity,
 ): Promise<SessionUser> {
-  const user = await activateInvitedUser(client, identity.email.toLowerCase(), identity.name);
+  const user = await activateUserByEmail(client, identity.email.toLowerCase(), identity.name);
   await insertIdentity(client, user.id, identity);
   return user;
 }
 
-async function activateInvitedUser(
+async function activateUserByEmail(
   client: PoolClient,
   email: string,
   name: string | null,
@@ -126,15 +128,16 @@ async function activateInvitedUser(
         END,
         updated_at = now()
     WHERE email = $1
-      AND status = 'invited'
+      AND status IN ('invited', 'active')
     RETURNING id, email, display_name
     `,
     [email, name],
   );
 
   const row = result.rows[0];
-  // Zero rows also covers a racing sign-in that activated this invite first (READ COMMITTED re-check).
-  if (!row) throw new InviteNotFoundError();
+  // Zero rows: no invited or active user has this email. A racing sign-in that linked this identity first leaves the
+  // row active (READ COMMITTED re-check), so that race surfaces as the user_identities_pkey violation on insert.
+  if (!row) throw new LinkableUserNotFoundError();
   return toSessionUser(row);
 }
 

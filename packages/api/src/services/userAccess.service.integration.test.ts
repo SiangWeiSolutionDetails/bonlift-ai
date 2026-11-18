@@ -19,7 +19,7 @@ async function signedInUser(
     [name, source],
   );
   const userId = result.rows[0].id;
-  return { userId, token: await createSession(pool, userId, null) };
+  return { userId, token: await createSession(pool, userId, "google", null) };
 }
 
 async function createRole(kind: "console" | "brand", name: string, actions: string[], isBuiltin = false) {
@@ -116,6 +116,13 @@ describe("findSessionUserAccess (integration)", () => {
     ]);
   });
 
+  it("returns the provider that signed in this session", async () => {
+    const { userId } = await signedInUser();
+    const token = await createSession(getTestPool(), userId, "microsoft", null);
+
+    expect(await findSessionUserAccess(getTestPool(), token)).toMatchObject({ provider: "microsoft" });
+  });
+
   it("returns null for an unknown session", async () => {
     expect(await findSessionUserAccess(getTestPool(), "a".repeat(43))).toBeNull();
   });
@@ -158,6 +165,7 @@ describe("updateOwnName (integration)", () => {
     expect(result).toMatchObject({
       id: userId,
       displayName: "Alice Tan",
+      provider: "google",
       nameLocked: false,
       needsNameConfirmation: false,
       console: null,

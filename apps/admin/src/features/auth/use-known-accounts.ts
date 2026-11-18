@@ -1,3 +1,4 @@
+import type { AuthProvider } from "@bonlift-ai/contracts";
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import {
   parseKnownAccounts,
@@ -11,8 +12,8 @@ export function useKnownAccounts() {
   return useMemo(() => parseKnownAccounts(raw), [raw]);
 }
 
-export function useRememberCurrentAccount(email: string, displayName: string | null) {
+export function useRememberCurrentAccount(email: string, displayName: string | null, provider: AuthProvider) {
   useEffect(() => {
-    rememberAccount({ email, displayName });
-  }, [email, displayName]);
+    rememberAccount({ email, displayName, provider });
+  }, [email, displayName, provider]);
 }

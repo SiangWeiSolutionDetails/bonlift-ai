@@ -1,3 +1,4 @@
+import type { AuthProvider } from "@bonlift-ai/contracts";
 import { createHash, randomBytes } from "node:crypto";
 import { Pool, PoolClient } from "pg";
 
@@ -37,15 +38,16 @@ function sha256(value: string): Buffer {
 export async function createSession(
   db: Queryable,
   userId: string,
+  provider: AuthProvider,
   userAgent: string | null,
 ): Promise<string> {
   const { token, idHash } = createSessionToken();
   await db.query(
     `
-    INSERT INTO user_sessions (id_hash, user_id, expires_at, user_agent)
-    VALUES ($1, $2, now() + make_interval(secs => $3::double precision / 1000), $4)
+    INSERT INTO user_sessions (id_hash, user_id, provider, expires_at, user_agent)
+    VALUES ($1, $2, $3, now() + make_interval(secs => $4::double precision / 1000), $5)
     `,
-    [idHash, userId, SESSION_ABSOLUTE_MS, userAgent?.slice(0, USER_AGENT_MAX_LENGTH) ?? null],
+    [idHash, userId, provider, SESSION_ABSOLUTE_MS, userAgent?.slice(0, USER_AGENT_MAX_LENGTH) ?? null],
   );
   return token;
 }
@@ -54,7 +56,7 @@ export async function createSession(
 // last_seen_at from s only when it is older than the touch interval, so most reads stay reads. Binds $1..$3.
 export const SESSION_CTES = `
     s AS (
-      SELECT us.id_hash, us.last_seen_at, u.id, u.email, u.display_name, u.display_name_source
+      SELECT us.id_hash, us.last_seen_at, us.provider, u.id, u.email, u.display_name, u.display_name_source
       FROM user_sessions us
       JOIN users u
         ON u.id = us.user_id

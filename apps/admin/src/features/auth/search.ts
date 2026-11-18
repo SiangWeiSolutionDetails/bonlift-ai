@@ -1,6 +1,7 @@
 export type LoginSearch = {
   error?: string;
   returnTo?: string;
+  selectAccount?: true;
 };
 
 function optionalString(value: unknown) {
@@ -12,6 +13,7 @@ export function validateLoginSearch(search: Record<string, unknown>): LoginSearc
   return {
     error: search.error === undefined ? undefined : String(search.error),
     returnTo: optionalString(search.returnTo),
+    selectAccount: search.selectAccount === true || search.selectAccount === "1" ? true : undefined,
   };
 }
 

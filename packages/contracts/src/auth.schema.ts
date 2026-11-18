@@ -1,7 +1,10 @@
 import Type, { type Static } from "typebox";
 
+export const AuthProviderSchema = Type.Union([Type.Literal("google"), Type.Literal("microsoft")]);
+export type AuthProvider = Static<typeof AuthProviderSchema>;
+
 export const AuthProviderParamsSchema = Type.Object({
-  provider: Type.Literal("google"),
+  provider: AuthProviderSchema,
 });
 export type AuthProviderParamsSchemaType = Static<typeof AuthProviderParamsSchema>;
 
@@ -40,6 +43,7 @@ export const AuthMeResponseSchema = Type.Object(
     id: Type.String({ format: "uuid" }),
     email: Type.String(),
     displayName: Type.Union([Type.String(), Type.Null()]),
+    provider: AuthProviderSchema,
     nameLocked: Type.Boolean(),
     needsNameConfirmation: Type.Boolean(),
     console: Type.Union([ConsoleAccessSchema, Type.Null()]),

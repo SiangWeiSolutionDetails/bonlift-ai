@@ -2,7 +2,7 @@ import { CONSOLE_ACTIONS } from "@bonlift-ai/contracts";
 import { randomBytes } from "node:crypto";
 import type { PoolClient } from "pg";
 import { describe, expect, it } from "vitest";
-import { ConflictError, ForbiddenError, NotFoundError } from "../errors.js";
+import { AccountNotApprovedError, ConflictError, ForbiddenError, NotFoundError } from "../errors.js";
 import { getTestPool } from "../testing/testDb.js";
 import type { RequestAccess } from "./authorization.service.js";
 import { removeBrandUser } from "./brandUser.service.js";
@@ -78,7 +78,7 @@ async function storedConsoleRole(userId: string) {
 
 async function insertSession(userId: string): Promise<void> {
   await getTestPool().query(
-    `INSERT INTO user_sessions (id_hash, user_id, expires_at) VALUES ($1, $2, now() + interval '1 day')`,
+    `INSERT INTO user_sessions (id_hash, user_id, provider, expires_at) VALUES ($1, $2, 'google', now() + interval '1 day')`,
     [randomBytes(32), userId],
   );
 }
@@ -692,6 +692,64 @@ describe("name source (integration)", () => {
     const cleared = await updateUser(getTestPool(), actor, target, { displayName: "  " });
     expect(cleared.displayNameSource).toBeNull();
     expect(await nameOf(target)).toEqual({ display_name: null, display_name_source: null });
+  });
+});
+
+function microsoftIdentity(email: string, subject = `ms-sub-${email}`): VerifiedIdentity {
+  return { provider: "microsoft", subject, email, emailVerified: true, name: "From Microsoft" };
+}
+
+async function identitiesOf(userId: string) {
+  const result = await getTestPool().query(
+    `SELECT provider, provider_subject FROM user_identities WHERE user_id = $1 ORDER BY provider`,
+    [userId],
+  );
+  return result.rows;
+}
+
+async function refusalOf(identity: VerifiedIdentity): Promise<string | undefined> {
+  const error = await resolveUserFromIdentity(getTestPool(), identity).then(
+    () => null,
+    (e: unknown) => e,
+  );
+  expect(error).toBeInstanceOf(AccountNotApprovedError);
+  return (error as AccountNotApprovedError).reason;
+}
+
+describe("linking a second provider (integration)", () => {
+  it("links a Microsoft identity to an active Google user with the same verified email and signs in through it", async () => {
+    const invited = await inviteWithRole("bob@x.com");
+    await resolveUserFromIdentity(getTestPool(), googleIdentity("bob@x.com", "Bob Google"));
+
+    const linked = await resolveUserFromIdentity(getTestPool(), microsoftIdentity("Bob@X.com"));
+    const again = await resolveUserFromIdentity(getTestPool(), microsoftIdentity("Bob@X.com"));
+
+    expect(linked.id).toBe(invited.id);
+    expect(again.id).toBe(invited.id);
+    expect(await identitiesOf(invited.id)).toEqual([
+      { provider: "google", provider_subject: "sub-bob@x.com" },
+      { provider: "microsoft", provider_subject: "ms-sub-Bob@X.com" },
+    ]);
+    expect(await nameOf(invited.id)).toEqual({ display_name: "Bob Google", display_name_source: "provider" });
+  });
+
+  it("refuses to link a new provider to a disabled user", async () => {
+    const disabled = await userWithName("bob@x.com", null, null, "disabled");
+    await getTestPool().query(
+      `INSERT INTO user_identities (user_id, provider, provider_subject) VALUES ($1, 'google', 'sub-bob@x.com')`,
+      [disabled],
+    );
+
+    expect(await refusalOf(microsoftIdentity("bob@x.com"))).toBe("unlisted");
+    expect(await identitiesOf(disabled)).toEqual([{ provider: "google", provider_subject: "sub-bob@x.com" }]);
+  });
+
+  it("refuses a second subject for a provider the user already linked", async () => {
+    const active = await userWithName("bob@x.com", null, null, "active");
+    await resolveUserFromIdentity(getTestPool(), microsoftIdentity("bob@x.com", "ms-sub-1"));
+
+    expect(await refusalOf(microsoftIdentity("bob@x.com", "ms-sub-2"))).toBe("second_account");
+    expect(await identitiesOf(active)).toEqual([{ provider: "microsoft", provider_subject: "ms-sub-1" }]);
   });
 });
 

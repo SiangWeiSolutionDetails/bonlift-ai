@@ -31,6 +31,7 @@ function me(overrides: Partial<AuthMeResponseSchemaType> = {}): AuthMeResponseSc
     brands: [],
     nameLocked: false,
     needsNameConfirmation: false,
+    provider: "google",
     ...overrides,
   };
 }

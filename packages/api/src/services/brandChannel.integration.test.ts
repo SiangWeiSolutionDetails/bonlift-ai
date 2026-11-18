@@ -59,6 +59,8 @@ beforeAll(async () => {
   vi.stubEnv("SESSION_COOKIE_SECRET", "c".repeat(64));
   vi.stubEnv("GOOGLE_CLIENT_ID", "test-client-id");
   vi.stubEnv("GOOGLE_CLIENT_SECRET", "test-client-secret");
+  vi.stubEnv("MICROSOFT_CLIENT_ID", "test-microsoft-client-id");
+  vi.stubEnv("MICROSOFT_CLIENT_SECRET", "test-microsoft-client-secret");
   resetAuthConfigCache();
   app = buildApp();
   await app.ready();

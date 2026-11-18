@@ -18,6 +18,7 @@ function row(overrides: Partial<UserAccessRow> = {}): UserAccessRow {
     email: "alice@x.com",
     display_name: "Alice",
     display_name_source: "self",
+    provider: "google",
     console: null,
     brands: [],
     ...overrides,
@@ -55,6 +56,7 @@ describe("mapUserAccess", () => {
       id: "11111111-1111-1111-1111-111111111111",
       email: "alice@x.com",
       displayName: "Alice",
+      provider: "google",
       nameLocked: false,
       needsNameConfirmation: false,
       console: null,
@@ -72,6 +74,10 @@ describe("mapUserAccess", () => {
       nameLocked: locked,
       needsNameConfirmation: confirm,
     });
+  });
+
+  it("returns the provider that signed in the session", () => {
+    expect(mapUserAccess(row({ provider: "microsoft" })).provider).toBe("microsoft");
   });
 
   it("drops actions that are no longer in the catalog", () => {

@@ -122,7 +122,7 @@ describe("resolveUserFromIdentity — first link", () => {
     expect(connectMock).not.toHaveBeenCalled();
   });
 
-  it("activates the invited user by lowercased email and links the identity in one transaction", async () => {
+  it("activates the invited or active user by lowercased email and links the identity in one transaction", async () => {
     poolQueryMock.mockResolvedValueOnce(pgResult([unknownRow]));
     clientQueryMock
       .mockResolvedValueOnce(pgResult([]))
@@ -137,7 +137,7 @@ describe("resolveUserFromIdentity — first link", () => {
     expect(user).toEqual({ id: USER_ID, email: "alice@x.com", displayName: "Alice" });
     expect(clientStatements()).toEqual(["BEGIN", "UPDATE", "INSERT", "COMMIT"]);
     const [activateSql, activateParams] = clientQueryMock.mock.calls[1];
-    expect(activateSql).toMatch(/status = 'invited'/);
+    expect(activateSql).toMatch(/status IN \('invited', 'active'\)/);
     expect(activateSql).toMatch(/COALESCE\(display_name, NULLIF\(\$2, ''\)\)/);
     expect(activateSql).toMatch(
       /display_name_source = CASE\s+WHEN display_name IS NULL AND NULLIF\(\$2, ''\) IS NOT NULL THEN 'provider'\s+ELSE display_name_source\s+END/,
@@ -145,6 +145,24 @@ describe("resolveUserFromIdentity — first link", () => {
     expect(activateParams[0]).toBe("alice@x.com");
     expect(clientQueryMock.mock.calls[2][1]).toEqual([USER_ID, "google", "google-sub-1"]);
     expect(releaseMock).toHaveBeenCalled();
+  });
+
+  it("links a Microsoft identity to the user with the same verified email", async () => {
+    const microsoft: VerifiedIdentity = { ...identity, provider: "microsoft", subject: "ms-sub-1" };
+    poolQueryMock.mockResolvedValueOnce(pgResult([unknownRow]));
+    clientQueryMock
+      .mockResolvedValueOnce(pgResult([]))
+      .mockResolvedValueOnce(
+        pgResult([{ id: USER_ID, email: "alice@x.com", display_name: "Alice" }]),
+      )
+      .mockResolvedValueOnce(pgResult([], 1))
+      .mockResolvedValueOnce(pgResult([]));
+
+    const user = await resolveUserFromIdentity(fakePool, microsoft);
+
+    expect(user.id).toBe(USER_ID);
+    expect(poolQueryMock.mock.calls[0][1]).toEqual(["microsoft", "ms-sub-1", "Alice"]);
+    expect(clientQueryMock.mock.calls[2][1]).toEqual([USER_ID, "microsoft", "ms-sub-1"]);
   });
 
   it("refuses an unlisted email after rolling back and re-reading", async () => {
@@ -159,7 +177,7 @@ describe("resolveUserFromIdentity — first link", () => {
     expect(poolQueryMock.mock.calls[1][1]).toEqual(["google", "google-sub-1", "Alice"]);
   });
 
-  it("signs in through the identity a racing first sign-in linked (activate matches zero rows)", async () => {
+  it("signs in through an identity linked meanwhile when no user matches the email", async () => {
     poolQueryMock
       .mockResolvedValueOnce(pgResult([unknownRow]))
       .mockResolvedValueOnce(pgResult([knownRow()]));

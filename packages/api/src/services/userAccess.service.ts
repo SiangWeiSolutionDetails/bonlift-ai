@@ -4,6 +4,7 @@ import {
   isConsoleAction,
   UpdateOwnNameBodySchema,
   type AuthMeResponseSchemaType,
+  type AuthProvider,
   type DisplayNameSource,
   type UpdateOwnNameBodySchemaType,
 } from "@bonlift-ai/contracts";
@@ -35,6 +36,7 @@ export interface UserAccessRow {
   email: string;
   display_name: string | null;
   display_name_source: DisplayNameSource | null;
+  provider: AuthProvider;
   console: ConsoleAccessJson | null;
   brands: BrandAccessJson[];
 }
@@ -91,7 +93,7 @@ const accessColumns = (alias: string) => `
 
 const SQL = `
     WITH ${SESSION_CTES}
-    SELECT ${accessColumns("s")}
+    SELECT s.provider, ${accessColumns("s")}
     FROM s
     `;
 
@@ -110,6 +112,7 @@ const UPDATE_OWN_NAME_SQL = `
     SELECT
       s.id IS NOT NULL AS session_valid,
       (s.id IS NOT NULL AND renamed.id IS NULL) AS name_locked,
+      s.provider,
       ${accessColumns("renamed")}
     FROM (VALUES (1)) AS one (x)
     LEFT JOIN s ON true
@@ -122,6 +125,7 @@ export function mapUserAccess(row: UserAccessRow): AuthMeResponseSchemaType {
     id: row.id,
     email: row.email,
     displayName: row.display_name,
+    provider: row.provider,
     nameLocked: row.display_name_source === "staff",
     needsNameConfirmation: row.display_name_source === null || row.display_name_source === "provider",
     console: consoleRole

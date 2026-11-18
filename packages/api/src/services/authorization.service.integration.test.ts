@@ -17,7 +17,7 @@ async function createSignedInUser(email = "alice@x.com"): Promise<{ userId: stri
   const pool = getTestPool();
   const result = await pool.query(`INSERT INTO users (email, status) VALUES ($1, 'active') RETURNING id`, [email]);
   const userId = result.rows[0].id;
-  return { userId, token: await createSession(pool, userId, null) };
+  return { userId, token: await createSession(pool, userId, "google", null) };
 }
 
 async function createRole(kind: "console" | "brand", name: string, actions: string[], isBuiltin = false) {

@@ -47,7 +47,7 @@ describe("createSession", () => {
   it("stores the 32-byte hash, never the token itself", async () => {
     queryMock.mockResolvedValueOnce(pgResult([], 1));
 
-    const token = await createSession(fakePool, USER_ID, "Mozilla/5.0");
+    const token = await createSession(fakePool, USER_ID, "microsoft", "Mozilla/5.0");
 
     const params = queryMock.mock.calls[0][1];
     expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);
@@ -56,13 +56,14 @@ describe("createSession", () => {
     expect(hash).toHaveLength(32);
     expect(hash).toEqual(hashSessionToken(token));
     expect(params).toContain(USER_ID);
+    expect(params).toContain("microsoft");
     expect(params).toContain("Mozilla/5.0");
   });
 
   it("truncates the user agent to 512 characters", async () => {
     queryMock.mockResolvedValueOnce(pgResult([], 1));
 
-    await createSession(fakePool, USER_ID, "x".repeat(2000));
+    await createSession(fakePool, USER_ID, "google", "x".repeat(2000));
 
     expect(queryMock.mock.calls[0][1]).toContain("x".repeat(512));
   });
@@ -70,9 +71,9 @@ describe("createSession", () => {
   it("stores a null user agent as null", async () => {
     queryMock.mockResolvedValueOnce(pgResult([], 1));
 
-    await createSession(fakePool, USER_ID, null);
+    await createSession(fakePool, USER_ID, "google", null);
 
-    expect(queryMock.mock.calls[0][1][3]).toBeNull();
+    expect(queryMock.mock.calls[0][1][4]).toBeNull();
   });
 });
 

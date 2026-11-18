@@ -62,16 +62,18 @@ function useRemoveThisAccount(email: string) {
 // Land on "/" so the new account opens its own default workspace, never the previous account's page
 function useSwitchToAccount() {
   const endSession = useEndSession()
-  return async (email: string) => {
-    if (await endSession()) window.location.assign(signInHref("/", { loginHint: email }))
+  return async ({ email, provider }: KnownAccount) => {
+    if (await endSession()) window.location.assign(signInHref(provider, "/", { loginHint: email }))
   }
 }
 
-// One session per browser: adding an account signs out the current one, which stays remembered
+// One session per browser: adding an account signs out the current one, which stays remembered.
+// The login page lets the user pick a provider, then shows that provider's account chooser.
 function useAddAccount() {
   const endSession = useEndSession()
+  const navigate = useNavigate()
   return async () => {
-    if (await endSession()) window.location.assign(signInHref("/", { selectAccount: true }))
+    if (await endSession()) await navigate({ to: "/login", search: { returnTo: "/", selectAccount: true } })
   }
 }
 
@@ -88,7 +90,7 @@ function AccountText({ account, bold = false }: { account: AccountLines; bold?: 
   )
 }
 
-function SwitchAccountMenu({ onSwitch, onAdd }: { onSwitch: (email: string) => void; onAdd: () => void }) {
+function SwitchAccountMenu({ onSwitch, onAdd }: { onSwitch: (account: KnownAccount) => void; onAdd: () => void }) {
   const { t } = useTranslation("auth")
   const user = useCurrentUser()
   const others = useKnownAccounts().filter((a) => a.email.toLowerCase() !== user.email.toLowerCase())
@@ -101,7 +103,7 @@ function SwitchAccountMenu({ onSwitch, onAdd }: { onSwitch: (email: string) => v
         {others.map((account) => (
           <DropdownMenuItem
             key={account.email}
-            onSelect={() => onSwitch(account.email)}
+            onSelect={() => onSwitch(account)}
             aria-label={t("switchToAccount", { email: account.email })}
             className="cursor-pointer px-2 py-1.5"
           >
@@ -125,7 +127,7 @@ export function NavUser() {
   const addAccount = useAddAccount()
   const removeThisAccount = useRemoveThisAccount(user.email)
   const name = user.displayName ?? user.email
-  useRememberCurrentAccount(user.email, user.displayName)
+  useRememberCurrentAccount(user.email, user.displayName, user.provider)
 
   return (
     <DropdownMenu>
@@ -145,7 +147,7 @@ export function NavUser() {
           <div className="flex px-2 py-1.5 text-sm">
             <AccountText account={user} bold />
           </div>
-          <SwitchAccountMenu onSwitch={(email) => void switchToAccount(email)} onAdd={() => void addAccount()} />
+          <SwitchAccountMenu onSwitch={(account) => void switchToAccount(account)} onAdd={() => void addAccount()} />
         </div>
         <WorkspaceSwitcher />
         <MenuBand>{t("actions")}</MenuBand>

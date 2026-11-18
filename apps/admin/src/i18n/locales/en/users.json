@@ -48,7 +48,7 @@
   },
   "reinviteConfirm": {
     "title": "Reinvite {{email}}?",
-    "description": "This user moves from disabled to invited and can sign in again with the same Google account."
+    "description": "This user moves from disabled to invited and can sign in again with the same Google or Microsoft account."
   },
   "delete": {
     "title": "Delete {{email}}?",
@@ -74,7 +74,7 @@
     "displayNameHint": "Leave empty to clear it. The user then chooses their own name at their next sign-in.",
     "nameSource": {
       "staff": "Set by staff; the user can't change it",
-      "provider": "From Google; the user can still change it",
+      "provider": "From the sign-in account; the user can still change it",
       "self": "Chosen by the user"
     },
     "consoleRole": "Console role",

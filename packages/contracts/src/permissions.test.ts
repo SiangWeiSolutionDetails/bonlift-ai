@@ -63,6 +63,11 @@ describe("provider grants", () => {
     expect(support).not.toContain("members.manage");
   });
 
+  it("never lets a provider create a serving API key", () => {
+    expect(support).not.toContain("apiKeys.create");
+    expect(support).toContain("apiKeys.revoke");
+  });
+
   it("makes support a superset of view", () => {
     for (const action of view) expect(support).toContain(action);
     expect(support.length).toBeGreaterThan(view.length);

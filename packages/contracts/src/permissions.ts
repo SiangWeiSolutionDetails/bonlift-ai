@@ -112,7 +112,7 @@ export const PROVIDER_GRANTS: Record<
     "calculations.publish",
     "configs.edit",
     "channels.edit",
-    "apiKeys.create",
+    // No apiKeys.create: a serving key can query /v1 with a guessed customer id (indirect personal data)
     "apiKeys.revoke",
     "apiKeys.delete",
     "brandRoles.manage",

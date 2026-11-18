@@ -80,10 +80,10 @@ export function NavUser() {
         <WorkspaceSwitcher />
         <MenuBand>{t("account")}</MenuBand>
         <div className="p-1">
-          <DropdownMenuItem className="px-2 py-1.5" onSelect={() => void switchAccount()}>
+          <DropdownMenuItem className="cursor-pointer px-2 py-1.5" onSelect={() => void switchAccount()}>
             {t("switchAccount")}
           </DropdownMenuItem>
-          <DropdownMenuItem variant="destructive" className="px-2 py-1.5" onSelect={() => void logOut()}>
+          <DropdownMenuItem variant="destructive" className="cursor-pointer px-2 py-1.5" onSelect={() => void logOut()}>
             {t("logOut")}
           </DropdownMenuItem>
         </div>

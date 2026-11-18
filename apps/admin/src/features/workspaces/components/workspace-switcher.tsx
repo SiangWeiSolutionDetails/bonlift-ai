@@ -38,7 +38,7 @@ type WorkspaceRowProps = {
 
 // The current workspace keeps the primary colours on hover and focus too
 const CURRENT_ROW =
-  "bg-primary text-primary-foreground focus:bg-primary/90 focus:text-primary-foreground focus:**:text-primary-foreground"
+  "bg-primary text-primary-foreground focus:bg-primary/90 focus:text-primary-foreground not-data-[variant=destructive]:focus:**:text-primary-foreground"
 
 function WorkspaceRow({ title, subtitle, role, current, onSwitch }: WorkspaceRowProps) {
   return (
@@ -46,7 +46,7 @@ function WorkspaceRow({ title, subtitle, role, current, onSwitch }: WorkspaceRow
       onSelect={onSwitch}
       title={[title, subtitle, role].filter(Boolean).join(" · ")}
       aria-current={current ? "true" : undefined}
-      className={cn("gap-3 px-2 py-1.5", current && CURRENT_ROW)}
+      className={cn("cursor-pointer gap-3 px-2 py-1.5", current && CURRENT_ROW)}
     >
       <span className="grid min-w-0 flex-1 leading-tight">
         <span className={cn("truncate", current && "font-medium")}>{title}</span>

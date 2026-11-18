@@ -84,19 +84,35 @@ function AccountRow({ account, current, onSwitch }: AccountRowProps) {
   const { t } = useTranslation("auth")
   const name = account.displayName ?? account.email
 
+  // The row itself is not clickable: switching only happens through the Switch button
   return (
-    <DropdownMenuItem
-      onSelect={onSwitch}
+    <div
       title={account.email}
       aria-current={current ? "true" : undefined}
-      aria-label={current ? undefined : t("switchToAccount", { email: account.email })}
-      className={cn("cursor-pointer gap-3 px-2 py-1.5", current && "bg-primary/10 focus:bg-primary/15")}
+      className={cn("flex items-center gap-3 rounded-md px-2 py-1.5 text-sm", current && "bg-primary/10")}
     >
       <span className="grid min-w-0 flex-1 leading-tight">
         <span className={cn("truncate", current && "font-semibold")}>{name}</span>
         {name !== account.email && <span className="truncate text-xs text-muted-foreground">{account.email}</span>}
       </span>
-      {current && <span className="shrink-0 text-xs text-muted-foreground">{t("signedIn")}</span>}
+      {current ? (
+        <span className="shrink-0 text-xs text-muted-foreground">{t("signedIn")}</span>
+      ) : (
+        <SwitchAccountItem email={account.email} onSwitch={onSwitch} />
+      )}
+    </div>
+  )
+}
+
+function SwitchAccountItem({ email, onSwitch }: { email: string; onSwitch: () => void }) {
+  const { t } = useTranslation("auth")
+  return (
+    <DropdownMenuItem
+      onSelect={onSwitch}
+      aria-label={t("switchToAccount", { email })}
+      className="h-7 shrink-0 cursor-pointer rounded-md border px-2.5 text-xs font-medium"
+    >
+      {t("switch")}
     </DropdownMenuItem>
   )
 }

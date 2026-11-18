@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
@@ -7,7 +8,9 @@ import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { logout, signInHref } from "@/features/auth/api"
@@ -121,19 +124,35 @@ function AccountList({ onSwitch }: { onSwitch: (email: string) => void }) {
   const user = useCurrentUser()
   const known = useKnownAccounts()
   const others = known.filter((a) => a.email.toLowerCase() !== user.email.toLowerCase())
+  const { t } = useTranslation("auth")
 
   return (
     <>
-      <AccountRow account={user} current onSwitch={() => {}} />
-      {others.map((account) => (
-        <AccountRow
-          key={account.email}
-          account={account}
-          current={false}
-          onSwitch={() => onSwitch(account.email)}
-        />
-      ))}
+      <AccountGroup label={t("currentAccount")}>
+        <AccountRow account={user} current onSwitch={() => {}} />
+      </AccountGroup>
+      {others.length > 0 && (
+        <AccountGroup label={t("otherAccounts")}>
+          {others.map((account) => (
+            <AccountRow
+              key={account.email}
+              account={account}
+              current={false}
+              onSwitch={() => onSwitch(account.email)}
+            />
+          ))}
+        </AccountGroup>
+      )}
     </>
+  )
+}
+
+function AccountGroup({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <DropdownMenuGroup className="flex flex-col gap-1">
+      <DropdownMenuLabel className="px-2 pt-0.5 pb-0 text-xs font-medium text-muted-foreground">{label}</DropdownMenuLabel>
+      {children}
+    </DropdownMenuGroup>
   )
 }
 
@@ -161,7 +180,7 @@ export function NavUser() {
         >
           {t("accounts")}
         </MenuBand>
-        <div className="flex flex-col gap-1 p-1">
+        <div className="flex flex-col gap-3 p-1">
           <AccountList onSwitch={(email) => void switchToAccount(email)} />
           <DropdownMenuItem className="cursor-pointer px-2 py-1.5" onSelect={() => void addAccount()}>
             {t("addAccount")}

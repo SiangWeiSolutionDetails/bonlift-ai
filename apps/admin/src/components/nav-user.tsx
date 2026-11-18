@@ -74,6 +74,9 @@ function useAddAccount() {
   }
 }
 
+// "Signed in" and the Switch button share one column width so they line up
+const ACCOUNT_ACTION_WIDTH = "w-18 shrink-0"
+
 type AccountRowProps = {
   account: Pick<KnownAccount, "email" | "displayName">
   current: boolean
@@ -96,7 +99,7 @@ function AccountRow({ account, current, onSwitch }: AccountRowProps) {
         {name !== account.email && <span className="truncate text-xs text-muted-foreground">{account.email}</span>}
       </span>
       {current ? (
-        <span className="shrink-0 text-xs text-muted-foreground">{t("signedIn")}</span>
+        <span className={cn(ACCOUNT_ACTION_WIDTH, "text-center text-xs text-muted-foreground")}>{t("signedIn")}</span>
       ) : (
         <SwitchAccountItem email={account.email} onSwitch={onSwitch} />
       )}
@@ -110,7 +113,7 @@ function SwitchAccountItem({ email, onSwitch }: { email: string; onSwitch: () =>
     <DropdownMenuItem
       onSelect={onSwitch}
       aria-label={t("switchToAccount", { email })}
-      className="h-7 shrink-0 cursor-pointer rounded-md border px-2.5 text-xs font-medium"
+      className={cn(ACCOUNT_ACTION_WIDTH, "h-7 cursor-pointer justify-center rounded-md border px-0 text-xs font-medium")}
     >
       {t("switch")}
     </DropdownMenuItem>

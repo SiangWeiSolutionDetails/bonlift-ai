@@ -1,6 +1,6 @@
 import type { BrandAction, ConsoleAction } from "@bonlift-ai/contracts";
 import { describe, expect, it } from "vitest";
-import { ConflictError, ForbiddenError } from "../errors.js";
+import { ConflictError, ForbiddenError, NotFoundError } from "../errors.js";
 import { getTestPool } from "../testing/testDb.js";
 import type { RequestAccess } from "./authorization.service.js";
 import { addBrandMember, listUserBrandRoles, removeBrandMember, setBrandMember } from "./brandMember.service.js";
@@ -314,6 +314,87 @@ describe("removeBrandMember last role (integration)", () => {
     await expect(remove()).rejects.toThrow(LAST_ROLE);
 
     expect(await storedBrandRole(bob, brandId)).toEqual({ role_id: viewer, granted_by: null });
+  });
+});
+
+describe("cross-tenant brand roles (integration)", () => {
+  const ROLE_MISSING = new NotFoundError("Role does not exist.");
+
+  async function twoTenants() {
+    const brandId = await insertBrand("Tenant A", "Brand A");
+    const otherBrand = await insertBrand("Tenant B", "Brand B");
+    const ops = await provisioner("ops@x.com");
+    const foreignRole = await insertRole("Viewer", "brand", ["customerScores.view"], otherBrand);
+    return { brandId, ops, foreignRole };
+  }
+
+  it("refuses adding a new email with another tenant's role and creates no user", async () => {
+    const { brandId, ops, foreignRole } = await twoTenants();
+
+    await expect(
+      addBrandMember(getTestPool(), ops.access, ops.brandActions, brandId, { email: "new@x.com", roleId: foreignRole }),
+    ).rejects.toThrow(ROLE_MISSING);
+
+    expect(await userByEmail("new@x.com")).toBeNull();
+    expect(await brandRoleCount(brandId)).toBe(0);
+  });
+
+  it("refuses adding an existing user with another tenant's role and writes nothing", async () => {
+    const { brandId, ops, foreignRole } = await twoTenants();
+    const bob = await userNamed("bob@x.com");
+
+    await expect(
+      addBrandMember(getTestPool(), ops.access, ops.brandActions, brandId, { email: "bob@x.com", roleId: foreignRole }),
+    ).rejects.toThrow(ROLE_MISSING);
+
+    expect(await storedBrandRole(bob, brandId)).toBeNull();
+  });
+
+  it("refuses adding with a console role and creates no user", async () => {
+    const { brandId, ops } = await twoTenants();
+    const consoleRole = await insertRole("Support", "console", ["users.view"]);
+
+    await expect(
+      addBrandMember(getTestPool(), ops.access, ops.brandActions, brandId, { email: "new@x.com", roleId: consoleRole }),
+    ).rejects.toThrow(ROLE_MISSING);
+
+    expect(await userByEmail("new@x.com")).toBeNull();
+  });
+
+  it("refuses setting another tenant's role and keeps the current one", async () => {
+    const { brandId, ops, foreignRole } = await twoTenants();
+    const viewer = await insertRole("Viewer", "brand", ["customerScores.view"], brandId);
+    const bob = await userNamed("bob@x.com");
+    await assignBrandRole(bob, brandId, viewer);
+
+    await expect(
+      setBrandMember(getTestPool(), ops.access, ops.brandActions, brandId, bob, foreignRole),
+    ).rejects.toThrow(ROLE_MISSING);
+
+    expect(await storedBrandRole(bob, brandId)).toEqual({ role_id: viewer, granted_by: null });
+  });
+
+  it("refuses setting another tenant's role on a user with no role on the brand and writes nothing", async () => {
+    const { brandId, ops, foreignRole } = await twoTenants();
+    const bob = await userNamed("bob@x.com");
+
+    await expect(
+      setBrandMember(getTestPool(), ops.access, ops.brandActions, brandId, bob, foreignRole),
+    ).rejects.toThrow(ROLE_MISSING);
+
+    expect(await storedBrandRole(bob, brandId)).toBeNull();
+  });
+
+  it("still assigns a role of the brand's own tenant", async () => {
+    const { brandId, ops } = await twoTenants();
+    const ownRole = await insertRole("Viewer", "brand", ["customerScores.view"], brandId);
+
+    const member = await addBrandMember(getTestPool(), ops.access, ops.brandActions, brandId, {
+      email: "new@x.com",
+      roleId: ownRole,
+    });
+
+    expect(await storedBrandRole(member.userId, brandId)).toEqual({ role_id: ownRole, granted_by: ops.access.user.id });
   });
 });
 

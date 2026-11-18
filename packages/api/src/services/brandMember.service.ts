@@ -42,10 +42,12 @@ const brandCte = `
     SELECT b.id, b.tenant_id FROM brands b WHERE b.id = $1 AND b.deleted_at IS NULL
   )`;
 
+// Only a role of the brand's own tenant is found; another tenant's role reads as missing.
 const roleCte = (actionsParam: string) => `
   role AS (
     SELECT r.id, r.name, ${isSubsetOf("r.id", actionsParam)} AS new_subset
     FROM roles r
+    JOIN brand b ON b.tenant_id = r.tenant_id
     WHERE r.id = $3 AND r.kind = 'brand'
   )`;
 

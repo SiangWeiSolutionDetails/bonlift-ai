@@ -894,6 +894,37 @@ describe("inviteUser (integration)", () => {
     expect(await assignmentCount()).toBe(before);
   });
 
+  it("writes nothing for another tenant's brand role", async () => {
+    const actor = await actorWithRole("inviter@x.com", INVITER_ACTIONS);
+    const alpha = await insertBrand("Alpha");
+    const beta = await insertBrand("Beta");
+    const alphaRole = await newBrandRole("Manager", ["outlets.view"], alpha);
+    const betaRole = await newBrandRole("Manager", ["outlets.view"], beta);
+    const before = await assignmentCount();
+
+    await expect(
+      inviteUser(getTestPool(), actor, {
+        email: "bob@x.com",
+        brandRoles: [
+          { brandId: alpha, roleId: alphaRole },
+          { brandId: beta, roleId: alphaRole },
+        ],
+      }),
+    ).rejects.toThrow(new NotFoundError("Role not found."));
+
+    expect(await invitedRows("bob@x.com")).toBeNull();
+    expect(await assignmentCount()).toBe(before);
+
+    const user = await inviteUser(getTestPool(), actor, {
+      email: "bob@x.com",
+      brandRoles: [
+        { brandId: alpha, roleId: alphaRole },
+        { brandId: beta, roleId: betaRole },
+      ],
+    });
+    expect(user).toMatchObject({ brandCount: 2 });
+  });
+
   it("writes nothing for a soft-deleted brand or a brand of a soft-deleted tenant", async () => {
     const actor = await actorWithRole("inviter@x.com", INVITER_ACTIONS);
     const deletedBrand = await insertBrand("Alpha");

@@ -431,12 +431,14 @@ const INVITE_USER_SQL = `
     WHERE r.id = $5::uuid AND r.kind = 'console'
   ),
   brand_pairs AS (
-    SELECT q.brand_id, b.tenant_id, q.role_id, b.id IS NOT NULL AS brand_found, r.id IS NOT NULL AS role_found
+    SELECT q.brand_id, b.tenant_id, q.role_id, b.id IS NOT NULL AS brand_found,
+           (b.id IS NULL OR r.id IS NOT NULL) AS role_found
     FROM unnest($6::uuid[], $7::uuid[]) AS q (brand_id, role_id)
     LEFT JOIN (
       brands b JOIN tenants t ON t.id = b.tenant_id AND t.deleted_at IS NULL
     ) ON b.id = q.brand_id AND b.deleted_at IS NULL
-    LEFT JOIN roles r ON r.id = q.role_id AND r.kind = 'brand'
+    -- Only the brand's own tenant's roles; a missing brand is reported as such, not as a missing role.
+    LEFT JOIN roles r ON r.id = q.role_id AND r.kind = 'brand' AND r.tenant_id = b.tenant_id
   ),
   flags AS (
     SELECT

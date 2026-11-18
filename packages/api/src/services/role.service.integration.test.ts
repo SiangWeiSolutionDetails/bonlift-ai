@@ -304,7 +304,12 @@ describe("listRoleAssignments (integration)", () => {
     const tenantId = await tenantNamed("Alpha Group");
     const roleId = await insertBrandRole(tenantId, "Viewer", ["outlets.view"]);
     const userId = await userNamed("bob@x.com");
-    await assignBrandRole(userId, await brandIn(tenantId, "Alpha"), roleId);
+    const alphaId = await brandIn(tenantId, "Alpha");
+    await assignBrandRole(userId, alphaId, roleId);
+
+    const before = await listRoleAssignments(getTestPool(), actor, roleId);
+    expect(before.map((row) => [row.userId, row.brandId])).toEqual([[userId, alphaId]]);
+
     await getTestPool().query(`UPDATE tenants SET deleted_at = now() WHERE id = $1`, [tenantId]);
 
     const rows = await listRoleAssignments(getTestPool(), actor, roleId);

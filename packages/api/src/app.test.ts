@@ -134,6 +134,32 @@ describe("admin route inventory", () => {
     expect(allowed).toEqual([]);
   });
 
+  it("lists a brand's roles for console users.assignBrandRoles without a brand role, but not its writes", () => {
+    const assigner: AuthorizationRow = {
+      id: PLACEHOLDER_ID,
+      email: "alice@x.com",
+      display_name: null,
+      console_is_builtin: false,
+      console_actions: ["users.assignBrandRoles"],
+      brand_exists: true,
+      has_brand_role: false,
+      brand_actions: null,
+    };
+    const accessOf = (method: string, url: string) =>
+      adminRoutes().find((route) => route.method === method && route.url === url)!.access as RouteAccess;
+
+    expect(decide(assigner, accessOf("GET", "/brands/:brandId/roles"))).toBe("allow");
+    expect(decide({ ...assigner, console_actions: [] }, accessOf("GET", "/brands/:brandId/roles"))).toBe("notFound");
+    expect(
+      decide(
+        { ...assigner, console_actions: [], has_brand_role: true, brand_actions: ["brandRoles.view"] },
+        accessOf("GET", "/brands/:brandId/roles"),
+      ),
+    ).toBe("allow");
+    expect(decide(assigner, accessOf("POST", "/brands/:brandId/roles"))).toBe("notFound");
+    expect(decide(assigner, accessOf("GET", "/brands/:brandId/roles/:roleId/assignments"))).toBe("notFound");
+  });
+
   it("lets a valid session through to validation", async () => {
     signIn();
     const res = await app.inject({

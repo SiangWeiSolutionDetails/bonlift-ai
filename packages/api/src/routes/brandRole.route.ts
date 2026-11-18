@@ -25,12 +25,14 @@ import {
 // Provider view grants brandRoles.view and provider support brandRoles.manage, through the brand check.
 const VIEW_ROLES: RouteAccess = { brand: "brandRoles.view", from: "params.brandId" };
 const MANAGE_ROLES: RouteAccess = { brand: "brandRoles.manage", from: "params.brandId" };
+// Console users who assign brand roles pick from this list on the Users page, without a role on the brand
+const LIST_ROLES: RouteAccess = { anyOf: [{ console: "users.assignBrandRoles" }, VIEW_ROLES] };
 
 export async function brandRoleRoutes(app: FastifyInstance) {
   app.get<{ Params: BrandParamsSchemaType }>(
     "/brands/:brandId/roles",
     {
-      config: { access: VIEW_ROLES },
+      config: { access: LIST_ROLES },
       schema: {
         params: BrandParamsSchema,
         response: { 200: RoleListSchema },

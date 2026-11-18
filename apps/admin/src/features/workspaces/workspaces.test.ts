@@ -209,6 +209,22 @@ describe("legacyRedirect", () => {
     });
   });
 
+  it("falls to the first brand by tenant then brand name, not me.brands order", () => {
+    const unsorted = me({
+      brands: [
+        brand(BRAND_C, "Gamma", "Zulu", ["usage.view"]),
+        brand(BRAND_B, "Beta", "Alpha", ["usage.view"]),
+        brand(BRAND_A, "Alpha", "Mike", ["usage.view"]),
+      ],
+    });
+    expect(legacyRedirect(unsorted, "/usage", {}, null)).toEqual({ to: `/b/${BRAND_B}/usage`, search: {} });
+  });
+
+  it("sends a given brandId the user cannot open to no-access", () => {
+    expect(legacyRedirect(user, "/usage", { brandId: BRAND_C, range: "7d" }, null)).toEqual(NO_ACCESS);
+    expect(legacyRedirect(admin, "/outlets", { brandId: BRAND_A }, null)).toEqual(NO_ACCESS);
+  });
+
   it("goes to no-access when no brand holds the action", () => {
     expect(legacyRedirect(user, "/results", {}, null)).toEqual(NO_ACCESS);
     expect(legacyRedirect(admin, "/outlets", {}, null)).toEqual(NO_ACCESS);

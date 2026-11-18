@@ -3,9 +3,6 @@
     "title": "用量"
   },
   "picker": {
-    "brand": "品牌",
-    "brandPlaceholder": "选择品牌",
-    "noBrand": "请选择品牌以查看其用量。",
     "from": "从",
     "to": "至"
   },

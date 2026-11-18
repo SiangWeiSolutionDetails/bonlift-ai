@@ -26,7 +26,7 @@ function optionalReason(value: unknown) {
   return FEEDBACK_REASONS.find((reason) => reason === value);
 }
 
-// Same rules as the usage page for brand and range. Filters the API would reject with a 400 are dropped, so a
+// Same rules as the usage page for the range. Filters the API would reject with a 400 are dropped, so a
 // hand-edited URL falls back to "All" instead of an error.
 export function validateRecommendationFeedbackSearch(
   search: Record<string, unknown>,

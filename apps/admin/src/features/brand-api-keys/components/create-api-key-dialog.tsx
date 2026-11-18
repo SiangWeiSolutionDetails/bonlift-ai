@@ -157,7 +157,11 @@ function CreateKeyForm({ brandId, onCreated, onCancel }: CreateKeyFormProps) {
         ) : activeChannels.length === 0 ? (
           <p className="rounded-xl border border-dashed px-4 py-3 text-sm text-muted-foreground">
             {t("list.noChannels")}{" "}
-            <Link to="/brands" className="font-medium text-foreground underline underline-offset-4">
+            <Link
+              to="/b/$brandId/settings"
+              params={{ brandId }}
+              className="font-medium text-foreground underline underline-offset-4"
+            >
               {t("list.openBrands")}
             </Link>
           </p>

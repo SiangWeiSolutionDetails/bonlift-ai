@@ -19,6 +19,7 @@ import { CreateOutletDialog } from "@/features/outlets/components/create-outlet-
 import { OutletDialog } from "@/features/outlets/components/outlet-dialog";
 import { OutletsTable } from "@/features/outlets/components/outlets-table";
 import { useDeleteOutlet, useOutlets } from "@/features/outlets/queries";
+import { useWorkspaceBrandId } from "@/features/workspaces/use-workspace";
 import type { Outlet, OutletListParams } from "@/features/outlets/type";
 import { getErrorMessage } from "@/lib/error-message";
 import { filterByName } from "@/lib/filter-by-name";
@@ -36,7 +37,9 @@ export function OutletsPage() {
   const { canBrand } = usePermissions();
   // Not reset on close, so the title doesn't flip while the dialog animates out
   const [isReadOnly, setIsReadOnly] = useState(false);
-  const [brandFilter, setBrandFilter] = useState(ALL_BRANDS);
+  const workspaceBrandId = useWorkspaceBrandId();
+  // Starts on the workspace brand; the brand-only rework of this page follows
+  const [brandFilter, setBrandFilter] = useState(workspaceBrandId);
   const [searchText, setSearchText] = useState("");
 
   function openOutlet(outlet: Outlet, readOnly: boolean) {

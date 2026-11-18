@@ -26,6 +26,7 @@ export function NavMain({
   items: {
     title: string
     url: NavPath
+    params?: { brandId: string }
     icon?: React.ReactNode
     isActive?: boolean
     items?: {
@@ -48,7 +49,7 @@ export function NavMain({
               isActive={item.isActive}
               className="h-8 rounded-md text-[14px] [&_svg]:text-primary data-active:bg-sidebar-primary data-active:font-medium data-active:text-sidebar-primary-foreground data-active:[&_svg]:text-sidebar-primary-foreground data-active:hover:bg-sidebar-primary data-active:hover:text-sidebar-primary-foreground"
             >
-              <Link to={item.url}>
+              <Link to={item.url} params={item.params as never}>
                 {item.icon}
                 <span>{item.title}</span>
               </Link>

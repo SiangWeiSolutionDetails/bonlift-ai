@@ -25,6 +25,7 @@
   "nav": {
     "admin": "Admin",
     "management": "Management",
+    "brand": "Brand",
     "dataset": "Dataset",
     "computation": "Calculation",
     "integration": "Integration",
@@ -41,7 +42,9 @@
     "itemAffinity": "Item Affinity",
     "apiKeys": "API Keys",
     "usage": "Usage",
-    "recommendationFeedback": "Recommendation Feedback"
+    "recommendationFeedback": "Recommendation Feedback",
+    "members": "Members",
+    "settings": "Settings"
   },
   "language": {
     "label": "Language"
@@ -74,6 +77,9 @@
     "open": "Choose time",
     "hour": "Hour",
     "minute": "Minute"
+  },
+  "workspace": {
+    "comingNext": "This page is coming next."
   },
   "noAccess": {
     "message": "You don’t have access to this page."

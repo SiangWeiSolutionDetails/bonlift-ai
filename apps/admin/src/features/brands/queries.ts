@@ -4,8 +4,6 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import type { BrandAction } from "@bonlift-ai/contracts";
-import { usePermissions } from "@/features/auth/permissions";
 import type { BrandListParams, UpdateBrandInput } from "./type";
 import {
   createBrand,
@@ -28,13 +26,6 @@ export function useBrands(params: BrandListParams = {}) {
     queryKey: brandKeys.list(params),
     queryFn: ({ signal }) => listBrands(params, signal),
   });
-}
-
-// GET /brands already filters by role; this narrows a brand page's picker to brands with the page's action
-export function useBrandsWith(action: BrandAction) {
-  const { data = [] } = useBrands();
-  const { canBrand } = usePermissions();
-  return data.filter((brand) => canBrand(brand.id, action));
 }
 
 export function useBrand(brandId: string | undefined) {

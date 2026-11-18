@@ -5,10 +5,12 @@ import type { ServeLogEntry } from "./type";
 
 export type ServeRunType = keyof ServeLogEntry["runs"];
 
+type BrandParams = { brandId: string };
+
 export type ServeRunTarget =
-  | { to: "/results"; search: ResultsSearch }
-  | { to: "/customer-scores"; search: CustomerScoresSearch }
-  | { to: "/item-affinity"; search: ItemAffinitySearch };
+  | { to: "/b/$brandId/results"; params: BrandParams; search: ResultsSearch }
+  | { to: "/b/$brandId/customer-scores"; params: BrandParams; search: CustomerScoresSearch }
+  | { to: "/b/$brandId/item-affinity"; params: BrandParams; search: ItemAffinitySearch };
 
 export type ServeRunLink = {
   type: ServeRunType;
@@ -29,11 +31,11 @@ export function runTarget(
 ): ServeRunTarget {
   switch (type) {
     case "outletScores":
-      return { to: "/results", search: { brandId, outletId, runId } };
+      return { to: "/b/$brandId/results", params: { brandId }, search: { outletId, runId } };
     case "customerScores":
-      return { to: "/customer-scores", search: { brandId, runId } };
+      return { to: "/b/$brandId/customer-scores", params: { brandId }, search: { runId } };
     case "itemAffinity":
-      return { to: "/item-affinity", search: { brandId, runId } };
+      return { to: "/b/$brandId/item-affinity", params: { brandId }, search: { runId } };
   }
 }
 

@@ -41,8 +41,9 @@ export function OutletRunsTable({ brandId, outlets }: OutletRunsTableProps) {
               <TableCell>
                 <span className="flex items-center gap-2">
                   <Link
-                    to="/results"
-                    search={{ brandId, outletId: outlet.outletId }}
+                    to="/b/$brandId/results"
+                    params={{ brandId }}
+                    search={{ outletId: outlet.outletId }}
                     className="font-medium underline-offset-4 hover:underline"
                   >
                     {outlet.outletName}
@@ -58,8 +59,9 @@ export function OutletRunsTable({ brandId, outlets }: OutletRunsTableProps) {
                   <PublishedRun
                     run={outlet.publishedRun}
                     target={{
-                      to: "/results",
-                      search: { brandId, outletId: outlet.outletId, runId: outlet.publishedRun.id },
+                      to: "/b/$brandId/results",
+                      params: { brandId },
+                      search: { outletId: outlet.outletId, runId: outlet.publishedRun.id },
                     }}
                   />
                 ) : (

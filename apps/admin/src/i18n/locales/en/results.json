@@ -19,11 +19,9 @@
     "note": "Only parent items count: addons and modifiers inside a line are ignored. The half-life is set per brand, and each run's value is shown in its config. The Orders column is an unweighted count."
   },
   "picker": {
-    "brand": "Brand",
-    "brandPlaceholder": "Select a brand",
     "outlet": "Outlet",
     "outletPlaceholder": "Select an outlet",
-    "noOutlet": "Choose a brand and an outlet to see their popular items."
+    "noOutlet": "Choose an outlet to see its popular items."
   },
   "status": {
     "running": "Running",

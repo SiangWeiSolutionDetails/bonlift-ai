@@ -4,9 +4,6 @@
     "description": "How customers responded to the items they were recommended. Days are in {{tz}}. Only recommendations for identified customers are recorded."
   },
   "picker": {
-    "brand": "Brand",
-    "brandPlaceholder": "Select a brand",
-    "noBrand": "Select a brand to see its recommendation feedback.",
     "from": "From",
     "to": "To",
     "outlet": "Outlet",

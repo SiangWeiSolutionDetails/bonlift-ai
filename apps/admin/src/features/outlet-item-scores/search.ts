@@ -1,5 +1,4 @@
 export type ResultsSearch = {
-  brandId?: string;
   outletId?: string;
   runId?: string;
 };
@@ -13,7 +12,6 @@ export function validateResultsSearch(
   search: Record<string, unknown>,
 ): ResultsSearch {
   return {
-    brandId: optionalString(search.brandId),
     outletId: optionalString(search.outletId),
     runId: optionalString(search.runId),
   };

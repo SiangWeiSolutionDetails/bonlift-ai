@@ -3,11 +3,6 @@
     "title": "Calculations",
     "runAll": "Run All Calculations"
   },
-  "picker": {
-    "brand": "Brand",
-    "brandPlaceholder": "Select a brand",
-    "noBrand": "Choose a brand to see the state of its calculations."
-  },
   "status": {
     "running": "Running",
     "succeeded": "Succeeded",

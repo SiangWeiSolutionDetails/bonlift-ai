@@ -6,10 +6,12 @@ import type { CalculationEntry, CalculationJobType } from "./type";
 
 type CalculationsKey = ParseKeys<"calculations">;
 
+type BrandParams = { brandId: string };
+
 export type CalculationDetailsTarget =
-  | { to: "/results"; search: ResultsSearch }
-  | { to: "/customer-scores"; search: CustomerScoresSearch }
-  | { to: "/item-affinity"; search: ItemAffinitySearch };
+  | { to: "/b/$brandId/results"; params: BrandParams; search: ResultsSearch }
+  | { to: "/b/$brandId/customer-scores"; params: BrandParams; search: CustomerScoresSearch }
+  | { to: "/b/$brandId/item-affinity"; params: BrandParams; search: ItemAffinitySearch };
 
 // Set to open the page on one run instead of the default (published) one
 export type DetailsLink = { runId?: string; outletId?: string };
@@ -30,7 +32,7 @@ export const CALCULATIONS: CalculationDefinition[] = [
       subjects: "jobs.outletItemScores.subjects",
       rows: "jobs.outletItemScores.rows",
     },
-    details: (brandId, link) => ({ to: "/results", search: { brandId, ...link } }),
+    details: (brandId, link) => ({ to: "/b/$brandId/results", params: { brandId }, search: { ...link } }),
   },
   {
     jobType: "customer_item_scores",
@@ -39,7 +41,11 @@ export const CALCULATIONS: CalculationDefinition[] = [
       subjects: "jobs.customerItemScores.subjects",
       rows: "jobs.customerItemScores.rows",
     },
-    details: (brandId, link) => ({ to: "/customer-scores", search: { brandId, runId: link?.runId } }),
+    details: (brandId, link) => ({
+      to: "/b/$brandId/customer-scores",
+      params: { brandId },
+      search: { runId: link?.runId },
+    }),
   },
   {
     jobType: "item_affinity",
@@ -48,7 +54,11 @@ export const CALCULATIONS: CalculationDefinition[] = [
       subjects: "jobs.itemAffinity.subjects",
       rows: "jobs.itemAffinity.rows",
     },
-    details: (brandId, link) => ({ to: "/item-affinity", search: { brandId, runId: link?.runId } }),
+    details: (brandId, link) => ({
+      to: "/b/$brandId/item-affinity",
+      params: { brandId },
+      search: { runId: link?.runId },
+    }),
   },
 ];
 

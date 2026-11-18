@@ -7,7 +7,6 @@ describe("validateRecommendationFeedbackSearch", () => {
   it("keeps valid filters", () => {
     expect(
       validateRecommendationFeedbackSearch({
-        brandId: "brand",
         from: "2026-11-01",
         to: "2026-11-30",
         outletId,
@@ -16,7 +15,6 @@ describe("validateRecommendationFeedbackSearch", () => {
         channelId: outletId,
       }),
     ).toEqual({
-      brandId: "brand",
       from: "2026-11-01",
       to: "2026-11-30",
       outletId,
@@ -24,6 +22,10 @@ describe("validateRecommendationFeedbackSearch", () => {
       reason: "frequently_ordered",
       channelId: outletId,
     });
+  });
+
+  it("drops brandId, which lives in the workspace path", () => {
+    expect(validateRecommendationFeedbackSearch({ brandId: "brand" })).not.toHaveProperty("brandId");
   });
 
   it("drops filters the API would reject", () => {

@@ -1,6 +1,6 @@
 import type { AuthMeResponseSchemaType, BrandAction, ConsoleAction } from "@bonlift-ai/contracts";
 // Relative, not "@/": the root vitest config has no alias, and this file is unit-tested.
-import { brandsWith, canBrand, canConsole, type MeBrand } from "../auth/permissions";
+import { canBrand, canConsole, hasAccess, type MeBrand } from "../auth/permissions";
 
 type Me = AuthMeResponseSchemaType;
 
@@ -19,12 +19,13 @@ export const CONSOLE_KEY = "console";
 const STORAGE_KEY = "bonlift.lastWorkspace";
 const NO_ACCESS = { to: "/no-access", search: {} };
 
-type BrandPage = {
+type BrandPageBase = {
   segment: string;
-  legacyPath: string | null;
-  action: BrandAction | BrandAction[];
   groupKey: "brand" | "dataset" | "computation" | "integration" | "insights";
 };
+// A page with a legacy path has one action, so a redirect without brandId can pick a brand by it
+type LegacyBrandPage = BrandPageBase & { legacyPath: string; action: BrandAction };
+type BrandPage = LegacyBrandPage | (BrandPageBase & { legacyPath: null; action: BrandAction | BrandAction[] });
 
 export const BRAND_PAGES: BrandPage[] = [
   { segment: "outlets", legacyPath: "/outlets", action: "outlets.view", groupKey: "brand" },
@@ -54,7 +55,7 @@ export const CONSOLE_PAGES: { segment: string; legacyPath: string; action: Conso
 
 const byName = (a: string, b: string) => a.localeCompare(b);
 
-function toBrandWorkspace(brand: MeBrand): BrandWorkspace {
+export function toBrandWorkspace(brand: MeBrand): BrandWorkspace {
   const { brandId, brandName, tenantId, tenantName, roleName } = brand;
   return { kind: "brand", brandId, brandName, tenantId, tenantName, roleName };
 }
@@ -104,7 +105,7 @@ export function writeLastWorkspace(key: string) {
 }
 
 function canSeeBrandPage(me: Me, brandId: string, action: BrandPage["action"]) {
-  return [action].flat().some((a) => canBrand(me, brandId, a));
+  return hasAccess(me, { brand: action }, brandId);
 }
 
 export function firstVisiblePage(me: Me, workspaceKey: string): string | null {
@@ -120,13 +121,25 @@ function rememberedBrandFor(me: Me, remembered: string | null, action: BrandActi
   return remembered && canBrand(me, remembered, action) ? remembered : null;
 }
 
-function legacyBrandRedirect(me: Me, page: BrandPage, search: Record<string, unknown>, remembered: string | null) {
+function firstBrandWith(me: Me, action: BrandAction) {
+  return buildWorkspaces(me)
+    .tenants.flatMap((t) => t.brands)
+    .find((b) => canBrand(me, b.brandId, action))?.brandId;
+}
+
+function legacyBrandTarget(me: Me, action: BrandAction, brandId: unknown, remembered: string | null) {
+  if (typeof brandId === "string" && brandId) return canOpen(me, brandId) ? brandId : undefined;
+  return rememberedBrandFor(me, remembered, action) ?? firstBrandWith(me, action);
+}
+
+function legacyBrandRedirect(
+  me: Me,
+  page: LegacyBrandPage,
+  search: Record<string, unknown>,
+  remembered: string | null,
+) {
   const { brandId, ...rest } = search;
-  const action = page.action as BrandAction;
-  const target =
-    typeof brandId === "string" && brandId
-      ? brandId
-      : (rememberedBrandFor(me, remembered, action) ?? brandsWith(me, action)[0]?.brandId);
+  const target = legacyBrandTarget(me, page.action, brandId, remembered);
   return target ? { to: `/b/${target}/${page.segment}`, search: rest } : NO_ACCESS;
 }
 
@@ -138,6 +151,6 @@ export function legacyRedirect(
 ): { to: string; search: Record<string, unknown> } | null {
   const consolePage = CONSOLE_PAGES.find((p) => p.legacyPath === pathname);
   if (consolePage) return { to: `/console/${consolePage.segment}`, search };
-  const brandPage = BRAND_PAGES.find((p) => p.legacyPath === pathname);
+  const brandPage = BRAND_PAGES.find((p): p is LegacyBrandPage => p.legacyPath === pathname);
   return brandPage ? legacyBrandRedirect(me, brandPage, search, remembered) : null;
 }

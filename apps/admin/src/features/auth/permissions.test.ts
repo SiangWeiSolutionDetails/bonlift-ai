@@ -94,16 +94,25 @@ describe("hasAccess", () => {
     expect(hasAccess(me(), { console: "tenants.view" })).toBe(false);
   });
 
-  it("checks for at least one brand with the action", () => {
-    const user = me({ brands: [brand(BRAND_A, ["usage.view"])] });
-    expect(hasAccess(user, { anyBrand: "usage.view" })).toBe(true);
-    expect(hasAccess(user, { anyBrand: "results.view" })).toBe(false);
+  it("checks a brand action on that brand only", () => {
+    const user = me({ brands: [brand(BRAND_A, ["usage.view"]), brand(BRAND_B, ["results.view"])] });
+    expect(hasAccess(user, { brand: "usage.view" }, BRAND_A)).toBe(true);
+    expect(hasAccess(user, { brand: "usage.view" }, BRAND_B)).toBe(false);
+    expect(hasAccess(user, { brand: "results.view" }, BRAND_A)).toBe(false);
   });
 
-  it("lets any brand role stand in for the console action when allowed", () => {
-    const user = me({ brands: [brand(BRAND_A, [])] });
-    expect(hasAccess(user, { console: "brands.view", orAnyBrandRole: true })).toBe(true);
-    expect(hasAccess(user, { console: "brands.view" })).toBe(false);
-    expect(hasAccess(me(), { console: "brands.view", orAnyBrandRole: true })).toBe(false);
+  it("passes a brand page with any one of its actions", () => {
+    const user = me({ brands: [brand(BRAND_A, ["channels.view"])] });
+    expect(hasAccess(user, { brand: ["configs.view", "channels.view"] }, BRAND_A)).toBe(true);
+    expect(hasAccess(user, { brand: ["configs.view", "dataSource.view"] }, BRAND_A)).toBe(false);
+  });
+
+  it("denies a brand action without a brand", () => {
+    const user = me({ brands: [brand(BRAND_A, ["usage.view"])] });
+    expect(hasAccess(user, { brand: "usage.view" })).toBe(false);
+  });
+
+  it("gives an Admin no brand page access", () => {
+    expect(hasAccess(admin, { brand: "outlets.view" }, BRAND_A)).toBe(false);
   });
 });

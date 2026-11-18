@@ -2,11 +2,6 @@
   "page": {
     "title": "API 密钥"
   },
-  "picker": {
-    "brand": "品牌",
-    "brandPlaceholder": "选择品牌",
-    "noBrand": "请选择品牌以查看其 API 密钥。"
-  },
   "list": {
     "create": "创建密钥",
     "empty": "暂无 API 密钥。",

@@ -2,11 +2,6 @@
   "page": {
     "title": "API Keys"
   },
-  "picker": {
-    "brand": "Brand",
-    "brandPlaceholder": "Select a brand",
-    "noBrand": "Select a brand to see its API keys."
-  },
   "list": {
     "create": "Create Key",
     "empty": "No API keys yet.",

@@ -31,6 +31,13 @@ export function useOutlets(params: OutletListParams) {
   });
 }
 
+// An outlet id from the URL counts only once it is known to belong to the brand
+export function useBrandOutletId(brandId: string, outletId: string | undefined) {
+  const { data } = useOutlets({ brandId });
+  const belongs = data?.some((outlet) => outlet.id === outletId && outlet.brandId === brandId);
+  return belongs ? outletId : undefined;
+}
+
 export function useOutlet(outletId: string) {
   return useQuery({
     queryKey: outletKeys.detail(outletId ?? ""),

@@ -1,14 +1,9 @@
 export type UsageSearch = {
-  brandId?: string;
   from?: string;
   to?: string;
 };
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
-
-function optionalString(value: unknown) {
-  return typeof value === "string" && value !== "" ? value : undefined;
-}
 
 function optionalIsoDate(value: unknown) {
   return typeof value === "string" && ISO_DATE.test(value) ? value : undefined;
@@ -22,7 +17,6 @@ export function validateUsageSearch(search: Record<string, unknown>): UsageSearc
   const isRange = from !== undefined && to !== undefined && from <= to;
 
   return {
-    brandId: optionalString(search.brandId),
     from: isRange ? from : undefined,
     to: isRange ? to : undefined,
   };

@@ -16,11 +16,6 @@
     "liftHint": "2.00 means twice as likely as usual. 1.00 means no connection.",
     "note": "Only paid top-level lines count: addons and free lines are ignored. The minimum orders together and maximum items per order are set per brand, and each run's values are shown in its config."
   },
-  "picker": {
-    "brand": "Brand",
-    "brandPlaceholder": "Select a brand",
-    "noBrand": "Choose a brand to see which items are often ordered together."
-  },
   "status": {
     "running": "Running",
     "succeeded": "Succeeded",

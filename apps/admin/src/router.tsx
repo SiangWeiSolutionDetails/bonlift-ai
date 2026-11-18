@@ -3,6 +3,7 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  notFound,
   Outlet,
   redirect,
   type ParsedLocation,
@@ -16,11 +17,13 @@ import {
   GaugeIcon,
   KeyRoundIcon,
   LayoutDashboardIcon,
+  SettingsIcon,
   ShieldIcon,
   SquareStackIcon,
   StoreIcon,
   TagIcon,
   ThumbsUpIcon,
+  UserRoundCogIcon,
   UsersIcon,
 } from "lucide-react";
 import App from "@/App";
@@ -28,18 +31,30 @@ import { hasAccess, type RouteAccess } from "@/features/auth/permissions";
 import { meQueryOptions } from "@/features/auth/queries";
 import { nameConfirmationRedirect, WELCOME_PATH } from "@/features/auth/name-confirmation";
 import { validateLoginSearch, validateWelcomeSearch } from "@/features/auth/search";
-import { validateApiKeysSearch } from "@/features/brand-api-keys/search";
 import { validateUsageSearch } from "@/features/brand-usage/search";
-import { validateCalculationsSearch } from "@/features/calculations-overview/search";
 import { validateCustomerScoresSearch } from "@/features/customer-item-scores/search";
 import { validateItemAffinitySearch } from "@/features/item-affinity/search";
 import { validateSnapshotsSearch } from "@/features/order-snapshots/search";
 import { validateResultsSearch } from "@/features/outlet-item-scores/search";
 import { validateRecommendationFeedbackSearch } from "@/features/recommendation-feedback/search";
+import { BrandWorkspaceLayout } from "@/features/workspaces/components/brand-workspace-layout";
+import {
+  BRAND_PAGES,
+  canOpen,
+  CONSOLE_KEY,
+  CONSOLE_PAGES,
+  defaultWorkspace,
+  firstVisiblePage,
+  legacyRedirect,
+  readLastWorkspace,
+  writeLastWorkspace,
+} from "@/features/workspaces/workspaces";
 import type enCommon from "@/i18n/locales/en/common.json";
 import { ApiError } from "@/lib/api-client";
 import { queryClient } from "@/lib/query-client";
 import { ApiKeysPage } from "@/pages/api-keys-page";
+import { BrandMembersPage } from "@/pages/brand-members-page";
+import { BrandSettingsPage } from "@/pages/brand-settings-page";
 import { BrandsPage } from "@/pages/brands-page";
 import { CalculationsPage } from "@/pages/calculations-page";
 import { CustomerScoresPage } from "@/pages/customer-scores-page";
@@ -56,13 +71,32 @@ import { TenantsPage } from "@/pages/tenants-page";
 import { UsagePage } from "@/pages/usage-page";
 import { WelcomePage } from "@/pages/welcome-page";
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type Target = { to: string; search?: Record<string, unknown> };
+type PageDisplay = Pick<StaticDataRouteOption, "titleKey" | "icon">;
+
 function isUnauthorized(error: unknown) {
   return error instanceof ApiError && error.status === 401;
 }
 
+// Every guard below runs after the _app layout's requireSession, so /auth/me is already cached
+function loadMe() {
+  return queryClient.ensureQueryData(meQueryOptions);
+}
+
+// Targets are built from the workspace tables at runtime, so they are not typed route paths
+function redirectTo(target: Target | null) {
+  return redirect({
+    to: (target?.to ?? "/no-access") as "/no-access",
+    search: (target?.search ?? {}) as never,
+    replace: true,
+  });
+}
+
 async function requireSession(location: ParsedLocation) {
   try {
-    await queryClient.ensureQueryData(meQueryOptions);
+    await loadMe();
   } catch (error) {
     if (!isUnauthorized(error)) throw error;
     throw redirect({ to: "/login", search: { returnTo: location.href } });
@@ -70,40 +104,80 @@ async function requireSession(location: ParsedLocation) {
 }
 
 async function requireConfirmedName(location: ParsedLocation) {
-  const me = await queryClient.ensureQueryData(meQueryOptions);
+  const me = await loadMe();
   if (nameConfirmationRedirect(me, false) === WELCOME_PATH) {
     throw redirect({ to: WELCOME_PATH, search: { returnTo: location.href }, replace: true });
   }
 }
 
 async function requireUnconfirmedName() {
-  const me = await queryClient.ensureQueryData(meQueryOptions);
+  const me = await loadMe();
   if (nameConfirmationRedirect(me, true) === "/") throw redirect({ to: "/", replace: true });
 }
 
 async function redirectIfSignedIn() {
-  const user = await queryClient.ensureQueryData(meQueryOptions).catch(() => null);
+  const user = await loadMe().catch(() => null);
   if (user) throw redirect({ to: "/", replace: true });
 }
 
-// Runs after the layout's requireSession, so /auth/me is already cached
-async function requireAccess(access: RouteAccess): Promise<void> {
-  const me = await queryClient.ensureQueryData(meQueryOptions);
-  if (!hasAccess(me, access)) throw redirect({ to: "/no-access", replace: true });
+async function requireAccess(access: RouteAccess, brandId?: string): Promise<void> {
+  const me = await loadMe();
+  if (!hasAccess(me, access, brandId)) throw redirectTo(null);
+}
+
+// Preloads run beforeLoad too; only a real visit counts as entering a workspace
+async function enterWorkspace(key: string, preload: boolean) {
+  const me = await loadMe();
+  if (!canOpen(me, key)) throw redirectTo(null);
+  if (!preload) writeLastWorkspace(key);
+}
+
+async function enterBrandWorkspace(brandId: string, preload: boolean) {
+  if (!UUID.test(brandId)) throw redirectTo(null);
+  await enterWorkspace(brandId, preload);
+}
+
+async function redirectToFirstPage(key: string): Promise<never> {
+  const me = await loadMe();
+  const to = firstVisiblePage(me, key);
+  throw redirectTo(to ? { to } : null);
+}
+
+// Only a bare "/" uses the remembered workspace; it doesn't write it, entering the workspace does
+async function redirectToDefaultWorkspace(): Promise<never> {
+  const me = await loadMe();
+  const key = defaultWorkspace(me, readLastWorkspace());
+  throw redirectTo(key ? { to: firstVisiblePage(me, key) ?? "/no-access" } : null);
+}
+
+async function redirectLegacyPath(location: ParsedLocation): Promise<never> {
+  const me = await loadMe();
+  const pathname = location.pathname.replace(/\/+$/, "");
+  const target = legacyRedirect(me, pathname, location.search as Record<string, unknown>, readLastWorkspace());
+  if (!target) throw notFound();
+  throw redirectTo(target);
 }
 
 // A direct hit on a page the sidebar hides lands on the no-access page
-function guardedBy(staticData: StaticDataRouteOption & { access: RouteAccess }) {
-  return { staticData, beforeLoad: () => requireAccess(staticData.access) };
+function consolePage(segment: string, display: PageDisplay) {
+  const page = CONSOLE_PAGES.find((p) => p.segment === segment);
+  if (!page) throw new Error(`Unknown console page: ${segment}`);
+  const access: RouteAccess = { console: page.action };
+  return {
+    staticData: { ...display, groupKey: "nav.management", access } satisfies StaticDataRouteOption,
+    beforeLoad: () => requireAccess(access),
+  };
 }
 
-async function redirectToFirstVisibleRoute(): Promise<never> {
-  const me = await queryClient.ensureQueryData(meQueryOptions);
-  const first = sidebarRoutes.find((route) => {
-    const { access } = route.options.staticData ?? {};
-    return !access || hasAccess(me, access);
-  });
-  throw redirect({ to: first?.fullPath ?? "/no-access", replace: true });
+// The brand layout has already checked the brand is in me.brands; this checks the page's action on it
+function brandPage(segment: string, display: PageDisplay) {
+  const page = BRAND_PAGES.find((p) => p.segment === segment);
+  if (!page) throw new Error(`Unknown brand page: ${segment}`);
+  const access: RouteAccess = { brand: page.action };
+  return {
+    staticData: { ...display, groupKey: `nav.${page.groupKey}`, access } satisfies StaticDataRouteOption,
+    beforeLoad: ({ params }: { params: { brandId: string } }) => requireAccess(access, params.brandId),
+  };
 }
 
 const rootRoute = createRootRoute({ component: Outlet });
@@ -140,7 +214,7 @@ const appLayoutRoute = createRoute({
 const indexRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: "/",
-  beforeLoad: redirectToFirstVisibleRoute,
+  beforeLoad: redirectToDefaultWorkspace,
 });
 
 const noAccessRoute = createRoute({
@@ -149,178 +223,166 @@ const noAccessRoute = createRoute({
   component: NoAccessPage,
 });
 
-const tenantsRoute = createRoute({
+// Today's flat paths (/tenants, /usage?brandId=…) redirect into a workspace; anything else is not found
+const legacyRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
-  path: "/tenants",
+  path: "$",
+  beforeLoad: ({ location }) => redirectLegacyPath(location),
+});
+
+const consoleLayoutRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: "/console",
+  component: Outlet,
+  beforeLoad: ({ preload }) => enterWorkspace(CONSOLE_KEY, preload),
+});
+
+const consoleIndexRoute = createRoute({
+  getParentRoute: () => consoleLayoutRoute,
+  path: "/",
+  beforeLoad: () => redirectToFirstPage(CONSOLE_KEY),
+});
+
+const tenantsRoute = createRoute({
+  getParentRoute: () => consoleLayoutRoute,
+  path: "tenants",
   component: TenantsPage,
-  ...guardedBy({
-    titleKey: "nav.tenants",
-    groupKey: "nav.management",
-    icon: <Building2Icon />,
-    access: { console: "tenants.view" },
-  }),
+  ...consolePage("tenants", { titleKey: "nav.tenants", icon: <Building2Icon /> }),
 });
 
 const brandsRoute = createRoute({
-  getParentRoute: () => appLayoutRoute,
-  path: "/brands",
+  getParentRoute: () => consoleLayoutRoute,
+  path: "brands",
   component: BrandsPage,
-  ...guardedBy({
-    titleKey: "nav.brands",
-    groupKey: "nav.management",
-    icon: <TagIcon />,
-    access: { console: "brands.view", orAnyBrandRole: true },
-  }),
-});
-
-const outletsRoute = createRoute({
-  getParentRoute: () => appLayoutRoute,
-  path: "/outlets",
-  component: OutletsPage,
-  ...guardedBy({
-    titleKey: "nav.outlets",
-    groupKey: "nav.management",
-    icon: <StoreIcon />,
-    access: { anyBrand: "outlets.view" },
-  }),
-});
-
-const rolesRoute = createRoute({
-  getParentRoute: () => appLayoutRoute,
-  path: "/roles",
-  component: RolesPage,
-  ...guardedBy({
-    titleKey: "nav.roles",
-    groupKey: "nav.management",
-    icon: <ShieldIcon />,
-    access: { console: "roles.view" },
-  }),
+  ...consolePage("brands", { titleKey: "nav.brands", icon: <TagIcon /> }),
 });
 
 const usersRoute = createRoute({
-  getParentRoute: () => appLayoutRoute,
-  path: "/users",
+  getParentRoute: () => consoleLayoutRoute,
+  path: "users",
   component: UsersPage,
-  ...guardedBy({
-    titleKey: "nav.users",
-    groupKey: "nav.management",
-    icon: <UsersIcon />,
-    access: { console: "users.view" },
-  }),
+  ...consolePage("users", { titleKey: "nav.users", icon: <UsersIcon /> }),
+});
+
+const rolesRoute = createRoute({
+  getParentRoute: () => consoleLayoutRoute,
+  path: "roles",
+  component: RolesPage,
+  ...consolePage("roles", { titleKey: "nav.roles", icon: <ShieldIcon /> }),
+});
+
+// Runs before any page guard or page load, so a brand without a role never reaches a page
+const brandLayoutRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: "/b/$brandId",
+  component: BrandWorkspaceLayout,
+  beforeLoad: ({ params, preload }) => enterBrandWorkspace(params.brandId, preload),
+});
+
+const brandIndexRoute = createRoute({
+  getParentRoute: () => brandLayoutRoute,
+  path: "/",
+  beforeLoad: ({ params }) => redirectToFirstPage(params.brandId),
+});
+
+const outletsRoute = createRoute({
+  getParentRoute: () => brandLayoutRoute,
+  path: "outlets",
+  component: OutletsPage,
+  ...brandPage("outlets", { titleKey: "nav.outlets", icon: <StoreIcon /> }),
+});
+
+const membersRoute = createRoute({
+  getParentRoute: () => brandLayoutRoute,
+  path: "members",
+  component: BrandMembersPage,
+  ...brandPage("members", { titleKey: "nav.members", icon: <UserRoundCogIcon /> }),
+});
+
+const settingsRoute = createRoute({
+  getParentRoute: () => brandLayoutRoute,
+  path: "settings",
+  component: BrandSettingsPage,
+  ...brandPage("settings", { titleKey: "nav.settings", icon: <SettingsIcon /> }),
 });
 
 const snapshotsRoute = createRoute({
-  getParentRoute: () => appLayoutRoute,
-  path: "/snapshots",
+  getParentRoute: () => brandLayoutRoute,
+  path: "snapshots",
   component: OrderSnapshotsPage,
   validateSearch: validateSnapshotsSearch,
-  ...guardedBy({
-    titleKey: "nav.snapshots",
-    groupKey: "nav.dataset",
-    icon: <DatabaseIcon />,
-    access: { anyBrand: "snapshots.view" },
-  }),
+  ...brandPage("snapshots", { titleKey: "nav.snapshots", icon: <DatabaseIcon /> }),
 });
 
 const calculationsRoute = createRoute({
-  getParentRoute: () => appLayoutRoute,
-  path: "/calculations",
+  getParentRoute: () => brandLayoutRoute,
+  path: "calculations",
   component: CalculationsPage,
-  validateSearch: validateCalculationsSearch,
-  ...guardedBy({
-    titleKey: "nav.calculations",
-    groupKey: "nav.computation",
-    icon: <LayoutDashboardIcon />,
-    access: { anyBrand: "calculations.view" },
-  }),
+  ...brandPage("calculations", { titleKey: "nav.calculations", icon: <LayoutDashboardIcon /> }),
 });
 
 const resultsRoute = createRoute({
-  getParentRoute: () => appLayoutRoute,
-  path: "/results",
+  getParentRoute: () => brandLayoutRoute,
+  path: "results",
   component: ResultsPage,
   validateSearch: validateResultsSearch,
-  ...guardedBy({
-    titleKey: "nav.results",
-    groupKey: "nav.computation",
-    icon: <BarChart3Icon />,
-    access: { anyBrand: "results.view" },
-  }),
+  ...brandPage("results", { titleKey: "nav.results", icon: <BarChart3Icon /> }),
 });
 
 const customerScoresRoute = createRoute({
-  getParentRoute: () => appLayoutRoute,
-  path: "/customer-scores",
+  getParentRoute: () => brandLayoutRoute,
+  path: "customer-scores",
   component: CustomerScoresPage,
   validateSearch: validateCustomerScoresSearch,
-  ...guardedBy({
-    titleKey: "nav.customerScores",
-    groupKey: "nav.computation",
-    icon: <ChartBarIcon />,
-    access: { anyBrand: "customerScores.view" },
-  }),
+  ...brandPage("customer-scores", { titleKey: "nav.customerScores", icon: <ChartBarIcon /> }),
 });
 
 const itemAffinityRoute = createRoute({
-  getParentRoute: () => appLayoutRoute,
-  path: "/item-affinity",
+  getParentRoute: () => brandLayoutRoute,
+  path: "item-affinity",
   component: ItemAffinityPage,
   validateSearch: validateItemAffinitySearch,
-  ...guardedBy({
-    titleKey: "nav.itemAffinity",
-    groupKey: "nav.computation",
-    icon: <SquareStackIcon />,
-    access: { anyBrand: "itemAffinity.view" },
-  }),
+  ...brandPage("item-affinity", { titleKey: "nav.itemAffinity", icon: <SquareStackIcon /> }),
 });
 
+// "/b/…/api-keys" is safe: the dev proxy and Caddy only forward paths starting with "/api/"
 const apiKeysRoute = createRoute({
-  getParentRoute: () => appLayoutRoute,
-  // Not "/api-keys": the dev proxy (and any production proxy) forwards every path starting with "/api" to the API.
-  path: "/brand-api-keys",
+  getParentRoute: () => brandLayoutRoute,
+  path: "api-keys",
   component: ApiKeysPage,
-  validateSearch: validateApiKeysSearch,
-  ...guardedBy({
-    titleKey: "nav.apiKeys",
-    groupKey: "nav.integration",
-    icon: <KeyRoundIcon />,
-    access: { anyBrand: "apiKeys.view" },
-  }),
+  ...brandPage("api-keys", { titleKey: "nav.apiKeys", icon: <KeyRoundIcon /> }),
 });
 
 const usageRoute = createRoute({
-  getParentRoute: () => appLayoutRoute,
-  path: "/usage",
+  getParentRoute: () => brandLayoutRoute,
+  path: "usage",
   component: UsagePage,
   validateSearch: validateUsageSearch,
-  ...guardedBy({
-    titleKey: "nav.usage",
-    groupKey: "nav.integration",
-    icon: <GaugeIcon />,
-    access: { anyBrand: "usage.view" },
-  }),
+  ...brandPage("usage", { titleKey: "nav.usage", icon: <GaugeIcon /> }),
 });
 
 const recommendationFeedbackRoute = createRoute({
-  getParentRoute: () => appLayoutRoute,
-  path: "/recommendation-feedback",
+  getParentRoute: () => brandLayoutRoute,
+  path: "feedback",
   component: RecommendationFeedbackPage,
   validateSearch: validateRecommendationFeedbackSearch,
-  ...guardedBy({
-    titleKey: "nav.recommendationFeedback",
-    groupKey: "nav.insights",
-    icon: <ThumbsUpIcon />,
-    access: { anyBrand: "feedback.view" },
-  }),
+  ...brandPage("feedback", { titleKey: "nav.recommendationFeedback", icon: <ThumbsUpIcon /> }),
 });
 
-// Order here is the sidebar order; routes with a staticData icon and groupKey appear in the sidebar.
-const sidebarRoutes = [
+// Child order is the sidebar order, and matches CONSOLE_PAGES / BRAND_PAGES (the first-visible-page order)
+const consoleRoutes = consoleLayoutRoute.addChildren([
+  consoleIndexRoute,
   tenantsRoute,
   brandsRoute,
-  outletsRoute,
-  rolesRoute,
   usersRoute,
+  rolesRoute,
+]);
+
+const brandRoutes = brandLayoutRoute.addChildren([
+  brandIndexRoute,
+  outletsRoute,
+  membersRoute,
+  settingsRoute,
   snapshotsRoute,
   calculationsRoute,
   resultsRoute,
@@ -329,9 +391,15 @@ const sidebarRoutes = [
   apiKeysRoute,
   usageRoute,
   recommendationFeedbackRoute,
-] as const;
+]);
 
-const appRoutes = appLayoutRoute.addChildren([indexRoute, noAccessRoute, ...sidebarRoutes]);
+const appRoutes = appLayoutRoute.addChildren([
+  indexRoute,
+  noAccessRoute,
+  consoleRoutes,
+  brandRoutes,
+  legacyRoute,
+]);
 
 const routeTree = rootRoute.addChildren([loginRoute, welcomeRoute, appRoutes]);
 

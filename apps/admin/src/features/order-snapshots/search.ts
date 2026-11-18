@@ -1,5 +1,4 @@
 export type SnapshotsSearch = {
-  brandId?: string;
   outletId?: string;
 };
 
@@ -12,7 +11,6 @@ export function validateSnapshotsSearch(
   search: Record<string, unknown>,
 ): SnapshotsSearch {
   return {
-    brandId: optionalString(search.brandId),
     outletId: optionalString(search.outletId),
   };
 }

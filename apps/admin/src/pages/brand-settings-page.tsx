@@ -52,7 +52,7 @@ export function BrandSettingsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader title={t("nav.settings")} />
       <Tabs value={activeTab} onValueChange={openTab} className="gap-4">
-        <TabsList variant="line" className="w-full justify-start overflow-x-auto">
+        <TabsList variant="line" className="h-auto w-full flex-wrap justify-start gap-y-2 pb-1">
           {tabs.map((tab) => (
             <TabsTrigger key={tab.value} value={tab.value} className="flex-none">
               {t(TABS[tab.value].labelKey)}

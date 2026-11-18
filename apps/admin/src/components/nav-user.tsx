@@ -2,14 +2,12 @@ import { useNavigate } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
-import { Badge } from "@/components/ui/badge"
+import { MenuBand } from "@/components/menu-band"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { logout, signInHref } from "@/features/auth/api"
@@ -65,31 +63,30 @@ export function NavUser() {
           <ChevronDownIcon data-icon="inline-end" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-72 max-w-[calc(100vw-2rem)]">
-        <DropdownMenuLabel className="p-1 font-normal">
-          <div className="grid gap-1.5 rounded-md bg-muted/60 px-3 py-2.5 leading-tight">
-            <div className="flex min-w-0 items-center gap-2">
-              <span className="min-w-0 flex-1 truncate text-sm font-semibold" title={name}>
-                {name}
-              </span>
-              {user.console && (
-                <Badge variant="secondary" className="max-w-28 shrink-0 truncate">
-                  {user.console.roleName}
-                </Badge>
-              )}
-            </div>
-            <span className="truncate text-xs text-muted-foreground" title={user.email}>
-              {user.email}
-            </span>
-          </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
+      <DropdownMenuContent align="end" className="w-72 max-w-[calc(100vw-2rem)] p-0">
+        <MenuBand
+          aside={user.console && <span className="max-w-28 shrink-0 truncate normal-case">{user.console.roleName}</span>}
+        >
+          {t("signedIn")}
+        </MenuBand>
+        <div className="grid gap-0.5 px-3 py-2.5 leading-tight">
+          <span className="truncate text-sm font-semibold" title={name}>
+            {name}
+          </span>
+          <span className="truncate text-xs text-muted-foreground" title={user.email}>
+            {user.email}
+          </span>
+        </div>
         <WorkspaceSwitcher />
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => void switchAccount()}>{t("switchAccount")}</DropdownMenuItem>
-        <DropdownMenuItem variant="destructive" onSelect={() => void logOut()}>
-          {t("logOut")}
-        </DropdownMenuItem>
+        <MenuBand>{t("account")}</MenuBand>
+        <div className="p-1">
+          <DropdownMenuItem className="px-2 py-1.5" onSelect={() => void switchAccount()}>
+            {t("switchAccount")}
+          </DropdownMenuItem>
+          <DropdownMenuItem variant="destructive" className="px-2 py-1.5" onSelect={() => void logOut()}>
+            {t("logOut")}
+          </DropdownMenuItem>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   )

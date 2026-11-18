@@ -1,13 +1,12 @@
 import { useState, type ReactNode } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { useTranslation } from "react-i18next"
-import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
+import { MenuBand } from "@/components/menu-band"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { useCurrentUser } from "@/features/auth/queries"
@@ -32,7 +31,7 @@ function useSwitchWorkspace() {
 type WorkspaceRowProps = {
   title: string
   subtitle?: string
-  badge?: string
+  role?: string
   current: boolean
   onSwitch: () => void
 }
@@ -41,13 +40,13 @@ type WorkspaceRowProps = {
 const CURRENT_ROW =
   "bg-primary text-primary-foreground focus:bg-primary/90 focus:text-primary-foreground focus:**:text-primary-foreground"
 
-function WorkspaceRow({ title, subtitle, badge, current, onSwitch }: WorkspaceRowProps) {
+function WorkspaceRow({ title, subtitle, role, current, onSwitch }: WorkspaceRowProps) {
   return (
     <DropdownMenuItem
       onSelect={onSwitch}
-      title={[title, subtitle, badge].filter(Boolean).join(" · ")}
+      title={[title, subtitle, role].filter(Boolean).join(" · ")}
       aria-current={current ? "true" : undefined}
-      className={cn("gap-2.5 py-1.5", current && CURRENT_ROW)}
+      className={cn("gap-3 px-2 py-1.5", current && CURRENT_ROW)}
     >
       <span className="grid min-w-0 flex-1 leading-tight">
         <span className={cn("truncate", current && "font-medium")}>{title}</span>
@@ -57,49 +56,32 @@ function WorkspaceRow({ title, subtitle, badge, current, onSwitch }: WorkspaceRo
           </span>
         )}
       </span>
-      {badge && (
-        <Badge
-          variant="outline"
-          className={cn(
-            "max-w-24 shrink-0 truncate font-normal",
-            current ? "border-primary-foreground/40 text-primary-foreground" : "text-muted-foreground",
-          )}
-        >
-          {badge}
-        </Badge>
+      {role && (
+        <span className={cn("max-w-24 shrink-0 truncate text-xs", current ? "text-primary-foreground/85" : "text-muted-foreground")}>
+          {role}
+        </span>
       )}
     </DropdownMenuItem>
   )
 }
 
-function SectionLabel({ children, count }: { children: ReactNode; count?: number }) {
+function GroupRule({ name, children }: { name?: string; children: ReactNode }) {
   return (
-    <DropdownMenuLabel className="flex items-center gap-2 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-      <span className="flex-1">{children}</span>
-      {count !== undefined && (
-        <Badge variant="secondary" className="h-4 px-1.5 text-[10px] tabular-nums">
-          {count}
-        </Badge>
+    <DropdownMenuGroup className="ml-3 border-l-2 border-border py-0.5 pl-2">
+      {name && (
+        <DropdownMenuLabel className="truncate px-2 pt-0.5 pb-1 text-xs font-medium text-muted-foreground" title={name}>
+          {name}
+        </DropdownMenuLabel>
       )}
-    </DropdownMenuLabel>
-  )
-}
-
-function TenantLabel({ name }: { name: string }) {
-  return (
-    <DropdownMenuLabel
-      className="truncate pt-2 text-[11px] font-medium tracking-wide text-muted-foreground uppercase"
-      title={name}
-    >
-      {name}
-    </DropdownMenuLabel>
+      {children}
+    </DropdownMenuGroup>
   )
 }
 
 function SearchBox({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const { t } = useTranslation("auth")
   return (
-    <div className="px-1 pb-1">
+    <div className="px-2 pt-2">
       <Input
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -128,34 +110,34 @@ export function WorkspaceSwitcher() {
 
   return (
     <DropdownMenuGroup>
-      <SectionLabel count={workspaces.count}>{t("workspaces.heading")}</SectionLabel>
+      <MenuBand aside={<span className="tabular-nums">{workspaces.count}</span>}>{t("workspaces.heading")}</MenuBand>
       {searchable && <SearchBox value={query} onChange={setQuery} />}
-      <div className={searchable ? "max-h-72 overflow-y-auto" : undefined}>
+      <div className={cn("flex flex-col gap-1 p-1", searchable && "max-h-72 overflow-y-auto")}>
         {workspaces.console && (
-          <WorkspaceRow
-            title={t("workspaces.console")}
-            subtitle={t("workspaces.consoleHint")}
-            current={current?.kind === "console"}
-            onSwitch={() => switchTo(CONSOLE_KEY)}
-          />
+          <GroupRule>
+            <WorkspaceRow
+              title={t("workspaces.console")}
+              subtitle={t("workspaces.consoleHint")}
+              current={current?.kind === "console"}
+              onSwitch={() => switchTo(CONSOLE_KEY)}
+            />
+          </GroupRule>
         )}
-        {tenants.map((tenant, index) => (
-          <DropdownMenuGroup key={tenant.tenantId}>
-            {(index > 0 || workspaces.console) && <DropdownMenuSeparator />}
-            <TenantLabel name={tenant.tenantName} />
+        {tenants.map((tenant) => (
+          <GroupRule key={tenant.tenantId} name={tenant.tenantName}>
             {tenant.brands.map((brand) => (
               <WorkspaceRow
                 key={brand.brandId}
                 title={brand.brandName}
-                badge={brand.roleName ?? undefined}
+                role={brand.roleName ?? undefined}
                 current={brand.brandId === currentBrandId}
                 onSwitch={() => switchTo(brand.brandId)}
               />
             ))}
-          </DropdownMenuGroup>
+          </GroupRule>
         ))}
         {searchable && query.trim() && tenants.length === 0 && (
-          <p className="px-1.5 py-1 text-sm text-muted-foreground">{t("workspaces.noMatches")}</p>
+          <p className="px-2 py-1 text-sm text-muted-foreground">{t("workspaces.noMatches")}</p>
         )}
       </div>
     </DropdownMenuGroup>

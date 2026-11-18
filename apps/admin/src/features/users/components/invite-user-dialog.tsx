@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { usePermissions } from "@/features/auth/permissions";
-import { brandMemberKeys } from "@/features/brand-members/queries";
+import { brandUserKeys } from "@/features/brand-users/queries";
 import { roleKeys } from "@/features/roles/queries";
 import { getErrorMessage } from "@/lib/error-message";
 import { buildInviteBody, hasAnyRole } from "../invite-request";
@@ -64,7 +64,7 @@ function InviteForm({ onDone }: { onDone: () => void }) {
   function invalidateAssigned() {
     void queryClient.invalidateQueries({ queryKey: roleKeys.all });
     for (const { brandId } of brandRoles) {
-      void queryClient.invalidateQueries({ queryKey: brandMemberKeys.list(brandId) });
+      void queryClient.invalidateQueries({ queryKey: brandUserKeys.list(brandId) });
     }
   }
 

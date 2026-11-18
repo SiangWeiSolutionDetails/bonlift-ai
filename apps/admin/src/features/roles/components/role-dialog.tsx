@@ -104,7 +104,7 @@ function useCanSeeAssignments(scope: RoleScope) {
   const me = useCurrentUser();
   const { canConsole } = usePermissions();
   if (scope.kind === "console") return canConsole("users.view");
-  return holdsBrandAction(me, scope.brandId, "members.view");
+  return holdsBrandAction(me, scope.brandId, "brandUsers.view");
 }
 
 function AssignedUsers({ scope, roleId }: { scope: RoleScope; roleId: string }) {

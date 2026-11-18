@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { usePermissions } from "@/features/auth/permissions";
 import { meQueryOptions, useCurrentUser } from "@/features/auth/queries";
-import { brandMemberKeys } from "@/features/brand-members/queries";
+import { brandUserKeys } from "@/features/brand-users/queries";
 import { roleKeys } from "@/features/roles/queries";
 import { getErrorMessage } from "@/lib/error-message";
 import { runSaveStep } from "../api";
@@ -90,7 +90,7 @@ function useInvalidateSavedChanges() {
       queryClient.invalidateQueries({ queryKey: userKeys.brandRoles(userId) }),
       queryClient.invalidateQueries({ queryKey: roleKeys.all }),
       ...[...brandIds].map((brandId) =>
-        queryClient.invalidateQueries({ queryKey: brandMemberKeys.list(brandId) }),
+        queryClient.invalidateQueries({ queryKey: brandUserKeys.list(brandId) }),
       ),
       ...(userId.toLowerCase() === me.id.toLowerCase()
         ? [queryClient.invalidateQueries({ queryKey: meQueryOptions.queryKey })]

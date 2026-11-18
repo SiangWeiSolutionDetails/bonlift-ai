@@ -13,44 +13,44 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiError } from "@/lib/api-client";
 import { getErrorMessage } from "@/lib/error-message";
-import { useAddBrandMember, useBrandMembers } from "../queries";
+import { useAddBrandUser, useBrandUsers } from "../queries";
 import { useRoleOptions, type RoleOption } from "../use-role-options";
 import { RoleSelect } from "./role-select";
 
-type AddMemberDialogProps = {
+type AddBrandUserDialogProps = {
   brandId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
 
-export function AddMemberDialog({ brandId, open, onOpenChange }: AddMemberDialogProps) {
+export function AddBrandUserDialog({ brandId, open, onOpenChange }: AddBrandUserDialogProps) {
   const { t } = useTranslation("brands");
-  const { data: members } = useBrandMembers(brandId);
-  const roles = useRoleOptions(members ?? [], brandId);
+  const { data: brandUsers } = useBrandUsers(brandId);
+  const roles = useRoleOptions(brandUsers ?? [], brandId);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent aria-describedby={undefined}>
         <DialogHeader>
-          <DialogTitle>{t("members.newTitle")}</DialogTitle>
+          <DialogTitle>{t("users.newTitle")}</DialogTitle>
         </DialogHeader>
         {/* Lives inside DialogContent, which unmounts on close, so form state resets for free */}
-        <AddMemberForm brandId={brandId} roles={roles} onAdded={() => onOpenChange(false)} />
+        <AddBrandUserForm brandId={brandId} roles={roles} onAdded={() => onOpenChange(false)} />
       </DialogContent>
     </Dialog>
   );
 }
 
-type AddMemberFormProps = {
+type AddBrandUserFormProps = {
   brandId: string;
   roles: RoleOption[];
   onAdded: () => void;
 };
 
-function AddMemberForm({ brandId, roles, onAdded }: AddMemberFormProps) {
+function AddBrandUserForm({ brandId, roles, onAdded }: AddBrandUserFormProps) {
   const { t } = useTranslation("brands");
   const { t: tCommon } = useTranslation();
-  const mutation = useAddBrandMember(brandId);
+  const mutation = useAddBrandUser(brandId);
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [roleId, setRoleId] = useState("");
@@ -68,15 +68,15 @@ function AddMemberForm({ brandId, roles, onAdded }: AddMemberFormProps) {
   const error = mutation.error;
   const errorMessage =
     error instanceof ApiError && error.status === 409
-      ? t("members.accountDisabled")
+      ? t("users.accountDisabled")
       : error && getErrorMessage(error, tCommon);
 
   return (
     <form onSubmit={submit} className="grid gap-6">
       <div className="grid gap-2">
-        <Label htmlFor="member-email">{t("members.email")}</Label>
+        <Label htmlFor="brand-user-email">{t("users.email")}</Label>
         <Input
-          id="member-email"
+          id="brand-user-email"
           type="email"
           value={email}
           autoComplete="off"
@@ -84,22 +84,22 @@ function AddMemberForm({ brandId, roles, onAdded }: AddMemberFormProps) {
         />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="member-name">{t("members.displayName")}</Label>
+        <Label htmlFor="brand-user-name">{t("users.displayName")}</Label>
         <Input
-          id="member-name"
+          id="brand-user-name"
           value={displayName}
           autoComplete="off"
           onChange={(event) => setDisplayName(event.target.value)}
         />
-        <p className="text-xs text-muted-foreground">{t("members.displayNameHint")}</p>
+        <p className="text-xs text-muted-foreground">{t("users.displayNameHint")}</p>
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="member-role">{t("members.role")}</Label>
+        <Label htmlFor="brand-user-role">{t("users.role")}</Label>
         <RoleSelect
-          id="member-role"
+          id="brand-user-role"
           value={roleId}
           options={roles}
-          placeholder={t("members.rolePlaceholder")}
+          placeholder={t("users.rolePlaceholder")}
           disabled={mutation.isPending}
           onChange={setRoleId}
         />
@@ -112,7 +112,7 @@ function AddMemberForm({ brandId, roles, onAdded }: AddMemberFormProps) {
           </Button>
         </DialogClose>
         <Button type="submit" disabled={mutation.isPending || !trimmedEmail || !roleId}>
-          {t(mutation.isPending ? "members.adding" : "members.add")}
+          {t(mutation.isPending ? "users.adding" : "users.add")}
         </Button>
       </DialogFooter>
     </form>

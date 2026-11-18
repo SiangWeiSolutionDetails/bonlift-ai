@@ -30,7 +30,7 @@ type BrandPage = LegacyBrandPage | (BrandPageBase & { legacyPath: null; action: 
 
 export const BRAND_PAGES: BrandPage[] = [
   { segment: "outlets", legacyPath: "/outlets", action: "outlets.view", groupKey: "brand" },
-  { segment: "members", legacyPath: null, action: "members.view", groupKey: "brand" },
+  { segment: "users", legacyPath: null, action: "brandUsers.view", groupKey: "brand" },
   { segment: "roles", legacyPath: null, action: "brandRoles.view", groupKey: "brand" },
   {
     segment: "settings",

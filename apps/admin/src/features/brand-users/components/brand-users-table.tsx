@@ -12,22 +12,22 @@ import {
 } from "@/components/ui/table";
 import { getErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
-import type { BrandMember } from "../type";
+import type { BrandUser } from "../type";
 
 const COLUMN_COUNT = 4;
 const SKELETON_ROW_COUNT = 3;
 
-type BrandMembersTableProps = {
-  members: BrandMember[] | undefined;
+type BrandUsersTableProps = {
+  brandUsers: BrandUser[] | undefined;
   isPending: boolean;
   error: Error | null;
   currentUserId: string;
   isBusy: boolean;
-  onEdit?: (member: BrandMember) => void;
-  onRemove?: (member: BrandMember) => void;
+  onEdit?: (brandUser: BrandUser) => void;
+  onRemove?: (brandUser: BrandUser) => void;
 };
 
-export function BrandMembersTable(props: BrandMembersTableProps) {
+export function BrandUsersTable(props: BrandUsersTableProps) {
   const { t } = useTranslation("brands");
 
   return (
@@ -35,31 +35,31 @@ export function BrandMembersTable(props: BrandMembersTableProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>{t("members.name")}</TableHead>
-            <TableHead>{t("members.email")}</TableHead>
-            <TableHead className="w-48">{t("members.role")}</TableHead>
+            <TableHead>{t("users.name")}</TableHead>
+            <TableHead>{t("users.email")}</TableHead>
+            <TableHead className="w-48">{t("users.role")}</TableHead>
             <TableHead className="w-48 text-right">
-              <span className="sr-only">{t("members.rowActions")}</span>
+              <span className="sr-only">{t("users.rowActions")}</span>
             </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          <BrandMembersTableRows {...props} />
+          <BrandUsersTableRows {...props} />
         </TableBody>
       </Table>
     </div>
   );
 }
 
-function BrandMembersTableRows({
-  members,
+function BrandUsersTableRows({
+  brandUsers,
   isPending,
   error,
   currentUserId,
   isBusy,
   onEdit,
   onRemove,
-}: BrandMembersTableProps) {
+}: BrandUsersTableProps) {
   const { t } = useTranslation("brands");
   const { t: tCommon } = useTranslation();
 
@@ -77,19 +77,19 @@ function BrandMembersTableRows({
     return <MessageRow className="text-destructive">{getErrorMessage(error, tCommon)}</MessageRow>;
   }
 
-  if (!members?.length) {
-    return <MessageRow>{t("members.empty")}</MessageRow>;
+  if (!brandUsers?.length) {
+    return <MessageRow>{t("users.empty")}</MessageRow>;
   }
 
-  return members.map((member) => {
-    const isSelf = member.userId.toLowerCase() === currentUserId.toLowerCase();
-    const label = member.displayName ?? member.email;
-    const lockHint = isSelf ? t("members.ownRow") : undefined;
+  return brandUsers.map((brandUser) => {
+    const isSelf = brandUser.userId.toLowerCase() === currentUserId.toLowerCase();
+    const label = brandUser.displayName ?? brandUser.email;
+    const lockHint = isSelf ? t("users.ownRow") : undefined;
     return (
-      <TableRow key={member.userId}>
-        <TableCell className="font-medium">{member.displayName ?? "-"}</TableCell>
-        <TableCell>{member.email}</TableCell>
-        <TableCell>{member.roleName}</TableCell>
+      <TableRow key={brandUser.userId}>
+        <TableCell className="font-medium">{brandUser.displayName ?? "-"}</TableCell>
+        <TableCell>{brandUser.email}</TableCell>
+        <TableCell>{brandUser.roleName}</TableCell>
         <TableCell className="text-right">
           {onEdit && (
             <Button
@@ -97,8 +97,8 @@ function BrandMembersTableRows({
               size="sm"
               disabled={isSelf || isBusy}
               title={lockHint}
-              aria-label={t("members.editNamed", { name: label })}
-              onClick={() => onEdit(member)}
+              aria-label={t("users.editNamed", { name: label })}
+              onClick={() => onEdit(brandUser)}
             >
               {tCommon("actions.edit")}
             </Button>
@@ -110,10 +110,10 @@ function BrandMembersTableRows({
               className="text-destructive hover:text-destructive"
               disabled={isSelf || isBusy}
               title={lockHint}
-              aria-label={t("members.removeNamed", { name: label })}
-              onClick={() => onRemove(member)}
+              aria-label={t("users.removeNamed", { name: label })}
+              onClick={() => onRemove(brandUser)}
             >
-              {t("members.remove")}
+              {t("users.remove")}
             </Button>
           )}
         </TableCell>

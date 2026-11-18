@@ -57,7 +57,7 @@ describe("grantLimit for brand roles", () => {
 
   it("gives provider support every brand action except personal data", () => {
     const limit = grantLimit(me({ console: consoleRole(["provider.support"]) }), brandScope(BRAND_A));
-    expect(limit.has("members.manage")).toBe(true);
+    expect(limit.has("brandUsers.manage")).toBe(true);
     expect(sorted(limit)).toEqual(
       BRAND_ACTIONS.filter((action) => !PERSONAL_DATA_ACTIONS.includes(action)).sort(),
     );
@@ -92,9 +92,9 @@ describe("grantLimit for console roles", () => {
 
 describe("holdsBrandAction", () => {
   it("passes through a brand role on that brand only", () => {
-    const user = me({ brands: [brand(BRAND_A, ["members.view"])] });
-    expect(holdsBrandAction(user, BRAND_A, "members.view")).toBe(true);
-    expect(holdsBrandAction(user, BRAND_B, "members.view")).toBe(false);
+    const user = me({ brands: [brand(BRAND_A, ["brandUsers.view"])] });
+    expect(holdsBrandAction(user, BRAND_A, "brandUsers.view")).toBe(true);
+    expect(holdsBrandAction(user, BRAND_B, "brandUsers.view")).toBe(false);
   });
 
   it("passes through provider grants on any brand, never for personal data", () => {

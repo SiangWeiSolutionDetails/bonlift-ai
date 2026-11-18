@@ -3,27 +3,27 @@ import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useCurrentUser } from "@/features/auth/queries";
 import { getErrorMessage } from "@/lib/error-message";
-import { useBrandMembers, useChangeBrandMemberRole, useRemoveBrandMember } from "../queries";
-import type { BrandMember } from "../type";
+import { useBrandUsers, useChangeBrandUserRole, useRemoveBrandUser } from "../queries";
+import type { BrandUser } from "../type";
 import { useRoleOptions } from "../use-role-options";
-import { BrandMembersTable } from "./brand-members-table";
-import { EditMemberRoleDialog } from "./edit-member-role-dialog";
+import { BrandUsersTable } from "./brand-users-table";
+import { EditBrandUserRoleDialog } from "./edit-brand-user-role-dialog";
 
-type BrandMembersSectionProps = {
+type BrandUsersSectionProps = {
   brandId: string;
   readOnly: boolean;
 };
 
-export function BrandMembersSection({ brandId, readOnly }: BrandMembersSectionProps) {
+export function BrandUsersSection({ brandId, readOnly }: BrandUsersSectionProps) {
   const { t } = useTranslation("brands");
   const { t: tCommon } = useTranslation();
   const me = useCurrentUser();
-  const { data: members, error, isPending } = useBrandMembers(brandId);
-  const roles = useRoleOptions(members ?? [], brandId);
-  const changeMutation = useChangeBrandMemberRole(brandId);
-  const removeMutation = useRemoveBrandMember(brandId);
-  const [toEdit, setToEdit] = useState<BrandMember | null>(null);
-  const [toRemove, setToRemove] = useState<BrandMember | null>(null);
+  const { data: brandUsers, error, isPending } = useBrandUsers(brandId);
+  const roles = useRoleOptions(brandUsers ?? [], brandId);
+  const changeMutation = useChangeBrandUserRole(brandId);
+  const removeMutation = useRemoveBrandUser(brandId);
+  const [toEdit, setToEdit] = useState<BrandUser | null>(null);
+  const [toRemove, setToRemove] = useState<BrandUser | null>(null);
   // Not cleared on close, so the title doesn't go blank while the dialog animates out
   const [removeTitleName, setRemoveTitleName] = useState("");
 
@@ -33,8 +33,8 @@ export function BrandMembersSection({ brandId, readOnly }: BrandMembersSectionPr
         <p className="text-sm text-destructive">{getErrorMessage(removeMutation.error, tCommon)}</p>
       )}
 
-      <BrandMembersTable
-        members={members}
+      <BrandUsersTable
+        brandUsers={brandUsers}
         isPending={isPending}
         error={error}
         currentUserId={me.id}
@@ -42,24 +42,24 @@ export function BrandMembersSection({ brandId, readOnly }: BrandMembersSectionPr
         onEdit={
           readOnly
             ? undefined
-            : (member) => {
+            : (brandUser) => {
                 changeMutation.reset();
-                setToEdit(member);
+                setToEdit(brandUser);
               }
         }
         onRemove={
           readOnly
             ? undefined
-            : (member) => {
+            : (brandUser) => {
                 removeMutation.reset();
-                setRemoveTitleName(member.displayName ?? member.email);
-                setToRemove(member);
+                setRemoveTitleName(brandUser.displayName ?? brandUser.email);
+                setToRemove(brandUser);
               }
         }
       />
 
-      <EditMemberRoleDialog
-        member={toEdit}
+      <EditBrandUserRoleDialog
+        brandUser={toEdit}
         roles={roles}
         mutation={changeMutation}
         onClose={() => setToEdit(null)}
@@ -67,9 +67,9 @@ export function BrandMembersSection({ brandId, readOnly }: BrandMembersSectionPr
 
       <ConfirmDialog
         open={toRemove !== null}
-        title={t("members.removeConfirmTitle", { name: removeTitleName })}
-        description={t("members.removeConfirmDescription")}
-        confirmLabel={t("members.remove")}
+        title={t("users.removeConfirmTitle", { name: removeTitleName })}
+        description={t("users.removeConfirmDescription")}
+        confirmLabel={t("users.remove")}
         onCancel={() => setToRemove(null)}
         onConfirm={() => {
           if (toRemove && !removeMutation.isPending) removeMutation.mutate(toRemove.userId);

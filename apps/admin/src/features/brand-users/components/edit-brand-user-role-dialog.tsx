@@ -11,39 +11,39 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { getErrorMessage } from "@/lib/error-message";
-import type { useChangeBrandMemberRole } from "../queries";
-import type { BrandMember } from "../type";
+import type { useChangeBrandUserRole } from "../queries";
+import type { BrandUser } from "../type";
 import type { RoleOption } from "../use-role-options";
 import { RoleSelect } from "./role-select";
 
-type ChangeRoleMutation = ReturnType<typeof useChangeBrandMemberRole>;
+type ChangeRoleMutation = ReturnType<typeof useChangeBrandUserRole>;
 
-type EditMemberRoleDialogProps = {
-  member: BrandMember | null;
+type EditBrandUserRoleDialogProps = {
+  brandUser: BrandUser | null;
   roles: RoleOption[];
   mutation: ChangeRoleMutation;
   onClose: () => void;
 };
 
-export function EditMemberRoleDialog({ member, roles, mutation, onClose }: EditMemberRoleDialogProps) {
+export function EditBrandUserRoleDialog({ brandUser, roles, mutation, onClose }: EditBrandUserRoleDialogProps) {
   const { t } = useTranslation("brands");
   // Kept after close so the title doesn't go blank while the dialog animates out
-  const [lastMember, setLastMember] = useState(member);
-  if (member && member !== lastMember) setLastMember(member);
-  const shown = member ?? lastMember;
+  const [lastBrandUser, setLastBrandUser] = useState(brandUser);
+  if (brandUser && brandUser !== lastBrandUser) setLastBrandUser(brandUser);
+  const shown = brandUser ?? lastBrandUser;
 
   return (
-    <Dialog open={member !== null} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={brandUser !== null} onOpenChange={(open) => !open && onClose()}>
       <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle className="truncate">
-            {t("members.editTitle", { name: shown?.displayName ?? shown?.email })}
+            {t("users.editTitle", { name: shown?.displayName ?? shown?.email })}
           </DialogTitle>
         </DialogHeader>
-        {member && (
-          <EditMemberRoleForm
-            key={member.userId}
-            member={member}
+        {brandUser && (
+          <EditBrandUserRoleForm
+            key={brandUser.userId}
+            brandUser={brandUser}
             roles={roles}
             mutation={mutation}
             onSaved={onClose}
@@ -54,32 +54,32 @@ export function EditMemberRoleDialog({ member, roles, mutation, onClose }: EditM
   );
 }
 
-type EditMemberRoleFormProps = {
-  member: BrandMember;
+type EditBrandUserRoleFormProps = {
+  brandUser: BrandUser;
   roles: RoleOption[];
   mutation: ChangeRoleMutation;
   onSaved: () => void;
 };
 
-function EditMemberRoleForm({ member, roles, mutation, onSaved }: EditMemberRoleFormProps) {
+function EditBrandUserRoleForm({ brandUser, roles, mutation, onSaved }: EditBrandUserRoleFormProps) {
   const { t } = useTranslation("brands");
   const { t: tCommon } = useTranslation();
-  const [roleId, setRoleId] = useState(member.roleId);
-  const options = roles.some((role) => role.id === member.roleId)
+  const [roleId, setRoleId] = useState(brandUser.roleId);
+  const options = roles.some((role) => role.id === brandUser.roleId)
     ? roles
-    : [...roles, { id: member.roleId, name: member.roleName }];
+    : [...roles, { id: brandUser.roleId, name: brandUser.roleName }];
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    mutation.mutate({ userId: member.userId, roleId }, { onSuccess: onSaved });
+    mutation.mutate({ userId: brandUser.userId, roleId }, { onSuccess: onSaved });
   }
 
   return (
     <form onSubmit={submit} className="grid gap-6">
       <div className="grid gap-2">
-        <Label htmlFor="member-edit-role">{t("members.role")}</Label>
+        <Label htmlFor="brand-user-edit-role">{t("users.role")}</Label>
         <RoleSelect
-          id="member-edit-role"
+          id="brand-user-edit-role"
           value={roleId}
           options={options}
           disabled={mutation.isPending}
@@ -95,7 +95,7 @@ function EditMemberRoleForm({ member, roles, mutation, onSaved }: EditMemberRole
             {tCommon("actions.cancel")}
           </Button>
         </DialogClose>
-        <Button type="submit" disabled={mutation.isPending || roleId === member.roleId}>
+        <Button type="submit" disabled={mutation.isPending || roleId === brandUser.roleId}>
           {tCommon(mutation.isPending ? "actions.saving" : "actions.save")}
         </Button>
       </DialogFooter>

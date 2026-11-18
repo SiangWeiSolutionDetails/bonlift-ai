@@ -4,8 +4,8 @@ import type { SaveStep } from "./user-save-plan";
 
 const userPath = (userId: string) => `/users/${encodeURIComponent(userId)}`;
 
-const memberPath = (brandId: string, userId: string) =>
-  `/brands/${encodeURIComponent(brandId)}/members/${encodeURIComponent(userId)}`;
+const brandUserPath = (brandId: string, userId: string) =>
+  `/brands/${encodeURIComponent(brandId)}/users/${encodeURIComponent(userId)}`;
 
 export async function listUsers(signal: AbortSignal) {
   const data = await apiRequest<{ users: UserRecord[] }>("/users", { signal });
@@ -48,14 +48,14 @@ export async function listUserBrandRoles(userId: string, signal: AbortSignal) {
 }
 
 export async function setBrandRole(brandId: string, userId: string, roleId: string) {
-  return await apiRequest<unknown>(memberPath(brandId, userId), {
+  return await apiRequest<unknown>(brandUserPath(brandId, userId), {
     method: "PUT",
     body: { roleId },
   });
 }
 
 export async function removeBrandRole(brandId: string, userId: string) {
-  return await apiRequest<void>(memberPath(brandId, userId), { method: "DELETE" });
+  return await apiRequest<void>(brandUserPath(brandId, userId), { method: "DELETE" });
 }
 
 export async function runSaveStep(userId: string, step: SaveStep) {

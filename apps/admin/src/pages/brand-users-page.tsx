@@ -4,34 +4,34 @@ import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { usePermissions } from "@/features/auth/permissions";
-import { AddMemberDialog } from "@/features/brand-members/components/add-member-dialog";
-import { BrandMembersSection } from "@/features/brand-members/components/brand-members-section";
+import { AddBrandUserDialog } from "@/features/brand-users/components/add-brand-user-dialog";
+import { BrandUsersSection } from "@/features/brand-users/components/brand-users-section";
 import { useWorkspaceBrandId } from "@/features/workspaces/use-workspace";
 
-export function BrandMembersPage() {
+export function BrandUsersPage() {
   const { t } = useTranslation();
   const { t: tBrands } = useTranslation("brands");
   const brandId = useWorkspaceBrandId();
   const { canBrand } = usePermissions();
   const [addOpen, setAddOpen] = useState(false);
-  const canManage = canBrand(brandId, "members.manage");
+  const canManage = canBrand(brandId, "brandUsers.manage");
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={t("nav.members")}
+        title={t("nav.brandUsers")}
         action={
           canManage && (
             <Button onClick={() => setAddOpen(true)}>
               <PlusIcon data-icon="inline-start" />
-              {tBrands("members.newUser")}
+              {tBrands("users.newUser")}
             </Button>
           )
         }
       />
-      <p className="text-sm text-muted-foreground">{tBrands("members.description")}</p>
-      <BrandMembersSection brandId={brandId} readOnly={!canManage} />
-      {canManage && <AddMemberDialog brandId={brandId} open={addOpen} onOpenChange={setAddOpen} />}
+      <p className="text-sm text-muted-foreground">{tBrands("users.description")}</p>
+      <BrandUsersSection brandId={brandId} readOnly={!canManage} />
+      {canManage && <AddBrandUserDialog brandId={brandId} open={addOpen} onOpenChange={setAddOpen} />}
     </div>
   );
 }

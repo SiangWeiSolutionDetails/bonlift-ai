@@ -45,7 +45,7 @@
     "schedule": "Schedule",
     "channels": "Channels"
   },
-  "members": {
+  "users": {
     "description": "People who can work on this brand, and their role on it.",
     "empty": "No users yet.",
     "remove": "Remove",

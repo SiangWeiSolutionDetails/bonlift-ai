@@ -56,7 +56,7 @@ import type enCommon from "@/i18n/locales/en/common.json";
 import { ApiError } from "@/lib/api-client";
 import { queryClient } from "@/lib/query-client";
 import { ApiKeysPage } from "@/pages/api-keys-page";
-import { BrandMembersPage } from "@/pages/brand-members-page";
+import { BrandUsersPage } from "@/pages/brand-users-page";
 import { BrandRolesPage } from "@/pages/brand-roles-page";
 import { BrandSettingsPage } from "@/pages/brand-settings-page";
 import { BrandsPage } from "@/pages/brands-page";
@@ -324,11 +324,19 @@ const outletsRoute = createRoute({
   ...brandPage("outlets", { titleKey: "nav.outlets", icon: <StoreIcon /> }),
 });
 
-const membersRoute = createRoute({
+const brandUsersRoute = createRoute({
+  getParentRoute: () => brandLayoutRoute,
+  path: "users",
+  component: BrandUsersPage,
+  ...brandPage("users", { titleKey: "nav.brandUsers", icon: <UserRoundCogIcon /> }),
+});
+
+const legacyBrandMembersRoute = createRoute({
   getParentRoute: () => brandLayoutRoute,
   path: "members",
-  component: BrandMembersPage,
-  ...brandPage("members", { titleKey: "nav.members", icon: <UserRoundCogIcon /> }),
+  beforeLoad: ({ params, search }) => {
+    throw redirect({ to: "/b/$brandId/users", params, search, replace: true });
+  },
 });
 
 const brandRolesRoute = createRoute({
@@ -427,7 +435,8 @@ const consoleRoutes = consoleLayoutRoute.addChildren([
 const brandRoutes = brandLayoutRoute.addChildren([
   brandIndexRoute,
   outletsRoute,
-  membersRoute,
+  brandUsersRoute,
+  legacyBrandMembersRoute,
   brandRolesRoute,
   settingsRoute,
   snapshotsRoute,

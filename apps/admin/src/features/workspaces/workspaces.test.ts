@@ -202,7 +202,7 @@ describe("firstVisiblePage", () => {
 describe("page tables", () => {
   it("lists pages in sidebar order", () => {
     expect(BRAND_PAGES.map((p) => p.segment)).toEqual([
-      "outlets", "members", "roles", "settings", "snapshots", "calculations", "results",
+      "outlets", "users", "roles", "settings", "snapshots", "calculations", "results",
       "customer-scores", "item-affinity", "api-keys", "usage", "feedback",
     ]);
     expect(CONSOLE_PAGES.map((p) => p.segment)).toEqual(["tenants", "brands", "users", "roles"]);

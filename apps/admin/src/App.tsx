@@ -10,10 +10,10 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
 } from '@/components/ui/breadcrumb'
-import { WorkspaceLabel } from "@/features/workspaces/components/workspace-label"
 import { Separator } from '@/components/ui/separator'
 import { Toaster } from '@/components/ui/sonner'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
+import { WorkspaceLabel } from '@/features/workspaces/components/workspace-label'
 
 function App() {
   const { t } = useTranslation()

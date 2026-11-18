@@ -48,7 +48,7 @@ export function NavUser() {
           <ChevronDownIcon data-icon="inline-end" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-56">
+      <DropdownMenuContent align="end" className="w-72 max-w-[calc(100vw-2rem)]">
         <DropdownMenuLabel className="grid font-normal leading-tight">
           <span className="truncate font-medium">{name}</span>
           <span className="truncate text-xs text-muted-foreground">{user.email}</span>

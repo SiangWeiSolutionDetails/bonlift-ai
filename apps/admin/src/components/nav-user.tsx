@@ -145,7 +145,7 @@ export function NavUser() {
         >
           {t("accounts")}
         </MenuBand>
-        <div className="p-1">
+        <div className="flex flex-col gap-1 p-1">
           <AccountList onSwitch={(email) => void switchToAccount(email)} />
           <DropdownMenuItem className="cursor-pointer px-2 py-1.5" onSelect={() => void addAccount()}>
             {t("addAccount")}

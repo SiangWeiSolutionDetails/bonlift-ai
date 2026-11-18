@@ -13,4 +13,10 @@ describe("signInHref", () => {
       "/api/auth/login/google?returnTo=%2F&selectAccount=1",
     );
   });
+
+  it("pre-fills Google with the chosen account's email", () => {
+    expect(signInHref("/", { loginHint: "a+b@example.com" })).toBe(
+      "/api/auth/login/google?returnTo=%2F&loginHint=a%2Bb%40example.com",
+    );
+  });
 });

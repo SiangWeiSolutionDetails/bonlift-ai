@@ -65,9 +65,9 @@ function WorkspaceRow({ title, subtitle, role, current, onSwitch }: WorkspaceRow
   )
 }
 
-function GroupRule({ name, children }: { name?: string; children: ReactNode }) {
+function WorkspaceGroup({ name, children }: { name?: string; children: ReactNode }) {
   return (
-    <DropdownMenuGroup className="ml-3 border-l-2 border-border py-0.5 pl-2">
+    <DropdownMenuGroup>
       {name && (
         <DropdownMenuLabel className="truncate px-2 pt-0.5 pb-1 text-xs font-medium text-muted-foreground" title={name}>
           {name}
@@ -112,19 +112,19 @@ export function WorkspaceSwitcher() {
     <DropdownMenuGroup>
       <MenuBand aside={<span className="tabular-nums">{workspaces.count}</span>}>{t("workspaces.heading")}</MenuBand>
       {searchable && <SearchBox value={query} onChange={setQuery} />}
-      <div className={cn("flex flex-col gap-1 p-1", searchable && "max-h-72 overflow-y-auto")}>
+      <div className={cn("flex flex-col gap-3 p-1", searchable && "max-h-72 overflow-y-auto")}>
         {workspaces.console && (
-          <GroupRule>
+          <WorkspaceGroup>
             <WorkspaceRow
               title={t("workspaces.console")}
               subtitle={t("workspaces.consoleHint")}
               current={current?.kind === "console"}
               onSwitch={() => switchTo(CONSOLE_KEY)}
             />
-          </GroupRule>
+          </WorkspaceGroup>
         )}
         {tenants.map((tenant) => (
-          <GroupRule key={tenant.tenantId} name={tenant.tenantName}>
+          <WorkspaceGroup key={tenant.tenantId} name={tenant.tenantName}>
             {tenant.brands.map((brand) => (
               <WorkspaceRow
                 key={brand.brandId}
@@ -134,7 +134,7 @@ export function WorkspaceSwitcher() {
                 onSwitch={() => switchTo(brand.brandId)}
               />
             ))}
-          </GroupRule>
+          </WorkspaceGroup>
         ))}
         {searchable && query.trim() && tenants.length === 0 && (
           <p className="px-2 py-1 text-sm text-muted-foreground">{t("workspaces.noMatches")}</p>

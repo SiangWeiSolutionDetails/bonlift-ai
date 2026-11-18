@@ -26,15 +26,10 @@ type UsersTableProps = {
   error: Error | null;
   currentUserId: string;
   currentUserIsAdmin: boolean;
-  canInvite: boolean;
-  canDisable: boolean;
-  canDelete: boolean;
-  canEdit: boolean;
   isBusy: boolean;
-  onEdit: (user: UserRecord) => void;
-  onReinvite: (user: UserRecord) => void;
-  onDisable: (user: UserRecord) => void;
-  onDelete: (user: UserRecord) => void;
+  onView: (user: UserRecord) => void;
+  onEdit?: (user: UserRecord) => void;
+  onDelete?: (user: UserRecord) => void;
 };
 
 export function UsersTable(props: UsersTableProps) {
@@ -51,7 +46,7 @@ export function UsersTable(props: UsersTableProps) {
             <TableHead className="w-48">{t("table.consoleRole")}</TableHead>
             <TableHead className="w-24">{t("table.brands")}</TableHead>
             <TableHead className="w-48">{t("table.lastLogin")}</TableHead>
-            <TableHead className="w-64 text-right">
+            <TableHead className="w-48 text-right">
               <span className="sr-only">{t("table.rowActions")}</span>
             </TableHead>
           </TableRow>
@@ -71,14 +66,9 @@ function UsersTableRows({
   error,
   currentUserId,
   currentUserIsAdmin,
-  canInvite,
-  canDisable,
-  canDelete,
-  canEdit,
   isBusy,
+  onView,
   onEdit,
-  onReinvite,
-  onDisable,
   onDelete,
 }: UsersTableProps) {
   const { t } = useTranslation("users");
@@ -107,6 +97,8 @@ function UsersTableRows({
     const isLocked = isSelf || (!!user.consoleRole?.isBuiltin && !currentUserIsAdmin);
     const isDisabled = user.status === "disabled";
     const lockHint = isSelf ? t("table.ownRow") : undefined;
+    const editHint = isDisabled ? t("table.reinviteToEdit") : lockHint;
+    const deleteHint = isDisabled ? lockHint : t("table.disableToDelete");
     return (
       <TableRow key={user.id}>
         <TableCell className="font-medium">{user.email}</TableCell>
@@ -118,52 +110,37 @@ function UsersTableRows({
         <TableCell>{user.brandCount}</TableCell>
         <TableCell>{user.lastLoginAt ? formatDateTime(user.lastLoginAt) : "-"}</TableCell>
         <TableCell className="text-right">
-          {!isDisabled && (
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={t("table.viewUser", { email: user.email })}
+            onClick={() => onView(user)}
+          >
+            {tCommon("actions.view")}
+          </Button>
+          {onEdit && (
             <Button
               variant="ghost"
               size="sm"
-              aria-label={t(canEdit ? "table.editUser" : "table.viewUser", { email: user.email })}
+              disabled={isLocked || isDisabled || isBusy}
+              title={editHint}
+              aria-label={t("table.editUser", { email: user.email })}
               onClick={() => onEdit(user)}
             >
-              {tCommon(canEdit ? "actions.edit" : "actions.view")}
+              {tCommon("actions.edit")}
             </Button>
           )}
-          {canInvite && isDisabled && (
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={isLocked || isBusy}
-              title={lockHint}
-              aria-label={t("table.reinviteUser", { email: user.email })}
-              onClick={() => onReinvite(user)}
-            >
-              {t("table.reinvite")}
-            </Button>
-          )}
-          {canDisable && !isDisabled && (
+          {onDelete && (
             <Button
               variant="ghost"
               size="sm"
               className="text-destructive hover:text-destructive"
-              disabled={isLocked || isBusy}
-              title={lockHint}
-              aria-label={t("table.disableUser", { email: user.email })}
-              onClick={() => onDisable(user)}
-            >
-              {t("table.disable")}
-            </Button>
-          )}
-          {canDelete && isDisabled && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-destructive hover:text-destructive"
-              disabled={isLocked || isBusy}
-              title={lockHint}
+              disabled={isLocked || !isDisabled || isBusy}
+              title={deleteHint}
               aria-label={t("table.deleteUser", { email: user.email })}
               onClick={() => onDelete(user)}
             >
-              {t("table.delete")}
+              {tCommon("actions.delete")}
             </Button>
           )}
         </TableCell>

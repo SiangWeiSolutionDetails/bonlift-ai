@@ -22,6 +22,7 @@ import type { UserBrandRole, UserRecord } from "../type";
 import { applySaveStep, keepsAnyRole, planUserSave, type SaveStep, type UserEditState } from "../user-save-plan";
 import { ConsoleRoleSelect } from "./console-role-select";
 import { UserBrandRolesField, type BrandRoleEntry } from "./user-brand-roles-field";
+import { UserStatusActions } from "./user-status-actions";
 
 const DISPLAY_NAME_MAX = 200;
 
@@ -29,10 +30,11 @@ type SavedChanges = { userId: string; brandIds: Set<string> };
 
 type UserEditDialogProps = {
   user: UserRecord | null;
+  readOnly: boolean;
   onClose: () => void;
 };
 
-export function UserEditDialog({ user, onClose }: UserEditDialogProps) {
+export function UserEditDialog({ user, readOnly, onClose }: UserEditDialogProps) {
   // Kept after close so the title doesn't go blank while the dialog animates out
   const [lastUser, setLastUser] = useState(user);
   if (user && user !== lastUser) setLastUser(user);
@@ -66,6 +68,7 @@ export function UserEditDialog({ user, onClose }: UserEditDialogProps) {
           <UserEditBody
             key={user.id}
             user={user}
+            readOnly={readOnly}
             saving={saving}
             onSavingChange={setSaving}
             onSaved={(step) => recordSaved(user.id, step)}
@@ -97,6 +100,7 @@ function useInvalidateSavedChanges() {
 
 type UserEditBodyProps = {
   user: UserRecord;
+  readOnly: boolean;
   saving: boolean;
   onSavingChange: (saving: boolean) => void;
   onSaved: (step: SaveStep) => void;
@@ -122,7 +126,7 @@ function UserEditBody(props: UserEditBodyProps) {
   );
 }
 
-function useEditAccess(user: UserRecord, brandRolesLoaded: boolean) {
+function useEditAccess(user: UserRecord, brandRolesLoaded: boolean, readOnly: boolean) {
   const me = useCurrentUser();
   const { canConsole } = usePermissions();
   const isSelf = user.id.toLowerCase() === me.id.toLowerCase();
@@ -130,12 +134,12 @@ function useEditAccess(user: UserRecord, brandRolesLoaded: boolean) {
   return {
     isSelf,
     adminLocked,
-    canName: canConsole("users.edit"),
-    canConsoleRole: canConsole("users.assignConsoleRoles"),
-    canBrandRoles: canConsole("users.assignBrandRoles"),
-    name: canConsole("users.edit") && !adminLocked,
-    consoleRole: canConsole("users.assignConsoleRoles") && !isSelf && !adminLocked,
-    brandRoles: canConsole("users.assignBrandRoles") && !isSelf && brandRolesLoaded,
+    canName: !readOnly && canConsole("users.edit"),
+    canConsoleRole: !readOnly && canConsole("users.assignConsoleRoles"),
+    canBrandRoles: !readOnly && canConsole("users.assignBrandRoles"),
+    name: !readOnly && canConsole("users.edit") && !adminLocked,
+    consoleRole: !readOnly && canConsole("users.assignConsoleRoles") && !isSelf && !adminLocked,
+    brandRoles: !readOnly && canConsole("users.assignBrandRoles") && !isSelf && brandRolesLoaded,
   };
 }
 
@@ -168,6 +172,7 @@ type UserEditFormProps = UserEditBodyProps & {
 
 function UserEditForm({
   user,
+  readOnly,
   saving,
   onSavingChange,
   onSaved,
@@ -178,7 +183,7 @@ function UserEditForm({
 }: UserEditFormProps) {
   const { t } = useTranslation("users");
   const { t: tCommon } = useTranslation();
-  const access = useEditAccess(user, brandRolesError === null);
+  const access = useEditAccess(user, brandRolesError === null, readOnly);
   const [baseline, setBaseline] = useState(() => initialState(user, initialBrandRoles));
   const [displayName, setDisplayName] = useState(baseline.displayName);
   const [consoleRoleId, setConsoleRoleId] = useState(baseline.consoleRoleId);
@@ -308,6 +313,7 @@ function UserEditForm({
       {report && <SaveReportLine report={report} />}
 
       <DialogFooter>
+        <UserStatusActions user={user} disabled={saving} onDone={onDone} />
         <Button type="button" variant="outline" disabled={saving} onClick={onCancel}>
           {isReadOnly ? tCommon("actions.close") : tCommon("actions.cancel")}
         </Button>

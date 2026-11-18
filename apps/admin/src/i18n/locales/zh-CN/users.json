@@ -1,7 +1,7 @@
 {
   "page": {
     "title": "用户",
-    "invite": "邀请用户"
+    "newUser": "新建用户"
   },
   "search": {
     "placeholder": "按邮箱或姓名搜索",
@@ -18,22 +18,23 @@
     "empty": "暂无用户。",
     "noRole": "无",
     "ownRow": "你不能更改自己的权限。",
-    "reinvite": "重新邀请",
-    "reinviteUser": "重新邀请 {{email}}",
-    "disable": "停用",
-    "disableUser": "停用 {{email}}",
-    "delete": "删除",
     "deleteUser": "删除 {{email}}",
     "editUser": "编辑 {{email}}",
-    "viewUser": "查看 {{email}}"
+    "viewUser": "查看 {{email}}",
+    "reinviteToEdit": "请先重新邀请该用户再编辑",
+    "disableToDelete": "请先停用该用户再删除"
   },
   "status": {
     "invited": "已邀请",
     "active": "正常",
     "disabled": "已停用"
   },
+  "actions": {
+    "disable": "停用",
+    "reinvite": "重新邀请"
+  },
   "invite": {
-    "title": "邀请用户",
+    "title": "新建用户",
     "email": "邮箱",
     "displayName": "名称（可选）",
     "displayNameHint": "填写名称后，用户将无法自行修改。留空则由用户在首次登录时自行设置。",

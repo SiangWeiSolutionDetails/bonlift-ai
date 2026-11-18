@@ -1,7 +1,7 @@
 {
   "page": {
     "title": "Users",
-    "invite": "Invite User"
+    "newUser": "New User"
   },
   "search": {
     "placeholder": "Search by email or name",
@@ -18,22 +18,23 @@
     "empty": "No users yet.",
     "noRole": "None",
     "ownRow": "You can't change your own access.",
-    "reinvite": "Reinvite",
-    "reinviteUser": "Reinvite {{email}}",
-    "disable": "Disable",
-    "disableUser": "Disable {{email}}",
-    "delete": "Delete",
     "deleteUser": "Delete {{email}}",
     "editUser": "Edit {{email}}",
-    "viewUser": "View {{email}}"
+    "viewUser": "View {{email}}",
+    "reinviteToEdit": "Reinvite the user to edit them",
+    "disableToDelete": "Disable the user before deleting them"
   },
   "status": {
     "invited": "Invited",
     "active": "Active",
     "disabled": "Disabled"
   },
+  "actions": {
+    "disable": "Disable",
+    "reinvite": "Reinvite"
+  },
   "invite": {
-    "title": "Invite User",
+    "title": "New user",
     "email": "Email",
     "displayName": "Name (optional)",
     "displayNameHint": "If you enter a name, the user can't change it. Leave it blank to let them choose their own when they first sign in.",

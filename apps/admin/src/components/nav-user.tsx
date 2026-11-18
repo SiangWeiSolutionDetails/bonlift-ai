@@ -44,6 +44,17 @@ function useLogOut() {
   }
 }
 
+// Signs out first: a still-signed-in account would be remembered again on the next load
+function useRemoveThisAccount(email: string) {
+  const endSession = useEndSession()
+  const navigate = useNavigate()
+  return async () => {
+    if (!(await endSession())) return
+    forgetAccount(email)
+    await navigate({ to: "/login" })
+  }
+}
+
 function currentPath() {
   return `${window.location.pathname}${window.location.search}`
 }
@@ -69,7 +80,6 @@ type AccountRowProps = {
   onSwitch: () => void
 }
 
-// Other accounts leave room on the right for the Remove button laid over the row
 function AccountRow({ account, current, onSwitch }: AccountRowProps) {
   const { t } = useTranslation("auth")
   const name = account.displayName ?? account.email
@@ -80,30 +90,13 @@ function AccountRow({ account, current, onSwitch }: AccountRowProps) {
       title={account.email}
       aria-current={current ? "true" : undefined}
       aria-label={current ? undefined : t("switchToAccount", { email: account.email })}
-      className={cn("cursor-pointer gap-3 px-2 py-1.5", !current && "pr-18")}
+      className="cursor-pointer gap-3 px-2 py-1.5"
     >
       <span className="grid min-w-0 flex-1 leading-tight">
         <span className={cn("truncate", current && "font-semibold")}>{name}</span>
         {name !== account.email && <span className="truncate text-xs text-muted-foreground">{account.email}</span>}
       </span>
       {current && <span className="shrink-0 text-xs text-muted-foreground">{t("signedIn")}</span>}
-    </DropdownMenuItem>
-  )
-}
-
-function RemoveAccountItem({ email }: { email: string }) {
-  const { t } = useTranslation("auth")
-  return (
-    <DropdownMenuItem
-      variant="destructive"
-      aria-label={t("removeAccountLabel", { email })}
-      className="absolute top-1/2 right-1 h-7 -translate-y-1/2 cursor-pointer px-2 text-xs"
-      onSelect={(event) => {
-        event.preventDefault()
-        forgetAccount(email)
-      }}
-    >
-      {t("removeAccount")}
     </DropdownMenuItem>
   )
 }
@@ -117,10 +110,12 @@ function AccountList({ onSwitch }: { onSwitch: (email: string) => void }) {
     <>
       <AccountRow account={user} current onSwitch={() => {}} />
       {others.map((account) => (
-        <div key={account.email} className="relative">
-          <AccountRow account={account} current={false} onSwitch={() => onSwitch(account.email)} />
-          <RemoveAccountItem email={account.email} />
-        </div>
+        <AccountRow
+          key={account.email}
+          account={account}
+          current={false}
+          onSwitch={() => onSwitch(account.email)}
+        />
       ))}
     </>
   )
@@ -132,6 +127,7 @@ export function NavUser() {
   const logOut = useLogOut()
   const switchToAccount = useSwitchToAccount()
   const addAccount = useAddAccount()
+  const removeThisAccount = useRemoveThisAccount(user.email)
   const name = user.displayName ?? user.email
   useRememberCurrentAccount(user.email, user.displayName)
 
@@ -158,6 +154,9 @@ export function NavUser() {
         <WorkspaceSwitcher />
         <MenuBand>{t("account")}</MenuBand>
         <div className="p-1">
+          <DropdownMenuItem className="cursor-pointer px-2 py-1.5" onSelect={() => void removeThisAccount()}>
+            {t("removeThisAccount")}
+          </DropdownMenuItem>
           <DropdownMenuItem variant="destructive" className="cursor-pointer px-2 py-1.5" onSelect={() => void logOut()}>
             {t("logOut")}
           </DropdownMenuItem>

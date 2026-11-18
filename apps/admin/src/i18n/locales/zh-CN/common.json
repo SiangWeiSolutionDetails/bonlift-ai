@@ -78,9 +78,6 @@
     "hour": "小时",
     "minute": "分钟"
   },
-  "workspace": {
-    "comingNext": "此页面即将推出。"
-  },
   "noAccess": {
     "message": "你没有访问此页面的权限。"
   }

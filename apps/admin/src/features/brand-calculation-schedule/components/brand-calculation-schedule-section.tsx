@@ -6,7 +6,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FieldError } from "@/components/field-error";
 import { FieldHint } from "@/components/field-hint";
 import { Button } from "@/components/ui/button";
-import { DialogClose, DialogFooter } from "@/components/ui/dialog";
+import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -240,11 +240,14 @@ function BrandCalculationScheduleForm({
 
       {!readOnly && (
         <DialogFooter>
-          <DialogClose asChild>
-            <Button type="button" variant="outline">
-              {tCommon("actions.cancel")}
-            </Button>
-          </DialogClose>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!isDirty || isSubmitting}
+            onClick={() => reset()}
+          >
+            {tCommon("actions.cancel")}
+          </Button>
           <Button type="submit" disabled={!isDirty || isSubmitting}>
             {isSubmitting ? tCommon("actions.saving") : t("schedule.save")}
           </Button>

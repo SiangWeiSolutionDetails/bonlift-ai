@@ -3,21 +3,15 @@
     "title": "Outlets",
     "newOutlet": "New Outlet"
   },
-  "filter": {
-    "brand": "Brand",
-    "allBrands": "All Brands"
-  },
   "search": {
     "placeholder": "Search outlets by name",
     "noMatches": "No outlets match your search."
   },
   "table": {
     "name": "Name",
-    "brand": "Brand",
     "status": "Status",
     "actions": "Actions",
     "empty": "No outlets yet.",
-    "unknownBrand": "Unknown brand",
     "editOutlet": "Edit {{name}}",
     "viewOutlet": "View {{name}}",
     "deleteOutlet": "Delete {{name}}",
@@ -27,8 +21,6 @@
   },
   "create": {
     "title": "New Outlet",
-    "brand": "Brand",
-    "brandPlaceholder": "Select a brand",
     "name": "Name"
   },
   "edit": {

@@ -160,9 +160,10 @@ function CreateKeyForm({ brandId, onCreated, onCancel }: CreateKeyFormProps) {
             <Link
               to="/b/$brandId/settings"
               params={{ brandId }}
+              search={{ tab: "channels" }}
               className="font-medium text-foreground underline underline-offset-4"
             >
-              {t("list.openBrands")}
+              {t("list.openChannelSettings")}
             </Link>
           </p>
         ) : (

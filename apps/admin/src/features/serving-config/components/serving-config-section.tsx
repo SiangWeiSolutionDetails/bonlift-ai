@@ -8,7 +8,7 @@ import { FieldError } from "@/components/field-error";
 import { FieldHint } from "@/components/field-hint";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DialogClose, DialogFooter } from "@/components/ui/dialog";
+import { DialogFooter } from "@/components/ui/dialog";
 import {
   Collapsible,
   CollapsibleContent,
@@ -149,6 +149,7 @@ function ServingConfigForm({
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors, isDirty },
   } = useForm<CreateServingConfigVersionInput>({
     resolver: servingConfigResolver,
@@ -253,11 +254,14 @@ function ServingConfigForm({
 
       {!readOnly && (
         <DialogFooter>
-          <DialogClose asChild>
-            <Button type="button" variant="outline">
-              {tCommon("actions.cancel")}
-            </Button>
-          </DialogClose>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!isDirty || isSubmitting}
+            onClick={() => reset()}
+          >
+            {tCommon("actions.cancel")}
+          </Button>
           <Button type="submit" disabled={!isDirty || isSubmitting}>
             {isSubmitting
               ? tCommon("actions.saving")

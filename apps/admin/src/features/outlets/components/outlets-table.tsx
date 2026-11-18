@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { CircleCheckIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
@@ -12,22 +12,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Brand } from "@/features/brands/type";
 import { getErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
 import type { Outlet } from "../type";
 import { CopyOutletIdButton } from "./copy-outlet-id-button";
 
-const COLUMN_COUNT = 4;
+const COLUMN_COUNT = 3;
 const SKELETON_ROW_COUNT = 5;
 
 type OutletsTableProps = {
   outlets: Outlet[] | undefined;
-  brands: Brand[];
   isPending: boolean;
   error: Error | null;
-  canEdit: (outlet: Outlet) => boolean;
-  canDelete: (outlet: Outlet) => boolean;
+  canEdit: boolean;
+  canDelete: boolean;
   onEdit: (outlet: Outlet) => void;
   onView: (outlet: Outlet) => void;
   onDelete: (outlet: Outlet) => void;
@@ -43,7 +41,6 @@ export function OutletsTable(props: OutletsTableProps) {
         <TableHeader>
           <TableRow>
             <TableHead>{t("table.name")}</TableHead>
-            <TableHead>{t("table.brand")}</TableHead>
             <TableHead className="w-32">{t("table.status")}</TableHead>
             <TableHead className="w-64 text-right">
               <span className="sr-only">{t("table.actions")}</span>
@@ -60,7 +57,6 @@ export function OutletsTable(props: OutletsTableProps) {
 
 function OutletsTableRows({
   outlets,
-  brands,
   isPending,
   error,
   canEdit,
@@ -72,11 +68,6 @@ function OutletsTableRows({
 }: OutletsTableProps) {
   const { t } = useTranslation("outlets");
   const { t: tCommon } = useTranslation();
-  // O(1) lookup per row instead of scanning the brand list for every outlet
-  const brandNameById = useMemo(
-    () => new Map(brands.map((brand) => [brand.id, brand.name])),
-    [brands],
-  );
 
   if (isPending) {
     return Array.from({ length: SKELETON_ROW_COUNT }, (_, index) => (
@@ -99,9 +90,6 @@ function OutletsTableRows({
   return outlets.map((outlet) => (
     <TableRow key={outlet.id}>
       <TableCell className="font-medium">{outlet.name}</TableCell>
-      <TableCell className="text-muted-foreground">
-        {brandNameById.get(outlet.brandId) ?? t("table.unknownBrand")}
-      </TableCell>
       <TableCell>
         <Badge variant={outlet.isActive ? "success" : "secondary"}>
           {outlet.isActive && <CircleCheckIcon />}
@@ -110,7 +98,7 @@ function OutletsTableRows({
       </TableCell>
       <TableCell className="text-right">
         <CopyOutletIdButton outlet={outlet} />
-        {canEdit(outlet) && (
+        {canEdit && (
           <Button
             variant="ghost"
             size="sm"
@@ -128,7 +116,7 @@ function OutletsTableRows({
         >
           {tCommon("actions.view")}
         </Button>
-        {canDelete(outlet) && (
+        {canDelete && (
           <Button
             variant="ghost"
             size="sm"

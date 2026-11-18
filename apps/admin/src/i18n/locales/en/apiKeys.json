@@ -43,7 +43,7 @@
     "channelHint": "The ordering app that uses this key. The key serves this channel only.",
     "channelPlaceholder": "Select a channel",
     "noChannels": "This brand has no active channel. Switch one on in the brand's Channels tab first.",
-    "openBrands": "Open Brands",
+    "openChannelSettings": "Open channel settings",
     "unassigned": "Unassigned"
   }
 }

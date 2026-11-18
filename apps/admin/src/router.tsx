@@ -27,10 +27,11 @@ import {
   UsersIcon,
 } from "lucide-react";
 import App from "@/App";
-import { hasAccess, type RouteAccess } from "@/features/auth/permissions";
+import { canBrand, hasAccess, type RouteAccess } from "@/features/auth/permissions";
 import { meQueryOptions } from "@/features/auth/queries";
 import { nameConfirmationRedirect, WELCOME_PATH } from "@/features/auth/name-confirmation";
 import { validateLoginSearch, validateWelcomeSearch } from "@/features/auth/search";
+import { resolveSettingsTab, validateSettingsSearch, visibleSettingsTabs } from "@/features/brand-settings/tabs";
 import { validateUsageSearch } from "@/features/brand-usage/search";
 import { validateCustomerScoresSearch } from "@/features/customer-item-scores/search";
 import { validateItemAffinitySearch } from "@/features/item-affinity/search";
@@ -156,6 +157,15 @@ async function redirectLegacyPath(location: ParsedLocation): Promise<never> {
   const target = legacyRedirect(me, pathname, location.search as Record<string, unknown>, readLastWorkspace());
   if (!target) throw notFound();
   throw redirectTo(target);
+}
+
+// A ?tab= that is unknown or hidden from the user is swapped for the first visible tab
+async function requireVisibleSettingsTab(brandId: string, tab: string | undefined) {
+  if (tab === undefined) return;
+  const me = await loadMe();
+  const resolved = resolveSettingsTab(tab, visibleSettingsTabs((action) => canBrand(me, brandId, action)));
+  if (resolved === tab) return;
+  throw redirect({ to: "/b/$brandId/settings", params: { brandId }, search: { tab: resolved }, replace: true });
 }
 
 // A direct hit on a page the sidebar hides lands on the no-access page
@@ -299,11 +309,18 @@ const membersRoute = createRoute({
   ...brandPage("members", { titleKey: "nav.members", icon: <UserRoundCogIcon /> }),
 });
 
+const settingsPage = brandPage("settings", { titleKey: "nav.settings", icon: <SettingsIcon /> });
+
 const settingsRoute = createRoute({
   getParentRoute: () => brandLayoutRoute,
   path: "settings",
   component: BrandSettingsPage,
-  ...brandPage("settings", { titleKey: "nav.settings", icon: <SettingsIcon /> }),
+  validateSearch: validateSettingsSearch,
+  staticData: settingsPage.staticData,
+  beforeLoad: async ({ params, search }) => {
+    await settingsPage.beforeLoad({ params });
+    await requireVisibleSettingsTab(params.brandId, search.tab);
+  },
 });
 
 const snapshotsRoute = createRoute({

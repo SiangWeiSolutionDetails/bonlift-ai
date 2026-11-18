@@ -16,6 +16,8 @@
     "editBrand": "Edit {{name}}",
     "viewBrand": "View {{name}}",
     "deleteBrand": "Delete {{name}}",
+    "openWorkspace": "Open Workspace",
+    "openWorkspaceOf": "Open the {{name}} workspace",
     "copyBrandId": "Copy brand ID of {{name}}",
     "copyId": "Copy ID",
     "copied": "Copied"
@@ -39,8 +41,7 @@
     "general": "General",
     "calculationConfigs": "Calculation Configs",
     "schedule": "Schedule",
-    "channels": "Channels",
-    "members": "Members"
+    "channels": "Channels"
   },
   "members": {
     "description": "People who can work on this brand, and their role on it.",

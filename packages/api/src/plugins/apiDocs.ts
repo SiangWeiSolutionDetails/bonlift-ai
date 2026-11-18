@@ -31,7 +31,10 @@ export function registerApiDocs(app: FastifyInstance) {
       // 1.12.0 removes `recommendationId` from the /v1/recommendations and /v1/item-affinity responses and from the
       // POST /v1/feedback body (still accepted and ignored there): feedback only records the customer's preference.
       // Breaking in principle, kept in /v1 for the same reason.
-      info: { title: "BonLift AI Serving API", version: "1.12.0" },
+      // 1.13.0 restores `recommendationId` on the /v1/recommendations and /v1/item-affinity responses and as an
+      // optional field on POST /v1/feedback, which links the feedback to that response for tracking. The customer's
+      // preference is recorded either way.
+      info: { title: "BonLift AI Serving API", version: "1.13.0" },
       components: {
         securitySchemes: {
           apiKey: { type: "apiKey", in: "header", name: "x-api-key" },

@@ -13,6 +13,7 @@ const SECRET = "test-secret-0123456789abcdef0123456789abcdef";
 const REQUEST = { outletId: OUTLET_ID, cart: [] };
 const IDENTIFIED_REQUEST = { ...REQUEST, customerId: "6591234567" };
 const NO_RECOMMENDATIONS = {
+  recommendationId: null,
   runId: null,
   customerRunId: null,
   affinityRunId: null,
@@ -117,6 +118,7 @@ describe("getRecommendations", () => {
     const result = await recommend();
 
     expect(result).toStrictEqual({
+      recommendationId: null,
       runId: RUN_ID,
       customerRunId: null,
       affinityRunId: null,
@@ -135,6 +137,7 @@ describe("getRecommendations", () => {
     const result = await recommend({ ...REQUEST, customerId: "6591234567" });
 
     expect(result).toStrictEqual({
+      recommendationId: expect.any(String),
       runId: RUN_ID,
       customerRunId: CUSTOMER_RUN_ID,
       affinityRunId: null,
@@ -164,6 +167,7 @@ describe("getRecommendations", () => {
     queryMock.mockResolvedValueOnce(pgResult([favouriteRow("F1", null)]));
 
     expect(await recommend({ ...REQUEST, customerId: "6591234567" })).toStrictEqual({
+      recommendationId: expect.any(String),
       runId: null,
       customerRunId: CUSTOMER_RUN_ID,
       affinityRunId: null,
@@ -309,6 +313,7 @@ describe("getRecommendations", () => {
     queryMock.mockResolvedValueOnce(pgResult([itemRow(null, "Supper")]));
 
     expect(await recommend({ ...REQUEST, daypart: "Supper" })).toStrictEqual({
+      recommendationId: null,
       runId: RUN_ID,
       customerRunId: null,
       affinityRunId: null,
@@ -477,54 +482,69 @@ describe("getRecommendations", () => {
   });
 });
 
-describe("getRecommendations exposure", () => {
-  it("returns the items shown to an identified customer, in rank order", async () => {
+describe("getRecommendations serve", () => {
+  it("identifies a response with items and returns its serve, items in rank order", async () => {
     queryMock.mockResolvedValueOnce(pgResult([itemRow("A"), itemRow("B")]));
 
-    const { exposure } = await serveFor({ ...IDENTIFIED_REQUEST, daypart: "Lunch" });
+    const { response, serve } = await serveFor({ ...IDENTIFIED_REQUEST, daypart: "Lunch" });
 
-    expect(exposure).toStrictEqual({
+    expect(response.recommendationId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(serve).toStrictEqual({
+      id: response.recommendationId,
       brandId: BRAND_ID,
       storedCustomerId: hashCustomerId(SECRET, "6591234567"),
+      outletId: OUTLET_ID,
+      daypart: "Lunch",
+      runId: RUN_ID,
+      customerRunId: null,
+      affinityRunId: null,
       itemIds: ["A", "B"],
+      reasons: ["popular_at_outlet", "popular_at_outlet"],
     });
   });
 
-  it("returns no recommendationId in the response", async () => {
-    queryMock.mockResolvedValueOnce(pgResult([itemRow("A")]));
+  it("gives every response its own id", async () => {
+    queryMock.mockResolvedValue(pgResult([itemRow("A")]));
 
-    const { response } = await serveFor(IDENTIFIED_REQUEST);
+    const first = await recommend(IDENTIFIED_REQUEST);
+    const second = await recommend(IDENTIFIED_REQUEST);
 
-    expect(response).not.toHaveProperty("recommendationId");
+    expect(first.recommendationId).not.toBe(second.recommendationId);
   });
 
-  it("has no exposure for an anonymous customer", async () => {
+  it("has no id and no serve for an anonymous customer, who cannot give feedback", async () => {
     queryMock.mockResolvedValueOnce(pgResult([itemRow("A")]));
 
-    const { response, exposure } = await serveFor();
+    const { response, serve } = await serveFor();
 
     expect(response.items).toHaveLength(1);
-    expect(exposure).toBeNull();
+    expect(response.recommendationId).toBeNull();
+    expect(serve).toBeNull();
   });
 
-  it("keeps the hashed customer id on the exposure, never the plain one", async () => {
+  it("keeps an identified customer's serve with the hashed customer id, never the plain one", async () => {
     queryMock.mockResolvedValueOnce(pgResult([favouriteRow("F1")]));
 
-    const { exposure } = await serveFor({ ...REQUEST, customerId: "6591234567" });
+    const { serve } = await serveFor({ ...REQUEST, customerId: "6591234567" });
 
-    expect(exposure).toMatchObject({ itemIds: ["F1"], storedCustomerId: hashCustomerId(SECRET, "6591234567") });
-    expect(JSON.stringify(exposure)).not.toContain("6591234567");
+    expect(serve).toMatchObject({
+      customerRunId: CUSTOMER_RUN_ID,
+      reasons: ["frequently_ordered"],
+      storedCustomerId: hashCustomerId(SECRET, "6591234567"),
+    });
+    expect(JSON.stringify(serve)).not.toContain("6591234567");
   });
 
   it.each([
     ["the run has no items for the daypart", () => queryMock.mockResolvedValueOnce(pgResult([itemRow(null, "Supper")]))],
     ["the outlet is unknown", () => queryMock.mockResolvedValueOnce(pgResult([]))],
     ["the query fails", () => queryMock.mockRejectedValueOnce(new Error("connection refused"))],
-  ])("has no exposure when %s", async (_name, arrange) => {
+  ])("has no id and no serve when %s", async (_name, arrange) => {
     arrange();
 
-    const { exposure } = await serveFor(IDENTIFIED_REQUEST);
+    const { response, serve } = await serveFor(IDENTIFIED_REQUEST);
 
-    expect(exposure).toBeNull();
+    expect(response.recommendationId).toBeNull();
+    expect(serve).toBeNull();
   });
 });

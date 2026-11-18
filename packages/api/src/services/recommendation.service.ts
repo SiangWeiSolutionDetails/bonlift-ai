@@ -7,6 +7,7 @@ import {
   RecommendationResponseSchemaType,
 } from "@bonlift-ai/contracts";
 import type { FastifyBaseLogger } from "fastify";
+import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
 import { toStoredCustomerId } from "../utils/customerIdHash.js";
 import { assertValid } from "../utils/validate.js";
@@ -229,6 +230,7 @@ ORDER BY r.position;
 `;
 
 const NO_RECOMMENDATIONS: RecommendationResponseSchemaType = {
+  recommendationId: null,
   runId: null,
   customerRunId: null,
   affinityRunId: null,
@@ -299,6 +301,7 @@ function toResponse(rows: ServedRow[]): RecommendationResponseSchemaType {
 
   const items = rows.filter((row) => row.external_item_id !== null).map(toItem);
   return {
+    recommendationId: items.length > 0 ? randomUUID() : null,
     runId: first.run_id,
     customerRunId: first.customer_run_id,
     affinityRunId: first.affinity_run_id,
@@ -315,26 +318,46 @@ function uniqueItemIds(itemIds: string[]): string[] {
   return [...new Set(itemIds)];
 }
 
-// The items an identified customer was shown, kept for rotation, under the hashed customer id.
-export interface ServedExposure {
+// What an identified customer was served, kept for feedback (S6-04). The hashed customer id only records which items
+// the customer was shown, for rotation: recommendation_serves keeps no customer id.
+export interface RecommendationServe {
+  id: string;
   brandId: string;
   storedCustomerId: string;
+  outletId: string;
+  daypart: string;
+  runId: string | null;
+  customerRunId: string | null;
+  affinityRunId: string | null;
   itemIds: string[];
+  reasons: string[];
 }
 
 export interface ServedRecommendations {
   response: RecommendationResponseSchemaType;
-  // Null when no items were returned or the customer is anonymous: nothing was shown to a known customer.
-  exposure: ServedExposure | null;
+  // Null when no items were returned or the customer is anonymous: there is nothing to give feedback on.
+  serve: RecommendationServe | null;
 }
 
-function toExposure(
+function toServe(
   brandId: string,
+  outletId: string,
   storedCustomerId: string | null,
   response: RecommendationResponseSchemaType,
-): ServedExposure | null {
-  if (response.items.length === 0 || storedCustomerId === null) return null;
-  return { brandId, storedCustomerId, itemIds: response.items.map((item) => item.itemId) };
+): RecommendationServe | null {
+  if (response.recommendationId === null || storedCustomerId === null) return null;
+  return {
+    id: response.recommendationId,
+    brandId,
+    storedCustomerId,
+    outletId,
+    daypart: response.daypart as string,
+    runId: response.runId,
+    customerRunId: response.customerRunId,
+    affinityRunId: response.affinityRunId,
+    itemIds: response.items.map((item) => item.itemId),
+    reasons: response.items.map((item) => item.reason),
+  };
 }
 
 async function serveResponse(
@@ -385,20 +408,45 @@ export async function getRecommendations(
   assertValid(RecommendationRequestSchema, request);
   const customerId = toStoredCustomerId(customerIdSecret, request.customerId);
 
-  const response = await serveResponse(pool, log, brandId, request, customerId);
-  return { response, exposure: toExposure(brandId, customerId, response) };
+  const served = await serveResponse(pool, log, brandId, request, customerId);
+  // Only identified customers can give feedback, so an anonymous response is neither identified nor recorded.
+  const response = customerId === null ? { ...served, recommendationId: null } : served;
+  return { response, serve: toServe(brandId, request.outletId, customerId, response) };
 }
 
-// $1 = brand id, $2 = hashed customer id, $3 = served item ids.
-// Records when the customer was last shown each served item.
-const RECORD_EXPOSURES_SQL = `
+// Records the serve and, in the same statement, when the customer was last shown each served item.
+const RECORD_SERVE_SQL = `
+WITH serve AS (
+  INSERT INTO recommendation_serves (
+    id, brand_id, channel_id, outlet_id, daypart, run_id, customer_run_id, affinity_run_id, item_ids, reasons
+  )
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+  RETURNING brand_id, item_ids
+)
 INSERT INTO customer_item_exposures (brand_id, customer_external_id, external_item_id, last_shown_at)
-SELECT DISTINCT $1::uuid, $2::text, i.item_id, now()
-FROM unnest($3::text[]) AS i(item_id)
+SELECT DISTINCT s.brand_id, $11::text, i.item_id, now()
+FROM serve s
+CROSS JOIN unnest(s.item_ids) AS i(item_id)
 ON CONFLICT (brand_id, customer_external_id, external_item_id)
 DO UPDATE SET last_shown_at = EXCLUDED.last_shown_at;
 `;
 
-export async function recordServedExposures(pool: Pool, exposure: ServedExposure): Promise<void> {
-  await pool.query(RECORD_EXPOSURES_SQL, [exposure.brandId, exposure.storedCustomerId, exposure.itemIds]);
+export async function recordRecommendationServe(
+  pool: Pool,
+  serve: RecommendationServe,
+  channelId: string | null,
+): Promise<void> {
+  await pool.query(RECORD_SERVE_SQL, [
+    serve.id,
+    serve.brandId,
+    channelId,
+    serve.outletId,
+    serve.daypart,
+    serve.runId,
+    serve.customerRunId,
+    serve.affinityRunId,
+    serve.itemIds,
+    serve.reasons,
+    serve.storedCustomerId,
+  ]);
 }

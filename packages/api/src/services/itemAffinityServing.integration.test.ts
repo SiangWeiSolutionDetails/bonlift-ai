@@ -5,7 +5,7 @@ import { hashCustomerId } from "../utils/customerIdHash.js";
 import { createBrand } from "./brand.service.js";
 import { getItemAffinityRecommendations } from "./itemAffinityServing.service.js";
 import { createOutlet } from "./outlet.service.js";
-import { getRecommendations, recordServedExposures } from "./recommendation.service.js";
+import { getRecommendations, recordRecommendationServe } from "./recommendation.service.js";
 import { recordRecommendationFeedback } from "./recommendationFeedback.service.js";
 import { createServingConfigVersion } from "./servingConfigVersion.service.js";
 import { createTenant } from "./tenant.service.js";
@@ -83,11 +83,11 @@ function serve(request: Partial<AffinityRequest> = {}) {
   );
 }
 
-// Serves and records the shown items the way the route's onResponse hook does.
+// Serves and records the serve the way the route's onResponse hook does.
 async function serveAndRecord(request: Partial<AffinityRequest> = {}) {
   const served = await serve(request);
-  if (served.exposure) {
-    await recordServedExposures(getTestPool(), served.exposure);
+  if (served.serve) {
+    await recordRecommendationServe(getTestPool(), served.serve, null);
   }
   return served;
 }
@@ -96,9 +96,16 @@ async function servedItemIds(request: Partial<AffinityRequest> = {}): Promise<st
   return (await serve(request)).response.items.map((item) => item.itemId);
 }
 
-async function serveCount(): Promise<number> {
-  const result = await getTestPool().query("SELECT count(*)::int AS n FROM recommendation_serves");
-  return result.rows[0].n;
+async function storedServes() {
+  const result = await getTestPool().query(
+    `
+    SELECT id, outlet_id, daypart, run_id, customer_run_id, affinity_run_id, item_ids, reasons,
+           accepted_item_ids, rejected_item_ids
+    FROM recommendation_serves
+    ORDER BY served_at
+    `,
+  );
+  return result.rows;
 }
 
 async function exposedItemIds(): Promise<string[]> {
@@ -115,8 +122,13 @@ async function exposedItemIds(): Promise<string[]> {
   return result.rows.map((row) => row.external_item_id);
 }
 
-function feedback(itemId: string, type: "accepted" | "rejected") {
-  return recordRecommendationFeedback(getTestPool(), brandId, { itemId, type, customerId: CUSTOMER_ID }, SECRET);
+function feedback(recommendationId: string | undefined, itemId: string, type: "accepted" | "rejected") {
+  return recordRecommendationFeedback(
+    getTestPool(),
+    brandId,
+    { recommendationId, itemId, type, customerId: CUSTOMER_ID },
+    SECRET,
+  );
 }
 
 async function reject(itemId: string, daysAgo: number) {
@@ -148,12 +160,28 @@ describe("getItemAffinityRecommendations serves (integration)", () => {
     expect(await servedItemIds({ customerId: undefined, outletId: undefined })).toEqual(["TOAST", "EGG", "KAYA"]);
   });
 
-  it("records the items shown to an identified customer at an outlet of the brand, but no serve", async () => {
+  it("records a serve for an identified customer at an outlet of the brand, keeping no customer id", async () => {
     const { response } = await serveAndRecord({ limit: 2 });
 
-    expect(response).not.toHaveProperty("recommendationId");
+    expect(response.recommendationId).not.toBeNull();
+    expect(await storedServes()).toStrictEqual([
+      {
+        id: response.recommendationId,
+        outlet_id: outletId,
+        daypart: "all_day",
+        run_id: null,
+        customer_run_id: null,
+        affinity_run_id: affinityRunId,
+        item_ids: ["TOAST", "EGG"],
+        reasons: ["often_ordered_with", "often_ordered_with"],
+        accepted_item_ids: [],
+        rejected_item_ids: [],
+      },
+    ]);
+    const stored = await getTestPool().query("SELECT row_to_json(s)::text AS row FROM recommendation_serves s");
+    expect(stored.rows[0].row).not.toContain(CUSTOMER_HASH);
+    expect(stored.rows[0].row).not.toContain(CUSTOMER_ID);
     expect(await exposedItemIds()).toEqual(["EGG", "TOAST"]);
-    expect(await serveCount()).toBe(0);
   });
 
   it("does not move items shown before down: cart pairings stay strongest first", async () => {
@@ -163,11 +191,13 @@ describe("getItemAffinityRecommendations serves (integration)", () => {
     expect(await servedItemIds()).toEqual(["TOAST", "EGG", "KAYA"]);
   });
 
-  describe("records nothing as shown", () => {
+  describe("records nothing and has no id", () => {
     async function expectNothingRecorded(request: Partial<AffinityRequest>) {
-      const { response, exposure } = await serveAndRecord(request);
+      const { response, serve: served } = await serveAndRecord(request);
 
-      expect(exposure).toBeNull();
+      expect(response.recommendationId).toBeNull();
+      expect(served).toBeNull();
+      expect(await storedServes()).toEqual([]);
       expect(await exposedItemIds()).toEqual([]);
       return response;
     }
@@ -219,29 +249,41 @@ describe("getItemAffinityRecommendations serves (integration)", () => {
 });
 
 describe("feedback on item affinity serves (integration)", () => {
-  it("forgets that an accepted item was shown, through the shared feedback endpoint", async () => {
-    await serveAndRecord();
+  it("records accepted and rejected items on the serve through the shared feedback endpoint", async () => {
+    const { response } = await serveAndRecord();
+    const id = response.recommendationId as string;
 
-    await feedback("TOAST", "accepted");
-    await feedback("EGG", "rejected");
+    await feedback(id, "TOAST", "accepted");
+    await feedback(id, "EGG", "rejected");
 
+    const [stored] = await storedServes();
+    expect(stored.accepted_item_ids).toEqual(["TOAST"]);
+    expect(stored.rejected_item_ids).toEqual(["EGG"]);
     expect(await exposedItemIds()).toEqual(["EGG", "KAYA"]);
   });
 
   it("stops serving a rejected item to that customer only", async () => {
-    await serveAndRecord();
+    const { response } = await serveAndRecord();
 
-    await feedback("TOAST", "rejected");
+    await feedback(response.recommendationId as string, "TOAST", "rejected");
 
     expect(await servedItemIds()).toEqual(["EGG", "KAYA"]);
     expect(await servedItemIds({ customerId: OTHER_CUSTOMER_ID })).toEqual(["TOAST", "EGG", "KAYA"]);
     expect(await servedItemIds({ customerId: undefined })).toEqual(["TOAST", "EGG", "KAYA"]);
   });
 
-  it("serves an item again once the customer accepts it", async () => {
-    await feedback("TOAST", "rejected");
+  it("stops serving an item rejected without a recommendation id, to that customer only", async () => {
+    await feedback(undefined, "TOAST", "rejected");
 
-    await feedback("TOAST", "accepted");
+    expect(await servedItemIds()).toEqual(["EGG", "KAYA"]);
+    expect(await servedItemIds({ customerId: OTHER_CUSTOMER_ID })).toEqual(["TOAST", "EGG", "KAYA"]);
+    expect(await servedItemIds({ customerId: undefined })).toEqual(["TOAST", "EGG", "KAYA"]);
+  });
+
+  it("serves an item again once the customer accepts it without a recommendation id", async () => {
+    await feedback(undefined, "TOAST", "rejected");
+
+    await feedback(undefined, "TOAST", "accepted");
 
     expect(await servedItemIds()).toEqual(["TOAST", "EGG", "KAYA"]);
   });
@@ -253,8 +295,8 @@ describe("feedback on item affinity serves (integration)", () => {
     const before = await getRecommendations(getTestPool(), silentLog, brandId, request, SECRET);
     expect(before.response.items.map((item) => item.itemId)).toEqual(["TOAST"]);
 
-    await serveAndRecord();
-    await feedback("TOAST", "rejected");
+    const { response } = await serveAndRecord();
+    await feedback(response.recommendationId as string, "TOAST", "rejected");
 
     const after = await getRecommendations(getTestPool(), silentLog, brandId, request, SECRET);
     expect(after.response.items.map((item) => item.itemId)).not.toContain("TOAST");

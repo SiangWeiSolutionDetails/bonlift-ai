@@ -5,6 +5,7 @@ import { pgResult } from "../utils/pg.test-helpers.js";
 import { recordRecommendationFeedback } from "./recommendationFeedback.service.js";
 
 const BRAND_ID = "33333333-3333-3333-3333-333333333333";
+const RECOMMENDATION_ID = "66666666-6666-6666-6666-666666666666";
 const SECRET = "test-secret-0123456789abcdef0123456789abcdef";
 const CUSTOMER_ID = "6591234567";
 const CUSTOMER_HASH = hashCustomerId(SECRET, CUSTOMER_ID);
@@ -13,7 +14,7 @@ const queryMock = vi.fn();
 const fakePool = { query: queryMock } as any;
 
 function feedback(body: any) {
-  return recordRecommendationFeedback(fakePool, BRAND_ID, body, SECRET);
+  return recordRecommendationFeedback(fakePool, BRAND_ID, { recommendationId: RECOMMENDATION_ID, ...body }, SECRET);
 }
 
 beforeEach(() => {
@@ -21,12 +22,13 @@ beforeEach(() => {
 });
 
 describe("recordRecommendationFeedback", () => {
-  it.each(["accepted", "rejected"])("records %s feedback as a preference for the key's brand", async (type) => {
-    queryMock.mockResolvedValueOnce(pgResult([]));
+  it.each(["accepted", "rejected"])("records %s feedback for the key's brand", async (type) => {
+    queryMock.mockResolvedValueOnce(pgResult([{ tracked: 1 }]));
 
     await feedback({ itemId: "A", type, customerId: CUSTOMER_ID });
 
-    expect(queryMock).toHaveBeenCalledWith(expect.stringContaining("customer_item_rejections"), [
+    expect(queryMock).toHaveBeenCalledWith(expect.stringContaining("recommendation_serves"), [
+      RECOMMENDATION_ID,
       BRAND_ID,
       "A",
       type,
@@ -34,28 +36,30 @@ describe("recordRecommendationFeedback", () => {
     ]);
   });
 
-  it("no longer tracks feedback on a serve", async () => {
-    queryMock.mockResolvedValueOnce(pgResult([]));
+  it.each([
+    ["missing", undefined],
+    ["null", null],
+  ])("records the preference without tracking when the recommendation id is %s", async (_name, recommendationId) => {
+    queryMock.mockResolvedValueOnce(pgResult([{ tracked: 0 }]));
 
-    await feedback({ itemId: "A", type: "accepted", customerId: CUSTOMER_ID });
+    await feedback({ itemId: "A", type: "rejected", customerId: CUSTOMER_ID, recommendationId });
 
-    expect(queryMock.mock.calls[0][0]).not.toContain("recommendation_serves");
-  });
-
-  it("accepts and ignores a recommendationId sent by an older client", async () => {
-    queryMock.mockResolvedValueOnce(pgResult([]));
-
-    await feedback({ itemId: "A", type: "rejected", customerId: CUSTOMER_ID, recommendationId: "rec-1" });
-
-    expect(queryMock).toHaveBeenCalledWith(expect.any(String), [BRAND_ID, "A", "rejected", CUSTOMER_HASH]);
+    expect(queryMock).toHaveBeenCalledWith(expect.stringContaining("customer_item_rejections"), [
+      null,
+      BRAND_ID,
+      "A",
+      "rejected",
+      CUSTOMER_HASH,
+    ]);
   });
 
   it("passes the customer id by its hash, never the plain id", async () => {
-    queryMock.mockResolvedValueOnce(pgResult([]));
+    queryMock.mockResolvedValueOnce(pgResult([{ tracked: 1 }]));
 
     await feedback({ itemId: "A", type: "rejected", customerId: "Tan@Mail.COM" });
 
     expect(queryMock).toHaveBeenCalledWith(expect.any(String), [
+      RECOMMENDATION_ID,
       BRAND_ID,
       "A",
       "rejected",
@@ -72,12 +76,24 @@ describe("recordRecommendationFeedback", () => {
     expect(queryMock).not.toHaveBeenCalled();
   });
 
+  it("resolves the same way whether or not a serve was tracked", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([{ tracked: 0 }]));
+
+    await expect(feedback({ itemId: "A", type: "accepted", customerId: CUSTOMER_ID })).resolves.toBeUndefined();
+  });
+
   it("accepts and ignores fields it does not know", async () => {
-    queryMock.mockResolvedValueOnce(pgResult([]));
+    queryMock.mockResolvedValueOnce(pgResult([{ tracked: 1 }]));
 
     await feedback({ itemId: "A", type: "accepted", customerId: CUSTOMER_ID, channel: "tqr", tableNo: "12" });
 
-    expect(queryMock).toHaveBeenCalledWith(expect.any(String), [BRAND_ID, "A", "accepted", CUSTOMER_HASH]);
+    expect(queryMock).toHaveBeenCalledWith(expect.any(String), [
+      RECOMMENDATION_ID,
+      BRAND_ID,
+      "A",
+      "accepted",
+      CUSTOMER_HASH,
+    ]);
   });
 
   it("throws ValidationError without querying for a malformed customer id, never echoing it", async () => {
@@ -89,6 +105,7 @@ describe("recordRecommendationFeedback", () => {
   });
 
   it.each([
+    ["the recommendation id is not a uuid", { itemId: "A", type: "accepted", recommendationId: "rec-1" }],
     ["itemId is missing", { type: "accepted" }],
     ["itemId is blank", { itemId: "", type: "accepted" }],
     ["type is unknown", { itemId: "A", type: "ignored" }],

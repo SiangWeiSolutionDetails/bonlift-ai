@@ -5,7 +5,7 @@ import { hashCustomerId } from "../utils/customerIdHash.js";
 import { createBrand } from "./brand.service.js";
 import { createOutlet } from "./outlet.service.js";
 import { createOutletItemScoresCalculationConfigVersion } from "./outletItemScoresCalculationConfigVersion.service.js";
-import { getRecommendations, recordServedExposures } from "./recommendation.service.js";
+import { getRecommendations, recordRecommendationServe } from "./recommendation.service.js";
 import { recordRecommendationFeedback } from "./recommendationFeedback.service.js";
 import { createServingConfigVersion } from "./servingConfigVersion.service.js";
 import { createTenant } from "./tenant.service.js";
@@ -229,6 +229,7 @@ describe("getRecommendations (integration)", () => {
       const response = await recommend(pool, silentLog, bareBrandId, { outletId: bareOutlet.id, cart: [] });
 
       expect(response).toStrictEqual({
+        recommendationId: null,
         runId: null,
         customerRunId: null,
         affinityRunId: null,
@@ -336,6 +337,7 @@ describe("getRecommendations (integration)", () => {
 
       it("moves a paired favourite above better-ranked unpaired ones, listing the cart item it goes with", async () => {
         expect(await recommendBreakfast()).toStrictEqual({
+          recommendationId: expect.any(String),
           runId: outletRunId,
           customerRunId,
           affinityRunId,
@@ -460,7 +462,7 @@ describe("items the customer rejected (integration)", () => {
     expect(await recommendedItemIds(undefined, { customerId: undefined })).toEqual(["TOAST", "RICE"]);
   });
 
-  it("stops serving a rejected item to that customer only", async () => {
+  it("stops serving an item rejected without a recommendation id, to that customer only", async () => {
     await recordRecommendationFeedback(
       getTestPool(),
       brandId,
@@ -473,31 +475,42 @@ describe("items the customer rejected (integration)", () => {
     expect(await recommendedItemIds(undefined, { customerId: undefined })).toEqual(["TOAST", "RICE"]);
   });
 
-  it("stops serving an item once the customer rejects it after it was shown", async () => {
+  it("stops serving an item once the customer rejects it from a recorded serve", async () => {
     const pool = getTestPool();
-    const { exposure } = await getRecommendations(
+    const { response, serve } = await getRecommendations(
       pool,
       silentLog,
       brandId,
       { outletId, cart: [], customerId: CUSTOMER_ID, daypart: "breakfast" },
       SECRET,
     );
-    await recordServedExposures(pool, exposure!);
+    await recordRecommendationServe(pool, serve!, null);
 
     await recordRecommendationFeedback(
       pool,
       brandId,
-      { itemId: "KAYA", type: "rejected", customerId: CUSTOMER_ID },
+      { recommendationId: response.recommendationId, itemId: "KAYA", type: "rejected", customerId: CUSTOMER_ID },
       SECRET,
     );
 
+    const stored = await pool.query(
+      "SELECT item_ids, reasons, rejected_item_ids FROM recommendation_serves WHERE id = $1",
+      [response.recommendationId],
+    );
+    expect(stored.rows).toStrictEqual([
+      {
+        item_ids: ["KAYA"],
+        reasons: ["frequently_ordered"],
+        rejected_item_ids: ["KAYA"],
+      },
+    ]);
     expect(await recommendedItemIds("breakfast")).toEqual(["TOAST"]);
   });
 });
 
 type ServeRequest = Partial<Parameters<typeof getRecommendations>[3]>;
 
-// Serves and records the shown items the way the route's onResponse hook does.
+// Serves and records the serve the way the route's onResponse hook does.
 async function serveAndRecord(request: ServeRequest = {}) {
   const pool = getTestPool();
   const served = await getRecommendations(
@@ -507,8 +520,8 @@ async function serveAndRecord(request: ServeRequest = {}) {
     { outletId, cart: [], customerId: CUSTOMER_ID, daypart: "breakfast", limit: 10, ...request },
     SECRET,
   );
-  if (served.exposure) {
-    await recordServedExposures(pool, served.exposure);
+  if (served.serve) {
+    await recordRecommendationServe(pool, served.serve, null);
   }
   return served;
 }
@@ -561,13 +574,13 @@ describe("items shown before (integration)", () => {
   });
 
   it("serves an accepted favourite first again", async () => {
-    await serveAndRecord({ limit: 1 });
+    const { response } = await serveAndRecord({ limit: 1 });
     await closeFeedbackWindow();
 
     await recordRecommendationFeedback(
       getTestPool(),
       brandId,
-      { itemId: "KAYA", type: "accepted", customerId: CUSTOMER_ID },
+      { recommendationId: response.recommendationId, itemId: "KAYA", type: "accepted", customerId: CUSTOMER_ID },
       SECRET,
     );
 
@@ -576,12 +589,12 @@ describe("items shown before (integration)", () => {
   });
 
   it("keeps a shown item moved down when the customer accepts another one", async () => {
-    await serveAndRecord();
+    const { response } = await serveAndRecord();
 
     await recordRecommendationFeedback(
       getTestPool(),
       brandId,
-      { itemId: "MILO", type: "accepted", customerId: CUSTOMER_ID },
+      { recommendationId: response.recommendationId, itemId: "MILO", type: "accepted", customerId: CUSTOMER_ID },
       SECRET,
     );
 
@@ -651,7 +664,7 @@ describe("items shown before (integration)", () => {
 
     const anonymous = await serveAndRecord({ customerId: undefined, daypart: undefined, limit: 1 });
 
-    expect(anonymous.exposure).toBeNull();
+    expect(anonymous.serve).toBeNull();
     expect(anonymous.response.items.map((item) => item.itemId)).toEqual(["TOAST"]);
     expect(await recommendedItemIds(undefined, { customerId: undefined })).toEqual(["TOAST", "RICE"]);
     const count = await getTestPool().query("SELECT count(*)::int AS n FROM customer_item_exposures");
@@ -677,24 +690,22 @@ describe("items shown before (integration)", () => {
   });
 });
 
-describe("recordServedExposures (integration)", () => {
+describe("recordRecommendationServe (integration)", () => {
   beforeEach(async () => {
     await storeFavourites(customerRunId, [["breakfast", "MILO", 2]]);
   });
 
-  it("records when the customer was shown every served item, under the hashed customer id only", async () => {
-    await serveAndRecord();
+  it("records when the customer was shown every served item, keeping no customer id on the serve", async () => {
+    const { response } = await serveAndRecord();
 
     expect(await exposedItemIds()).toEqual(["KAYA", "MILO"]);
-    const stored = await getTestPool().query("SELECT row_to_json(e)::text AS row FROM customer_item_exposures e");
-    expect(stored.rows.map((row) => row.row).join()).not.toContain(CUSTOMER_ID);
-  });
-
-  it("no longer records a serve", async () => {
-    await serveAndRecord();
-
-    const count = await getTestPool().query("SELECT count(*)::int AS n FROM recommendation_serves");
-    expect(count.rows[0].n).toBe(0);
+    const stored = await getTestPool().query(
+      "SELECT row_to_json(s)::text AS row FROM recommendation_serves s WHERE id = $1",
+      [response.recommendationId],
+    );
+    expect(stored.rows).toHaveLength(1);
+    expect(stored.rows[0].row).not.toContain(CUSTOMER_HASH);
+    expect(stored.rows[0].row).not.toContain(CUSTOMER_ID);
   });
 
   it("moves the time an item was last shown forward when it is shown again", async () => {

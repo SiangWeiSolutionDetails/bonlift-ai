@@ -11,7 +11,8 @@ const SECRET = "test-secret-0123456789abcdef0123456789abcdef";
 const CUSTOMER_ID = "6591234567";
 const REQUEST = { cart: [{ itemId: "A", qty: 1 }] };
 const IDENTIFIED_REQUEST = { ...REQUEST, outletId: OUTLET_ID, customerId: CUSTOMER_ID };
-const NO_ITEMS = { runId: null, items: [] };
+const NO_ITEMS = { recommendationId: null, runId: null, items: [] };
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 const queryMock = vi.fn();
 const logErrorMock = vi.fn();
@@ -48,6 +49,7 @@ describe("getItemAffinityRecommendations", () => {
     queryMock.mockResolvedValueOnce(pgResult([itemRow("B"), itemRow("C")]));
 
     expect(await recommend()).toStrictEqual({
+      recommendationId: null,
       runId: RUN_ID,
       items: [
         { itemId: "B", rank: 1, reason: "often_ordered_with" },
@@ -59,7 +61,7 @@ describe("getItemAffinityRecommendations", () => {
   it("returns the run with no items when nothing goes with the cart", async () => {
     queryMock.mockResolvedValueOnce(pgResult([itemRow(null)]));
 
-    expect(await recommend()).toStrictEqual({ runId: RUN_ID, items: [] });
+    expect(await recommend()).toStrictEqual({ recommendationId: null, runId: RUN_ID, items: [] });
   });
 
   it("returns an empty list when there is no published run", async () => {
@@ -220,26 +222,33 @@ describe("getItemAffinityRecommendations", () => {
   });
 });
 
-describe("getItemAffinityRecommendations exposure", () => {
-  it("returns the items shown to an identified customer at an outlet of the brand, in rank order", async () => {
+describe("getItemAffinityRecommendations serve", () => {
+  it("identifies a response with items and returns its serve, items in rank order", async () => {
     queryMock.mockResolvedValueOnce(pgResult([itemRow("B"), itemRow("C")]));
 
-    const { response, exposure } = await serveFor(IDENTIFIED_REQUEST);
+    const { response, serve } = await serveFor(IDENTIFIED_REQUEST);
 
-    expect(response).not.toHaveProperty("recommendationId");
-    expect(exposure).toStrictEqual({
+    expect(response.recommendationId).toMatch(UUID);
+    expect(serve).toStrictEqual({
+      id: response.recommendationId,
       brandId: BRAND_ID,
       storedCustomerId: hashCustomerId(SECRET, CUSTOMER_ID),
+      outletId: OUTLET_ID,
+      daypart: "all_day",
+      runId: null,
+      customerRunId: null,
+      affinityRunId: RUN_ID,
       itemIds: ["B", "C"],
+      reasons: ["often_ordered_with", "often_ordered_with"],
     });
   });
 
-  it("keeps the hashed customer id on the exposure, never the plain one", async () => {
+  it("keeps the hashed customer id on the serve, never the plain one", async () => {
     queryMock.mockResolvedValueOnce(pgResult([itemRow("B")]));
 
-    const { exposure } = await serveFor(IDENTIFIED_REQUEST);
+    const { serve } = await serveFor(IDENTIFIED_REQUEST);
 
-    expect(JSON.stringify(exposure)).not.toContain(CUSTOMER_ID);
+    expect(JSON.stringify(serve)).not.toContain(CUSTOMER_ID);
   });
 
   it.each([
@@ -248,17 +257,18 @@ describe("getItemAffinityRecommendations exposure", () => {
     ["the outlet is not an active outlet of the brand", IDENTIFIED_REQUEST, [itemRow("B", false)]],
     ["no item is returned", IDENTIFIED_REQUEST, [itemRow(null)]],
     ["there is no published run", IDENTIFIED_REQUEST, []],
-  ])("has no exposure when %s", async (_name, request, rows) => {
+  ])("has no id and no serve when %s", async (_name, request, rows) => {
     queryMock.mockResolvedValueOnce(pgResult(rows));
 
-    const { exposure } = await serveFor(request);
+    const { response, serve } = await serveFor(request);
 
-    expect(exposure).toBeNull();
+    expect(response.recommendationId).toBeNull();
+    expect(serve).toBeNull();
   });
 
-  it("has no exposure when the query fails", async () => {
+  it("has no id and no serve when the query fails", async () => {
     queryMock.mockRejectedValueOnce(new Error("connection refused"));
 
-    expect(await serveFor(IDENTIFIED_REQUEST)).toStrictEqual({ response: NO_ITEMS, exposure: null });
+    expect(await serveFor(IDENTIFIED_REQUEST)).toStrictEqual({ response: NO_ITEMS, serve: null });
   });
 });

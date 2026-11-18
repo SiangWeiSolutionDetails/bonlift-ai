@@ -4,6 +4,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { meQueryOptions } from "@/features/auth/queries";
 import type { BrandListParams, UpdateBrandInput } from "./type";
 import {
   createBrand,
@@ -65,7 +66,10 @@ export function useUpdateBrand() {
     }) => updateBrand(brandId, input),
     onSuccess: (brand) => {
       queryClient.setQueryData(brandKeys.detail(brand.id), brand);
-      return queryClient.invalidateQueries({ queryKey: brandKeys.lists() });
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: brandKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: meQueryOptions.queryKey }),
+      ]);
     },
   });
 }

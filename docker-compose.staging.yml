@@ -23,9 +23,6 @@ services:
       - redis_data:/data
 
   migrate:
-    build:
-      context: .
-      target: app
     image: ${IMAGE_REGISTRY:-ghcr.io/siangweisolutiondetails}/bonlift-app:${IMAGE_TAG:-staging}
     env_file: .env
     # Calls node-pg-migrate directly: the package script needs a .env file inside the container. Reads DATABASE_URL.
@@ -63,9 +60,6 @@ services:
         condition: service_started
 
   web:
-    build:
-      context: .
-      target: web
     image: ${IMAGE_REGISTRY:-ghcr.io/siangweisolutiondetails}/bonlift-web:${IMAGE_TAG:-staging}
     restart: unless-stopped
     environment:

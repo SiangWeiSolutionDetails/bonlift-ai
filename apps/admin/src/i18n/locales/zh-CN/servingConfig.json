@@ -9,11 +9,11 @@
   "bestSellerMinListSize": "热销最少列表商品数",
   "bestSellerMinListSizeHint": "仅当列表至少有这么多商品时，才会标记热销。",
   "rejectionSuppressionDays": "隐藏已拒绝商品（天）",
-  "rejectionSuppressionDaysHint": "顾客拒绝的商品在这么多天内不会再推荐给该顾客。设为 0 表示关闭。",
+  "rejectionSuppressionDaysHint": "顾客拒绝的商品在这么多天内不会再出现在该顾客的推荐和“常一起点”建议中，不影响其他顾客。设为 0 表示关闭。",
   "repeatCooldownHours": "轮换已展示商品（小时）",
   "repeatCooldownHoursHint": "已展示给顾客但未被接受的商品，在这么多小时内会排到该顾客推荐的后面，让其他商品有机会展示。顾客接受后即恢复。设为 0 表示关闭。",
   "feedbackWindowMinutes": "反馈时限（分钟）",
-  "feedbackWindowMinutesHint": "推荐展示后，应用需在这么多分钟内发送接受或拒绝反馈，超时的反馈会被忽略。已展示的商品要等这段时间过后才开始轮换，因此同一次到店期间推荐不会变动。",
+  "feedbackWindowMinutesHint": "推荐展示后，在这么多分钟内发送的接受或拒绝反馈会计入“推荐反馈”报表；超时的反馈仍会更新顾客的偏好。已展示的商品要等这段时间过后才开始轮换，因此同一次到店期间推荐不会变动。",
   "cooldownAfterFeedbackWindow": "轮换时长必须长于反馈时限，或设为 0 以关闭轮换。",
   "save": "保存为新版本",
   "history": {

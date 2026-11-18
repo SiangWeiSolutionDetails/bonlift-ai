@@ -3,12 +3,8 @@
     "title": "角色",
     "newConsoleRole": "新建后台角色",
     "newBrandRole": "新建品牌角色",
-    "consoleHint": "后台角色作用于整个后台：租户、品牌列表、用户和角色。每位用户最多一个。",
-    "brandHint": "品牌角色是模板。分配时再选择品牌：在“用户”页面或品牌的“成员”标签页中分配。"
-  },
-  "tabs": {
-    "console": "后台角色",
-    "brand": "品牌角色"
+    "consoleHint": "后台角色作用于整个后台：租户、品牌列表、用户和角色。每位用户最多一个。品牌角色在各品牌内的“角色”页面中管理。",
+    "brandHint": "这些角色属于该品牌所在的租户。可在该租户的任意品牌上分配，修改会同时作用于所有这些品牌。"
   },
   "search": {
     "placeholder": "按名称搜索角色",
@@ -25,7 +21,8 @@
     "editRole": "编辑 {{name}}",
     "viewRole": "查看 {{name}}",
     "deleteRole": "删除 {{name}}",
-    "ownRole": "无法修改您自己持有的角色。"
+    "ownRole": "无法修改您自己持有的角色。",
+    "beyondLimit": "该角色包含您无法授予的操作权限。"
   },
   "dialog": {
     "createConsoleTitle": "新建后台角色",
@@ -37,10 +34,13 @@
     "selectAll": "全选",
     "toggleGroup": "展开或收起{{group}}操作",
     "builtinHint": "内置管理员角色拥有所有后台操作权限，无法修改。",
+    "builtinBrandHint": "内置品牌所有者角色拥有所有品牌操作权限，无法修改。",
     "lackedHint": "您只能授予自己持有的后台操作权限。",
-    "brandHint": "该角色不绑定任何品牌。分配时再选择品牌：在“用户”页面或品牌的“成员”标签页中分配。",
+    "lackedBrandHint": "您只能授予自己在该品牌上可授予的品牌操作权限。客户评分和客户 ID 还需要您本人的品牌角色持有这些权限。",
+    "brandHint": "该角色属于租户。修改后，会影响该租户任意品牌上持有该角色的所有用户。",
     "assignedUsers": "已分配用户",
     "assignedUsersHint": "如需更改谁持有该角色，请前往“用户”页面或品牌的“成员”标签页。",
+    "assignedUsersBrandHint": "显示该租户所有品牌上的持有者。如需更改谁持有该角色，请前往各品牌的“成员”页面。",
     "noAssignedUsers": "暂无用户持有该角色。",
     "assignedSearch": "搜索已分配用户",
     "assignedFiltered": "{{shown}} / {{total}}",

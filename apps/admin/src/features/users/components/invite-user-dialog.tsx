@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { usePermissions } from "@/features/auth/permissions";
 import { brandMemberKeys } from "@/features/brand-members/queries";
-import { roleKeys, useRoles } from "@/features/roles/queries";
+import { roleKeys } from "@/features/roles/queries";
 import { getErrorMessage } from "@/lib/error-message";
 import { buildInviteBody, hasAnyRole } from "../invite-request";
 import { useInviteUser } from "../queries";
@@ -52,7 +52,6 @@ function InviteForm({ onDone }: { onDone: () => void }) {
   const { canConsole } = usePermissions();
   const canConsoleRole = canConsole("users.assignConsoleRoles");
   const canBrandRoles = canConsole("users.assignBrandRoles");
-  const { data: brandRoleOptions = [] } = useRoles("brand", canBrandRoles);
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [consoleRoleId, setConsoleRoleId] = useState<string | null>(null);
@@ -118,7 +117,6 @@ function InviteForm({ onDone }: { onDone: () => void }) {
             <p className="text-sm font-medium">{t("brandRoles.title")}</p>
             <UserBrandRolesField
               entries={entries}
-              roles={brandRoleOptions}
               editable
               disabled={mutation.isPending}
               errors={NO_ERRORS}

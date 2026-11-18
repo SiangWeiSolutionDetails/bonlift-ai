@@ -3,12 +3,8 @@
     "title": "Roles",
     "newConsoleRole": "New Console Role",
     "newBrandRole": "New Brand Role",
-    "consoleHint": "Console roles apply across the whole console: tenants, the brand list, users and roles. Each user has at most one.",
-    "brandHint": "Brand roles are templates. You choose which brand when you assign one, on the Users page or a brand’s Members tab."
-  },
-  "tabs": {
-    "console": "Console roles",
-    "brand": "Brand roles"
+    "consoleHint": "Console roles apply across the whole console: tenants, the brand list, users and roles. Each user has at most one. Brand roles are managed inside each brand, on its Roles page.",
+    "brandHint": "These roles belong to this brand’s tenant. You can assign them on any of the tenant’s brands, and a change applies on all of them."
   },
   "search": {
     "placeholder": "Search roles by name",
@@ -25,7 +21,8 @@
     "editRole": "Edit {{name}}",
     "viewRole": "View {{name}}",
     "deleteRole": "Delete {{name}}",
-    "ownRole": "You can't change a role you hold."
+    "ownRole": "You can't change a role you hold.",
+    "beyondLimit": "This role holds actions you can’t grant."
   },
   "dialog": {
     "createConsoleTitle": "New Console Role",
@@ -37,10 +34,13 @@
     "selectAll": "Select all",
     "toggleGroup": "Show or hide {{group}} actions",
     "builtinHint": "The built-in Admin role holds every console action and can't be changed.",
+    "builtinBrandHint": "The built-in Brand Owner role holds every brand action and can’t be changed.",
     "lackedHint": "You can only grant console actions you hold yourself.",
-    "brandHint": "This role isn’t tied to a brand. You choose the brand when you assign it, on the Users page or a brand’s Members tab.",
+    "lackedBrandHint": "You can only grant brand actions you may grant on this brand. Customer scores and customer IDs also need a brand role of your own that holds them.",
+    "brandHint": "This role belongs to the tenant. Editing it changes it for everyone who holds it, on any of the tenant’s brands.",
     "assignedUsers": "Assigned users",
     "assignedUsersHint": "To change who holds this role, use the Users page or the brand's Members tab.",
+    "assignedUsersBrandHint": "Holders across all of the tenant’s brands. To change who holds this role, use each brand’s Members page.",
     "noAssignedUsers": "No one holds this role.",
     "assignedSearch": "Search assigned users",
     "assignedFiltered": "{{shown}} of {{total}}",

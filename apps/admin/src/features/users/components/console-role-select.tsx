@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/select";
 import { useCurrentUser } from "@/features/auth/queries";
 import { useRoles } from "@/features/roles/queries";
-import type { Role } from "@/features/roles/type";
+import { CONSOLE_SCOPE, type Role } from "@/features/roles/type";
 
 const NO_ROLE = "none";
 
@@ -42,7 +42,7 @@ export function ConsoleRoleSelect({
 }: ConsoleRoleSelectProps) {
   const { t } = useTranslation("users");
   const isAdmin = useCurrentUser().console?.isAdmin ?? false;
-  const { data: roles = [] } = useRoles("console");
+  const { data: roles = [] } = useRoles(CONSOLE_SCOPE);
 
   return (
     <Select

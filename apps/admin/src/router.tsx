@@ -55,6 +55,7 @@ import { ApiError } from "@/lib/api-client";
 import { queryClient } from "@/lib/query-client";
 import { ApiKeysPage } from "@/pages/api-keys-page";
 import { BrandMembersPage } from "@/pages/brand-members-page";
+import { BrandRolesPage } from "@/pages/brand-roles-page";
 import { BrandSettingsPage } from "@/pages/brand-settings-page";
 import { BrandsPage } from "@/pages/brands-page";
 import { CalculationsPage } from "@/pages/calculations-page";
@@ -309,6 +310,13 @@ const membersRoute = createRoute({
   ...brandPage("members", { titleKey: "nav.members", icon: <UserRoundCogIcon /> }),
 });
 
+const brandRolesRoute = createRoute({
+  getParentRoute: () => brandLayoutRoute,
+  path: "roles",
+  component: BrandRolesPage,
+  ...brandPage("roles", { titleKey: "nav.roles", icon: <ShieldIcon /> }),
+});
+
 const settingsPage = brandPage("settings", { titleKey: "nav.settings", icon: <SettingsIcon /> });
 
 const settingsRoute = createRoute({
@@ -399,6 +407,7 @@ const brandRoutes = brandLayoutRoute.addChildren([
   brandIndexRoute,
   outletsRoute,
   membersRoute,
+  brandRolesRoute,
   settingsRoute,
   snapshotsRoute,
   calculationsRoute,

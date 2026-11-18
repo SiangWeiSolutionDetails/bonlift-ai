@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { usePermissions } from "@/features/auth/permissions";
 import { meQueryOptions, useCurrentUser } from "@/features/auth/queries";
 import { brandMemberKeys } from "@/features/brand-members/queries";
-import { roleKeys, useRoles } from "@/features/roles/queries";
+import { roleKeys } from "@/features/roles/queries";
 import { getErrorMessage } from "@/lib/error-message";
 import { runSaveStep } from "../api";
 import { userKeys, useUserBrandRoles } from "../queries";
@@ -179,7 +179,6 @@ function UserEditForm({
   const { t } = useTranslation("users");
   const { t: tCommon } = useTranslation();
   const access = useEditAccess(user, brandRolesError === null);
-  const { data: brandRoleOptions = [] } = useRoles("brand");
   const [baseline, setBaseline] = useState(() => initialState(user, initialBrandRoles));
   const [displayName, setDisplayName] = useState(baseline.displayName);
   const [consoleRoleId, setConsoleRoleId] = useState(baseline.consoleRoleId);
@@ -294,7 +293,6 @@ function UserEditForm({
         ) : (
           <UserBrandRolesField
             entries={entries}
-            roles={brandRoleOptions}
             editable={access.brandRoles}
             disabled={saving}
             errors={brandErrors}

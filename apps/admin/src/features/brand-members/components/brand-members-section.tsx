@@ -12,8 +12,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { usePermissions } from "@/features/auth/permissions";
 import { useCurrentUser } from "@/features/auth/queries";
+import { holdsBrandAction } from "@/features/roles/role-access";
 import { ApiError } from "@/lib/api-client";
 import { getErrorMessage } from "@/lib/error-message";
 import {
@@ -34,8 +34,7 @@ type BrandMembersSectionProps = {
 
 function useRoleOptions(members: BrandMember[], brandId: string): RoleOption[] {
   const me = useCurrentUser();
-  const { canConsole } = usePermissions();
-  const { data: roles } = useBrandRoleOptions(canConsole("roles.view"));
+  const { data: roles } = useBrandRoleOptions(brandId, holdsBrandAction(me, brandId, "brandRoles.view"));
   if (roles) return roles;
 
   const known = new Map<string, RoleOption>();

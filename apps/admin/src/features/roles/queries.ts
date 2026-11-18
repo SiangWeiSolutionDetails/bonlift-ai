@@ -1,26 +1,30 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { meQueryOptions } from "@/features/auth/queries";
 import { createRole, deleteRole, listRoleAssignments, listRoles, updateRole } from "./api";
-import type { RoleKindType, UpdateRoleInput } from "./type";
+import type { CreateRoleInput, RoleScope, UpdateRoleInput } from "./type";
+
+const scopeKey = (scope: RoleScope) =>
+  scope.kind === "console" ? (["console"] as const) : (["brand", scope.brandId] as const);
 
 export const roleKeys = {
   all: ["roles"] as const,
-  list: (kind: RoleKindType) => [...roleKeys.all, "list", kind] as const,
-  assignments: (roleId: string) => [...roleKeys.all, "assignments", roleId] as const,
+  list: (scope: RoleScope) => [...roleKeys.all, "list", ...scopeKey(scope)] as const,
+  assignments: (scope: RoleScope, roleId: string) =>
+    [...roleKeys.all, "assignments", ...scopeKey(scope), roleId] as const,
 };
 
-export function useRoles(kind: RoleKindType, enabled = true) {
+export function useRoles(scope: RoleScope, enabled = true) {
   return useQuery({
-    queryKey: roleKeys.list(kind),
-    queryFn: ({ signal }) => listRoles(kind, signal),
+    queryKey: roleKeys.list(scope),
+    queryFn: ({ signal }) => listRoles(scope, signal),
     enabled,
   });
 }
 
-export function useRoleAssignments(roleId: string, enabled: boolean) {
+export function useRoleAssignments(scope: RoleScope, roleId: string, enabled: boolean) {
   return useQuery({
-    queryKey: roleKeys.assignments(roleId),
-    queryFn: ({ signal }) => listRoleAssignments(roleId, signal),
+    queryKey: roleKeys.assignments(scope, roleId),
+    queryFn: ({ signal }) => listRoleAssignments(scope, roleId, signal),
     enabled,
   });
 }
@@ -34,21 +38,27 @@ function useInvalidateRoles() {
   };
 }
 
-export function useCreateRole() {
-  const invalidate = useInvalidateRoles();
-  return useMutation({ mutationFn: createRole, onSuccess: invalidate });
-}
-
-export function useUpdateRole() {
+export function useCreateRole(scope: RoleScope) {
   const invalidate = useInvalidateRoles();
   return useMutation({
-    mutationFn: ({ roleId, input }: { roleId: string; input: UpdateRoleInput }) =>
-      updateRole(roleId, input),
+    mutationFn: (input: CreateRoleInput) => createRole(scope, input),
     onSuccess: invalidate,
   });
 }
 
-export function useDeleteRole() {
+export function useUpdateRole(scope: RoleScope) {
   const invalidate = useInvalidateRoles();
-  return useMutation({ mutationFn: deleteRole, onSuccess: invalidate });
+  return useMutation({
+    mutationFn: ({ roleId, input }: { roleId: string; input: UpdateRoleInput }) =>
+      updateRole(scope, roleId, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useDeleteRole(scope: RoleScope) {
+  const invalidate = useInvalidateRoles();
+  return useMutation({
+    mutationFn: (roleId: string) => deleteRole(scope, roleId),
+    onSuccess: invalidate,
+  });
 }

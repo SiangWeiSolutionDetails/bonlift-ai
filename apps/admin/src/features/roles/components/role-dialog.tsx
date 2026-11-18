@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { PERMISSIONS, type ConsoleAction } from "@bonlift-ai/contracts";
+import { PERMISSIONS } from "@bonlift-ai/contracts";
 import { ChevronRightIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { usePermissions } from "@/features/auth/permissions";
+import { useCurrentUser } from "@/features/auth/queries";
 import { getErrorMessage } from "@/lib/error-message";
 import { UserStatusBadge } from "@/features/users/components/user-status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,26 +31,30 @@ import {
 import { useCreateRole, useRoleAssignments, useUpdateRole } from "../queries";
 import { filterAssignments } from "../filter-assignments";
 import { groupState, toggleGroup } from "../permission-selection";
-import type { Role, RoleKindType } from "../type";
+import { grantLimit, holdsBrandAction } from "../role-access";
+import type { Role, RoleScope } from "../type";
 
 export type RoleDialogTarget =
-  | { mode: "create"; kind: RoleKindType }
+  | { mode: "create" }
   | { mode: "edit"; role: Role }
   | { mode: "view"; role: Role };
 
 type RoleDialogProps = {
+  scope: RoleScope;
   target: RoleDialogTarget | null;
   onClose: () => void;
 };
 
-function titleKey(target: RoleDialogTarget) {
+type RoleKind = RoleScope["kind"];
+
+function titleKey(target: RoleDialogTarget, kind: RoleKind) {
   if (target.mode === "create") {
-    return target.kind === "console" ? "dialog.createConsoleTitle" : "dialog.createBrandTitle";
+    return kind === "console" ? "dialog.createConsoleTitle" : "dialog.createBrandTitle";
   }
   return target.mode === "edit" ? "dialog.editTitle" : "dialog.viewTitle";
 }
 
-export function RoleDialog({ target, onClose }: RoleDialogProps) {
+export function RoleDialog({ scope, target, onClose }: RoleDialogProps) {
   const { t } = useTranslation("roles");
   // Kept after close so the title doesn't flip while the dialog animates out
   const [lastTarget, setLastTarget] = useState(target);
@@ -63,21 +68,23 @@ export function RoleDialog({ target, onClose }: RoleDialogProps) {
         className="flex max-h-[calc(100dvh-2rem)] flex-col sm:max-w-2xl"
       >
         <DialogHeader>
-          <DialogTitle>{shown && t(titleKey(shown))}</DialogTitle>
+          <DialogTitle>{shown && t(titleKey(shown, scope.kind))}</DialogTitle>
         </DialogHeader>
-        {target && <RoleForm key={formKey(target)} target={target} onDone={onClose} />}
+        {target && (
+          <RoleForm key={formKey(target)} scope={scope} target={target} onDone={onClose} />
+        )}
       </DialogContent>
     </Dialog>
   );
 }
 
 function formKey(target: RoleDialogTarget) {
-  return target.mode === "create" ? `create-${target.kind}` : `${target.mode}-${target.role.id}`;
+  return target.mode === "create" ? "create" : `${target.mode}-${target.role.id}`;
 }
 
 type PermissionGroup = { group: string; keys: string[] };
 
-function groupPermissions(kind: RoleKindType): PermissionGroup[] {
+function groupPermissions(kind: RoleKind): PermissionGroup[] {
   const groups = new Map<string, string[]>();
   for (const permission of PERMISSIONS) {
     if (permission.kind !== kind) continue;
@@ -93,19 +100,28 @@ function toggled(selected: ReadonlySet<string>, key: string) {
   return next;
 }
 
-function AssignedUsers({ roleId, kind }: { roleId: string; kind: RoleKindType }) {
+function useCanSeeAssignments(scope: RoleScope) {
+  const me = useCurrentUser();
+  const { canConsole } = usePermissions();
+  if (scope.kind === "console") return canConsole("users.view");
+  return holdsBrandAction(me, scope.brandId, "members.view");
+}
+
+function AssignedUsers({ scope, roleId }: { scope: RoleScope; roleId: string }) {
   const { t } = useTranslation("roles");
   const { t: tCommon } = useTranslation();
-  const { data, isPending, error } = useRoleAssignments(roleId, true);
+  const { data, isPending, error } = useRoleAssignments(scope, roleId, true);
   const [searchText, setSearchText] = useState("");
   const filtered = filterAssignments(data, searchText);
-  const isBrand = kind === "brand";
+  const isBrand = scope.kind === "brand";
 
   return (
     <section className="grid min-w-0 gap-2">
       <div>
         <h3 className="text-sm font-medium">{t("dialog.assignedUsers")}</h3>
-        <p className="text-sm text-muted-foreground">{t("dialog.assignedUsersHint")}</p>
+        <p className="text-sm text-muted-foreground">
+          {t(isBrand ? "dialog.assignedUsersBrandHint" : "dialog.assignedUsersHint")}
+        </p>
       </div>
       {isPending && !error ? (
         <Skeleton className="h-5 w-full" />
@@ -198,25 +214,29 @@ function AssignedUsers({ roleId, kind }: { roleId: string; kind: RoleKindType })
   );
 }
 
-function RoleForm({ target, onDone }: { target: RoleDialogTarget; onDone: () => void }) {
+type RoleFormProps = { scope: RoleScope; target: RoleDialogTarget; onDone: () => void };
+
+function RoleForm({ scope, target, onDone }: RoleFormProps) {
   const { t } = useTranslation("roles");
   const { t: tPermissions } = useTranslation("permissions");
   const { t: tCommon } = useTranslation();
-  const { canConsole } = usePermissions();
+  const me = useCurrentUser();
+  const canSeeAssignments = useCanSeeAssignments(scope);
   const existing = target.mode === "create" ? null : target.role;
-  const kind = target.mode === "create" ? target.kind : target.role.kind;
+  const kind = scope.kind;
   const isBuiltin = !!existing?.isBuiltin;
   const isReadOnly = target.mode === "view" || isBuiltin;
   const [name, setName] = useState(existing?.name ?? "");
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set(existing?.actions));
-  const createMutation = useCreateRole();
-  const updateMutation = useUpdateRole();
+  const createMutation = useCreateRole(scope);
+  const updateMutation = useUpdateRole(scope);
   const mutation = existing ? updateMutation : createMutation;
   const trimmedName = name.trim();
+  const limit = grantLimit(me, scope);
 
-  // The API refuses console actions the actor lacks; disabling keeps the list within what they may grant
+  // The API refuses actions outside the actor's grant limit; disabling keeps the list within it
   function isLacking(key: string) {
-    return kind === "console" && !canConsole(key as ConsoleAction);
+    return !limit.has(key);
   }
 
   const groups = groupPermissions(kind);
@@ -256,9 +276,15 @@ function RoleForm({ target, onDone }: { target: RoleDialogTarget; onDone: () => 
 
         <fieldset className="grid gap-4">
           <legend className="mb-2 text-sm font-medium">{t("dialog.permissions")}</legend>
-          {isBuiltin && <p className="text-sm text-muted-foreground">{t("dialog.builtinHint")}</p>}
-          {!isReadOnly && kind === "console" && (
-            <p className="text-sm text-muted-foreground">{t("dialog.lackedHint")}</p>
+          {isBuiltin && (
+            <p className="text-sm text-muted-foreground">
+              {t(kind === "console" ? "dialog.builtinHint" : "dialog.builtinBrandHint")}
+            </p>
+          )}
+          {!isReadOnly && (
+            <p className="text-sm text-muted-foreground">
+              {t(kind === "console" ? "dialog.lackedHint" : "dialog.lackedBrandHint")}
+            </p>
           )}
           {kind === "brand" && (
             <p className="text-sm text-muted-foreground">{t("dialog.brandHint")}</p>
@@ -319,7 +345,7 @@ function RoleForm({ target, onDone }: { target: RoleDialogTarget; onDone: () => 
           </div>
         </fieldset>
 
-        {existing && canConsole("users.view") && <AssignedUsers roleId={existing.id} kind={kind} />}
+        {existing && canSeeAssignments && <AssignedUsers scope={scope} roleId={existing.id} />}
 
         {mutation.error && (
           <p className="text-sm text-destructive">{getErrorMessage(mutation.error, tCommon)}</p>

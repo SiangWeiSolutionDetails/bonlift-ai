@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { meQueryOptions } from "@/features/auth/queries";
 import { brandKeys } from "@/features/brands/queries";
-import { listRoles } from "@/features/roles/api";
-import { roleKeys } from "@/features/roles/queries";
+import { roleKeys, useRoles } from "@/features/roles/queries";
+import { brandScope } from "@/features/roles/type";
 import { removeBrandRole, setBrandRole } from "@/features/users/api";
 import { userKeys } from "@/features/users/queries";
 import { addBrandMember, listBrandMembers } from "./api";
@@ -19,13 +19,9 @@ export function useBrandMembers(brandId: string) {
   });
 }
 
-// Only for users who may read roles; others fall back to the roles already visible to them
-export function useBrandRoleOptions(enabled: boolean) {
-  return useQuery({
-    queryKey: roleKeys.list("brand"),
-    queryFn: ({ signal }) => listRoles("brand", signal),
-    enabled,
-  });
+// The brand's tenant's roles, only for users who may read them; others fall back to the roles already visible to them
+export function useBrandRoleOptions(brandId: string, enabled: boolean) {
+  return useRoles(brandScope(brandId), enabled);
 }
 
 // Members also show on the users list and per-user brand roles, and feed role assignment counts

@@ -11,7 +11,9 @@ import {
 import { usePermissions } from "@/features/auth/permissions";
 import { useCurrentUser } from "@/features/auth/queries";
 import { useBrands } from "@/features/brands/queries";
-import type { Role } from "@/features/roles/type";
+import { useRoles } from "@/features/roles/queries";
+import { holdsBrandAction } from "@/features/roles/role-access";
+import { brandScope } from "@/features/roles/type";
 import { useTenants } from "@/features/tenants/queries";
 import { cn } from "@/lib/utils";
 
@@ -24,9 +26,19 @@ export type BrandRoleEntry = {
   removed: boolean;
 };
 
+type RoleOption = { id: string; name: string };
+
+// Each brand lists its own tenant's roles; without access to read them, only the current role is offered
+function useBrandRoleOptions(brandId: string, current?: RoleOption): RoleOption[] {
+  const me = useCurrentUser();
+  const enabled = !!brandId && holdsBrandAction(me, brandId, "brandRoles.view");
+  const { data: roles = [] } = useRoles(brandScope(brandId), enabled);
+  if (!current || roles.some((role) => role.id === current.id)) return roles;
+  return [...roles, current];
+}
+
 type UserBrandRolesFieldProps = {
   entries: BrandRoleEntry[];
-  roles: Role[];
   editable: boolean;
   disabled: boolean;
   errors: ReadonlyMap<string, string>;
@@ -35,7 +47,6 @@ type UserBrandRolesFieldProps = {
 
 export function UserBrandRolesField({
   entries,
-  roles,
   editable,
   disabled,
   errors,
@@ -57,7 +68,6 @@ export function UserBrandRolesField({
             <BrandRoleRow
               key={entry.brandId}
               entry={entry}
-              roles={roles}
               editable={editable}
               disabled={disabled}
               error={errors.get(entry.brandId)}
@@ -70,7 +80,6 @@ export function UserBrandRolesField({
       {editable && (
         <AddBrandRole
           assignedBrandIds={new Set(entries.map((entry) => entry.brandId))}
-          roles={roles}
           disabled={disabled}
           onAdd={(entry) => onChange([...entries, entry])}
         />
@@ -81,7 +90,6 @@ export function UserBrandRolesField({
 
 type BrandRoleRowProps = {
   entry: BrandRoleEntry;
-  roles: Role[];
   editable: boolean;
   disabled: boolean;
   error: string | undefined;
@@ -91,7 +99,6 @@ type BrandRoleRowProps = {
 
 function BrandRoleRow({
   entry,
-  roles,
   editable,
   disabled,
   error,
@@ -99,7 +106,6 @@ function BrandRoleRow({
   onToggleRemoved,
 }: BrandRoleRowProps) {
   const { t } = useTranslation("users");
-  const roleName = roles.find((role) => role.id === entry.roleId)?.name ?? entry.roleName;
 
   return (
     <li className="grid min-w-0 gap-1 rounded-lg border p-3">
@@ -123,9 +129,8 @@ function BrandRoleRow({
         {editable ? (
           <div className="flex shrink-0 items-center gap-2">
             {!entry.removed && (
-              <RoleSelect
-                value={entry.roleId}
-                roles={roles}
+              <EntryRoleSelect
+                entry={entry}
                 disabled={disabled}
                 label={t("brandRoles.roleFor", { brand: entry.brandName })}
                 onChange={onChangeRole}
@@ -146,7 +151,7 @@ function BrandRoleRow({
             </Button>
           </div>
         ) : (
-          <span className="shrink-0 text-sm">{roleName}</span>
+          <span className="shrink-0 text-sm">{entry.roleName}</span>
         )}
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
@@ -154,9 +159,21 @@ function BrandRoleRow({
   );
 }
 
+type EntryRoleSelectProps = {
+  entry: BrandRoleEntry;
+  disabled: boolean;
+  label: string;
+  onChange: (roleId: string) => void;
+};
+
+function EntryRoleSelect({ entry, ...props }: EntryRoleSelectProps) {
+  const roles = useBrandRoleOptions(entry.brandId, { id: entry.roleId, name: entry.roleName });
+  return <RoleSelect value={entry.roleId} roles={roles} {...props} />;
+}
+
 type RoleSelectProps = {
   value: string;
-  roles: Role[];
+  roles: RoleOption[];
   disabled: boolean;
   label: string;
   placeholder?: string;
@@ -192,17 +209,17 @@ function useTenantNames() {
 
 type AddBrandRoleProps = {
   assignedBrandIds: ReadonlySet<string>;
-  roles: Role[];
   disabled: boolean;
   onAdd: (entry: BrandRoleEntry) => void;
 };
 
-function AddBrandRole({ assignedBrandIds, roles, disabled, onAdd }: AddBrandRoleProps) {
+function AddBrandRole({ assignedBrandIds, disabled, onAdd }: AddBrandRoleProps) {
   const { t } = useTranslation("users");
   const { data: brands = [] } = useBrands();
   const tenantNames = useTenantNames();
   const [brandId, setBrandId] = useState("");
   const [roleId, setRoleId] = useState("");
+  const roles = useBrandRoleOptions(brandId);
   const available = brands.filter((brand) => !assignedBrandIds.has(brand.id));
 
   function add() {
@@ -223,7 +240,14 @@ function AddBrandRole({ assignedBrandIds, roles, disabled, onAdd }: AddBrandRole
 
   return (
     <div className="flex flex-wrap items-center gap-2 border-t pt-3">
-      <Select value={brandId} onValueChange={setBrandId} disabled={disabled}>
+      <Select
+        value={brandId}
+        onValueChange={(next) => {
+          setBrandId(next);
+          setRoleId("");
+        }}
+        disabled={disabled}
+      >
         <SelectTrigger size="sm" className="min-w-0 max-w-full flex-1 basis-40" aria-label={t("brandRoles.brand")}>
           <SelectValue placeholder={t("brandRoles.brandPlaceholder")}>
             {available.find((brand) => brand.id === brandId)?.name}
@@ -248,7 +272,7 @@ function AddBrandRole({ assignedBrandIds, roles, disabled, onAdd }: AddBrandRole
       <RoleSelect
         value={roleId}
         roles={roles}
-        disabled={disabled}
+        disabled={disabled || !brandId}
         label={t("brandRoles.role")}
         placeholder={t("brandRoles.rolePlaceholder")}
         onChange={setRoleId}

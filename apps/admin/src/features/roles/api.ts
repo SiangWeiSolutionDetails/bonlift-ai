@@ -1,28 +1,31 @@
 import { apiRequest } from "@/lib/api-client";
-import type { CreateRoleInput, Role, RoleAssignment, RoleKindType, UpdateRoleInput } from "./type";
+import type { CreateRoleInput, Role, RoleAssignment, RoleScope, UpdateRoleInput } from "./type";
 
-export async function listRoles(kind: RoleKindType, signal: AbortSignal) {
-  const data = await apiRequest<{ roles: Role[] }>("/roles", { query: { kind }, signal });
+function rolesPath(scope: RoleScope) {
+  return scope.kind === "console" ? "/roles" : `/brands/${encodeURIComponent(scope.brandId)}/roles`;
+}
+
+function rolePath(scope: RoleScope, roleId: string) {
+  return `${rolesPath(scope)}/${encodeURIComponent(roleId)}`;
+}
+
+export async function listRoles(scope: RoleScope, signal: AbortSignal) {
+  const data = await apiRequest<{ roles: Role[] }>(rolesPath(scope), { signal });
   return data.roles;
 }
 
-export async function listRoleAssignments(roleId: string, signal: AbortSignal) {
-  return await apiRequest<RoleAssignment[]>(`/roles/${encodeURIComponent(roleId)}/assignments`, {
-    signal,
-  });
+export async function listRoleAssignments(scope: RoleScope, roleId: string, signal: AbortSignal) {
+  return await apiRequest<RoleAssignment[]>(`${rolePath(scope, roleId)}/assignments`, { signal });
 }
 
-export async function createRole(input: CreateRoleInput) {
-  return await apiRequest<Role>("/roles", { method: "POST", body: input });
+export async function createRole(scope: RoleScope, input: CreateRoleInput) {
+  return await apiRequest<Role>(rolesPath(scope), { method: "POST", body: input });
 }
 
-export async function updateRole(roleId: string, input: UpdateRoleInput) {
-  return await apiRequest<Role>(`/roles/${encodeURIComponent(roleId)}`, {
-    method: "PATCH",
-    body: input,
-  });
+export async function updateRole(scope: RoleScope, roleId: string, input: UpdateRoleInput) {
+  return await apiRequest<Role>(rolePath(scope, roleId), { method: "PATCH", body: input });
 }
 
-export async function deleteRole(roleId: string) {
-  return await apiRequest<void>(`/roles/${encodeURIComponent(roleId)}`, { method: "DELETE" });
+export async function deleteRole(scope: RoleScope, roleId: string) {
+  return await apiRequest<void>(rolePath(scope, roleId), { method: "DELETE" });
 }

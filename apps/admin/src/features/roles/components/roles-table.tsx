@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { getErrorMessage } from "@/lib/error-message";
 import { cn } from "@/lib/utils";
+import { isWithinLimit } from "../role-access";
 import type { Role } from "../type";
 
 const COLUMN_COUNT = 4;
@@ -24,6 +25,7 @@ type RolesTableProps = {
   isPending: boolean;
   error: Error | null;
   heldRoleIds: ReadonlySet<string>;
+  grantLimit: ReadonlySet<string>;
   onEdit?: (role: Role) => void;
   onView: (role: Role) => void;
   onDelete?: (role: Role) => void;
@@ -59,12 +61,20 @@ function RolesTableRows({
   isPending,
   error,
   heldRoleIds,
+  grantLimit,
   onEdit,
   onView,
   onDelete,
 }: RolesTableProps) {
   const { t } = useTranslation("roles");
   const { t: tCommon } = useTranslation();
+
+  // The API refuses changing a role the actor holds, or one with actions beyond what they may grant
+  function lockHintFor(role: Role) {
+    if (heldRoleIds.has(role.id)) return t("table.ownRole");
+    if (!isWithinLimit(role.actions, grantLimit)) return t("table.beyondLimit");
+    return undefined;
+  }
 
   if (isPending) {
     return Array.from({ length: SKELETON_ROW_COUNT }, (_, index) => (
@@ -85,8 +95,8 @@ function RolesTableRows({
   }
 
   return roles.map((role) => {
-    const isLocked = role.isBuiltin || heldRoleIds.has(role.id);
-    const lockHint = !role.isBuiltin && isLocked ? t("table.ownRole") : undefined;
+    const lockHint = role.isBuiltin ? undefined : lockHintFor(role);
+    const isLocked = role.isBuiltin || lockHint !== undefined;
     return (
       <TableRow key={role.id}>
         <TableCell className="font-medium">

@@ -16,7 +16,7 @@ import {
 } from "@/features/outlet-item-scores/queries";
 import type { ResultsSearch } from "@/features/outlet-item-scores/search";
 import { useBrandOutletId, useOutlets } from "@/features/outlets/queries";
-import { isOtherBrandOutletRun } from "@/features/workspaces/run-scope";
+import { isOtherBrandOutletRun, isRunUnavailable } from "@/features/workspaces/run-scope";
 import { useWorkspaceBrandId } from "@/features/workspaces/use-workspace";
 
 const routeApi = getRouteApi("/_app/b/$brandId/results");
@@ -43,11 +43,12 @@ export function ResultsPage() {
   const unlistedRun =
     linkedRun.data?.outletId === outletId ? linkedRun.data : undefined;
   const isForeignRun = isOtherBrandOutletRun(linkedRun.data, brandOutletIds);
+  const isUnavailableRun = isRunUnavailable(linkedRun.error);
   // A run outside the workspace brand is dropped from the URL, so the URL never names a run the page doesn't show
   useEffect(() => {
-    if (!isForeignRun) return;
+    if (!isForeignRun && !isUnavailableRun) return;
     navigate({ search: (prev) => ({ ...prev, runId: undefined }), replace: true, resetScroll: false });
-  }, [isForeignRun, navigate]);
+  }, [isForeignRun, isUnavailableRun, navigate]);
   // No run chosen: show what the outlet serves now, else the newest run
   const viewingRun =
     listedRun ??

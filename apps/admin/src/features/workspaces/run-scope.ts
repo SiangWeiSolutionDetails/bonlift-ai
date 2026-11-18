@@ -10,3 +10,9 @@ export function isOtherBrandOutletRun(
 ) {
   return !!run && !!brandOutletIds && !brandOutletIds.includes(run.outletId);
 }
+
+// The API hides runs the user may not read (403) or that don't exist (404)
+export function isRunUnavailable(error: unknown) {
+  const status = (error as { status?: unknown } | null)?.status;
+  return status === 403 || status === 404;
+}

@@ -14,7 +14,7 @@ import {
   useCustomerItemScoresRuns,
 } from "@/features/customer-item-scores/queries";
 import type { CustomerScoresSearch } from "@/features/customer-item-scores/search";
-import { isOtherBrandRun } from "@/features/workspaces/run-scope";
+import { isOtherBrandRun, isRunUnavailable } from "@/features/workspaces/run-scope";
 import { useWorkspaceBrandId } from "@/features/workspaces/use-workspace";
 
 const routeApi = getRouteApi("/_app/b/$brandId/customer-scores");
@@ -38,11 +38,12 @@ export function CustomerScoresPage() {
   const unlistedRun =
     linkedRun.data?.brandId === brandId ? linkedRun.data : undefined;
   const isForeignRun = isOtherBrandRun(linkedRun.data, brandId);
+  const isUnavailableRun = isRunUnavailable(linkedRun.error);
   // A run outside the workspace brand is dropped from the URL, so the URL never names a run the page doesn't show
   useEffect(() => {
-    if (!isForeignRun) return;
+    if (!isForeignRun && !isUnavailableRun) return;
     navigate({ search: (prev) => ({ ...prev, runId: undefined, customerId: undefined }), replace: true, resetScroll: false });
-  }, [isForeignRun, navigate]);
+  }, [isForeignRun, isUnavailableRun, navigate]);
   // No run chosen: show what the brand serves now, else the newest run
   const viewingRun =
     listedRun ??

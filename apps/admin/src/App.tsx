@@ -14,9 +14,11 @@ import { Separator } from '@/components/ui/separator'
 import { Toaster } from '@/components/ui/sonner'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { WorkspaceLabel } from '@/features/workspaces/components/workspace-label'
+import { useCurrentWorkspace } from '@/features/workspaces/use-workspace'
 
 function App() {
   const { t } = useTranslation()
+  const hasWorkspace = !!useCurrentWorkspace()
   const titleKey = useMatches({ select: (matches) => matches.at(-1)?.staticData.titleKey })
 
   return (
@@ -27,12 +29,14 @@ function App() {
           <div className="flex min-w-0 items-center gap-2 px-4 md:px-6">
             <SidebarTrigger className="-ml-1" />
             <WorkspaceLabel />
-            <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
-            <Breadcrumb>
-              <BreadcrumbList>
+            {hasWorkspace && (
+              <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
+            )}
+            <Breadcrumb className="min-w-0">
+              <BreadcrumbList className="flex-nowrap">
                 {titleKey && (
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>{t(titleKey)}</BreadcrumbPage>
+                  <BreadcrumbItem className="min-w-0">
+                    <BreadcrumbPage className="truncate">{t(titleKey)}</BreadcrumbPage>
                   </BreadcrumbItem>
                 )}
               </BreadcrumbList>

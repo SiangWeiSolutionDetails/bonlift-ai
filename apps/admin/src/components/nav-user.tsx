@@ -64,6 +64,9 @@ function useAddAccount() {
   }
 }
 
+// Right end of every account row: the current mark, or the Remove item laid over the row
+const SLOT = "w-14 shrink-0"
+
 type AccountRowProps = {
   account: Pick<KnownAccount, "email" | "displayName">
   current: boolean
@@ -80,16 +83,14 @@ function AccountRow({ account, current, onSwitch }: AccountRowProps) {
       title={account.email}
       aria-current={current ? "true" : undefined}
       aria-label={current ? undefined : t("switchToAccount", { email: account.email })}
-      className="min-w-0 flex-1 cursor-pointer gap-3 px-2 py-1.5"
+      className="cursor-pointer gap-3 py-1.5 pr-0 pl-2"
     >
       <span className="grid min-w-0 flex-1 leading-tight">
         <span className={cn("truncate", current && "font-semibold")}>{name}</span>
         {name !== account.email && <span className="truncate text-xs text-muted-foreground">{account.email}</span>}
       </span>
-      <span className="shrink-0 text-xs text-muted-foreground">
-        {current ? t("signedIn") : t("signedOut")}
-      </span>
-      <CurrentMark current={current} />
+      {current && <span className="shrink-0 text-xs text-muted-foreground">{t("signedIn")}</span>}
+      <span className={cn(SLOT, "flex justify-center")}>{current && <CurrentMark current />}</span>
     </DropdownMenuItem>
   )
 }
@@ -99,7 +100,7 @@ function RemoveAccountItem({ email }: { email: string }) {
   return (
     <DropdownMenuItem
       aria-label={t("removeAccountLabel", { email })}
-      className="cursor-pointer px-2 py-1.5 text-xs text-muted-foreground"
+      className={cn(SLOT, "absolute inset-y-0 right-0 cursor-pointer justify-center px-0 text-xs text-muted-foreground")}
       onSelect={(event) => {
         event.preventDefault()
         forgetAccount(email)
@@ -110,16 +111,6 @@ function RemoveAccountItem({ email }: { email: string }) {
   )
 }
 
-// Same width as the Remove item, so the current row's status and mark line up with the rows below
-function RemoveSpacer() {
-  const { t } = useTranslation("auth")
-  return (
-    <span aria-hidden className="invisible px-2 text-xs">
-      {t("removeAccount")}
-    </span>
-  )
-}
-
 function AccountList({ onSwitch }: { onSwitch: (email: string) => void }) {
   const user = useCurrentUser()
   const known = useKnownAccounts()
@@ -127,12 +118,9 @@ function AccountList({ onSwitch }: { onSwitch: (email: string) => void }) {
 
   return (
     <>
-      <div className="flex items-center gap-1">
-        <AccountRow account={user} current onSwitch={() => {}} />
-        <RemoveSpacer />
-      </div>
+      <AccountRow account={user} current onSwitch={() => {}} />
       {others.map((account) => (
-        <div key={account.email} className="flex items-center gap-1">
+        <div key={account.email} className="relative">
           <AccountRow account={account} current={false} onSwitch={() => onSwitch(account.email)} />
           <RemoveAccountItem email={account.email} />
         </div>

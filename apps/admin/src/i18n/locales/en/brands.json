@@ -18,6 +18,8 @@
     "deleteBrand": "Delete {{name}}",
     "openWorkspace": "Open Workspace",
     "openWorkspaceOf": "Open the {{name}} workspace",
+    "openAsProvider": "Open as Provider",
+    "openAsProviderOf": "Open {{name}} as the service provider",
     "copyBrandId": "Copy brand ID of {{name}}",
     "copyId": "Copy ID",
     "copied": "Copied"

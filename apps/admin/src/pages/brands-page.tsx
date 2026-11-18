@@ -5,7 +5,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { usePermissions } from "@/features/auth/permissions";
+import { holdsBrandRole, isProvider, usePermissions } from "@/features/auth/permissions";
 import { useCurrentUser } from "@/features/auth/queries";
 import { BrandsTable } from "@/features/brands/components/brands-table";
 import { CreateBrandDialog } from "@/features/brands/components/create-brand-dialog";
@@ -88,7 +88,8 @@ export function BrandsPage() {
         error={error}
         emptyMessage={searchText.trim() ? t("search.noMatches") : undefined}
         canEdit={() => canConsole("brands.edit")}
-        canOpenWorkspace={(brand) => me.brands.some((b) => b.brandId === brand.id)}
+        canOpenWorkspace={(brand) => holdsBrandRole(me, brand.id)}
+        canOpenAsProvider={(brand) => isProvider(me) && !holdsBrandRole(me, brand.id)}
         onEdit={(brand) => openBrand(brand, false)}
         onView={(brand) => openBrand(brand, true)}
         onDelete={canConsole("brands.delete") ? setBrandToDelete : undefined}

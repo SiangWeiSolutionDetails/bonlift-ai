@@ -1,6 +1,11 @@
-import { CONSOLE_ACTIONS, type AuthMeResponseSchemaType, type BrandAction } from "@bonlift-ai/contracts";
+import {
+  CONSOLE_ACTIONS,
+  PERSONAL_DATA_ACTIONS,
+  type AuthMeResponseSchemaType,
+  type BrandAction,
+} from "@bonlift-ai/contracts";
 import { describe, expect, it } from "vitest";
-import { canBrand, canConsole, hasAccess } from "./permissions";
+import { canBrand, canConsole, hasAccess, holdsBrandRole, isProvider, type RouteAccess } from "./permissions";
 
 const BRAND_A = "00000000-0000-4000-8000-00000000000a";
 const BRAND_B = "00000000-0000-4000-8000-00000000000b";
@@ -39,6 +44,10 @@ const admin = me({
   },
 });
 
+function consoleUser(actions: string[], brands: ReturnType<typeof brand>[] = []) {
+  return me({ console: { ...admin.console!, roleName: "Staff", isAdmin: false, actions }, brands });
+}
+
 describe("canConsole", () => {
   it("lets an Admin do every console action", () => {
     expect(CONSOLE_ACTIONS.every((action) => canConsole(admin, action))).toBe(true);
@@ -56,8 +65,38 @@ describe("canConsole", () => {
 });
 
 describe("canBrand", () => {
-  it("gives an Admin with no brand role nothing inside a brand", () => {
-    expect(canBrand(admin, BRAND_A, "outlets.view")).toBe(false);
+  it("gives provider.view read access on any brand without a brand role", () => {
+    const user = consoleUser(["provider.view"]);
+    expect(canBrand(user, BRAND_A, "outlets.view")).toBe(true);
+    expect(canBrand(user, BRAND_B, "results.view")).toBe(true);
+    expect(canBrand(user, BRAND_A, "outlets.edit")).toBe(false);
+  });
+
+  it("gives provider.support edit access on any brand", () => {
+    const user = consoleUser(["provider.support"]);
+    expect(canBrand(user, BRAND_A, "outlets.view")).toBe(true);
+    expect(canBrand(user, BRAND_A, "outlets.edit")).toBe(true);
+    expect(canBrand(user, BRAND_A, "brandRoles.manage")).toBe(true);
+  });
+
+  it("gives an Admin provider access without a brand role", () => {
+    expect(canBrand(admin, BRAND_A, "outlets.view")).toBe(true);
+    expect(canBrand(admin, BRAND_A, "outlets.edit")).toBe(true);
+  });
+
+  it.each(PERSONAL_DATA_ACTIONS)("never grants %s through provider access", (action) => {
+    expect(canBrand(admin, BRAND_A, action)).toBe(false);
+    expect(canBrand(consoleUser(["provider.support"]), BRAND_A, action)).toBe(false);
+  });
+
+  it("grants personal data through a brand role held alongside provider access", () => {
+    const user = consoleUser(["provider.support"], [brand(BRAND_A, ["customerScores.view"])]);
+    expect(canBrand(user, BRAND_A, "customerScores.view")).toBe(true);
+    expect(canBrand(user, BRAND_B, "customerScores.view")).toBe(false);
+  });
+
+  it("grants nothing through console actions that are not provider access", () => {
+    expect(canBrand(consoleUser(["brands.view", "users.view"]), BRAND_A, "outlets.view")).toBe(false);
   });
 
   it("follows the role held on that brand", () => {
@@ -97,7 +136,35 @@ describe("hasAccess", () => {
     expect(hasAccess(user, { brand: "usage.view" })).toBe(false);
   });
 
-  it("gives an Admin no brand page access", () => {
-    expect(hasAccess(admin, { brand: "outlets.view" }, BRAND_A)).toBe(false);
+  it("gives an Admin brand pages through provider access, except personal data", () => {
+    expect(hasAccess(admin, { brand: "outlets.view" }, BRAND_A)).toBe(true);
+    expect(hasAccess(admin, { brand: "customerScores.view" }, BRAND_A)).toBe(false);
+  });
+
+  it("passes a console page with any one of its actions", () => {
+    const access: RouteAccess = { console: ["brands.view", "provider.view"] };
+    expect(hasAccess(consoleUser(["provider.view"]), access)).toBe(true);
+    expect(hasAccess(consoleUser(["users.view"]), access)).toBe(false);
+  });
+});
+
+describe("holdsBrandRole", () => {
+  it("is true only for brands in me.brands", () => {
+    const user = me({ console: admin.console, brands: [brand(BRAND_A, [])] });
+    expect(holdsBrandRole(user, BRAND_A)).toBe(true);
+    expect(holdsBrandRole(user, BRAND_B)).toBe(false);
+  });
+});
+
+describe("isProvider", () => {
+  it("is true with provider.view, provider.support or Admin", () => {
+    expect(isProvider(consoleUser(["provider.view"]))).toBe(true);
+    expect(isProvider(consoleUser(["provider.support"]))).toBe(true);
+    expect(isProvider(admin)).toBe(true);
+  });
+
+  it("is false without provider access", () => {
+    expect(isProvider(consoleUser(["brands.view"]))).toBe(false);
+    expect(isProvider(me())).toBe(false);
   });
 });

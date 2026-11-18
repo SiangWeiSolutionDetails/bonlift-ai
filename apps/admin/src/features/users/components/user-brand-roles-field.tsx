@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { usePermissions } from "@/features/auth/permissions";
+import { canConsole, usePermissions } from "@/features/auth/permissions";
 import { useCurrentUser } from "@/features/auth/queries";
 import { useBrands } from "@/features/brands/queries";
 import { useRoles } from "@/features/roles/queries";
@@ -29,9 +29,10 @@ export type BrandRoleEntry = {
 type RoleOption = { id: string; name: string };
 
 // Each brand lists its own tenant's roles; without access to read them, only the current role is offered
-function useBrandRoleOptions(brandId: string, current?: RoleOption): RoleOption[] {
+function useAssignableRoleOptions(brandId: string, current?: RoleOption): RoleOption[] {
   const me = useCurrentUser();
-  const enabled = !!brandId && holdsBrandAction(me, brandId, "brandRoles.view");
+  const canRead = canConsole(me, "users.assignBrandRoles") || holdsBrandAction(me, brandId, "brandRoles.view");
+  const enabled = !!brandId && canRead;
   const { data: roles = [] } = useRoles(brandScope(brandId), enabled);
   if (!current || roles.some((role) => role.id === current.id)) return roles;
   return [...roles, current];
@@ -167,7 +168,7 @@ type EntryRoleSelectProps = {
 };
 
 function EntryRoleSelect({ entry, ...props }: EntryRoleSelectProps) {
-  const roles = useBrandRoleOptions(entry.brandId, { id: entry.roleId, name: entry.roleName });
+  const roles = useAssignableRoleOptions(entry.brandId, { id: entry.roleId, name: entry.roleName });
   return <RoleSelect value={entry.roleId} roles={roles} {...props} />;
 }
 
@@ -219,7 +220,7 @@ function AddBrandRole({ assignedBrandIds, disabled, onAdd }: AddBrandRoleProps) 
   const tenantNames = useTenantNames();
   const [brandId, setBrandId] = useState("");
   const [roleId, setRoleId] = useState("");
-  const roles = useBrandRoleOptions(brandId);
+  const roles = useAssignableRoleOptions(brandId);
   const available = brands.filter((brand) => !assignedBrandIds.has(brand.id));
 
   function add() {

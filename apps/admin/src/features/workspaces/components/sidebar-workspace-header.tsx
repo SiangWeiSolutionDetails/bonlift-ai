@@ -5,11 +5,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { useCurrentWorkspace } from "../use-workspace"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useCurrentWorkspaceInfo } from "../use-workspace"
 
 export function SidebarWorkspaceHeader() {
   const { t } = useTranslation("auth")
-  const workspace = useCurrentWorkspace()
+  const { workspace, isPending } = useCurrentWorkspaceInfo()
+  if (isPending) return <HeaderSkeleton />
   if (!workspace) return null
 
   const isConsole = workspace.kind === "console"
@@ -32,6 +34,17 @@ export function SidebarWorkspaceHeader() {
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>
+    </SidebarHeader>
+  )
+}
+
+function HeaderSkeleton() {
+  return (
+    <SidebarHeader className="group-data-[collapsible=icon]:hidden">
+      <div className="grid gap-1.5 p-2">
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-3 w-20" />
+      </div>
     </SidebarHeader>
   )
 }

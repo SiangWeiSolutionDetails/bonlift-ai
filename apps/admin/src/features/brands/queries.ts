@@ -64,12 +64,12 @@ export function useUpdateBrand() {
       brandId: string;
       input: UpdateBrandInput;
     }) => updateBrand(brandId, input),
-    onSuccess: (brand) => {
-      queryClient.setQueryData(brandKeys.detail(brand.id), brand);
-      return Promise.all([
+    // The PATCH response has no tenantName, so the detail is refetched rather than replaced
+    onSuccess: (brand) =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: brandKeys.detail(brand.id), exact: true }),
         queryClient.invalidateQueries({ queryKey: brandKeys.lists() }),
         queryClient.invalidateQueries({ queryKey: meQueryOptions.queryKey }),
-      ]);
-    },
+      ]),
   });
 }

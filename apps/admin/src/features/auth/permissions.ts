@@ -2,6 +2,8 @@ import { useMemo } from "react";
 import {
   isBrandAction,
   isConsoleAction,
+  PERSONAL_DATA_ACTIONS,
+  providerBrandActions,
   type AuthMeResponseSchemaType,
   type BrandAction,
   type ConsoleAction,
@@ -12,29 +14,42 @@ import { useCurrentUser } from "./queries";
 type Me = AuthMeResponseSchemaType;
 export type MeBrand = Me["brands"][number];
 
-// A brand page passes with any one of its actions on the workspace brand
-export type RouteAccess = { console: ConsoleAction } | { brand: BrandAction | BrandAction[] };
+// A page passes with any one of its actions (a brand page's on the workspace brand)
+export type RouteAccess = { console: ConsoleAction | ConsoleAction[] } | { brand: BrandAction | BrandAction[] };
 
 function consoleActions(me: Me): ConsoleAction[] {
   return (me.console?.actions ?? []).filter(isConsoleAction);
 }
 
-function brandActions(brand: MeBrand): BrandAction[] {
-  return brand.actions.filter(isBrandAction);
+export function brandRoleActions(me: Me, brandId: string): BrandAction[] {
+  return me.brands.find((b) => b.brandId === brandId)?.actions.filter(isBrandAction) ?? [];
+}
+
+// Provider grants apply on every brand, but never to personal data
+export function providerActions(me: Me): BrandAction[] {
+  return providerBrandActions(me.console?.actions ?? []).filter(
+    (action) => !PERSONAL_DATA_ACTIONS.includes(action),
+  );
+}
+
+export function holdsBrandRole(me: Me, brandId: string) {
+  return me.brands.some((b) => b.brandId === brandId);
+}
+
+export function isProvider(me: Me) {
+  return providerActions(me).length > 0;
 }
 
 export function canConsole(me: Me, action: ConsoleAction) {
   return consoleActions(me).includes(action);
 }
 
-// Admin grants nothing inside a brand; only a role held on that brand does
 export function canBrand(me: Me, brandId: string, action: BrandAction) {
-  const brand = me.brands.find((b) => b.brandId === brandId);
-  return !!brand && brandActions(brand).includes(action);
+  return [...brandRoleActions(me, brandId), ...providerActions(me)].includes(action);
 }
 
 export function hasAccess(me: Me, access: RouteAccess, brandId?: string) {
-  if ("console" in access) return canConsole(me, access.console);
+  if ("console" in access) return [access.console].flat().some((action) => canConsole(me, action));
   return !!brandId && [access.brand].flat().some((action) => canBrand(me, brandId, action));
 }
 

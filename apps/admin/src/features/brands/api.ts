@@ -1,6 +1,7 @@
 import { apiRequest } from "@/lib/api-client";
 import type {
   Brand,
+  BrandDetail,
   BrandListParams,
   CreateBrandInput,
   UpdateBrandInput,
@@ -18,7 +19,7 @@ export async function listBrands(
 }
 
 export async function getBrand(brandId: string, signal?: AbortSignal) {
-  return apiRequest<Brand>(`/brands/${encodeURIComponent(brandId)}`, {
+  return apiRequest<BrandDetail>(`/brands/${encodeURIComponent(brandId)}`, {
     signal,
   });
 }

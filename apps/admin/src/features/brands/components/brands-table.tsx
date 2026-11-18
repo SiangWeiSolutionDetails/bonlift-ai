@@ -30,6 +30,7 @@ type BrandsTableProps = {
   emptyMessage?: string;
   canEdit: (brand: Brand) => boolean;
   canOpenWorkspace: (brand: Brand) => boolean;
+  canOpenAsProvider: (brand: Brand) => boolean;
   onEdit: (brand: Brand) => void;
   onView: (brand: Brand) => void;
   onDelete?: (brand: Brand) => void;
@@ -67,6 +68,7 @@ function BrandsTableRows({
   emptyMessage,
   canEdit,
   canOpenWorkspace,
+  canOpenAsProvider,
   onEdit,
   onView,
   onDelete,
@@ -116,6 +118,17 @@ function BrandsTableRows({
               aria-label={t("table.openWorkspaceOf", { name: brand.name })}
             >
               {t("table.openWorkspace")}
+            </Link>
+          </Button>
+        )}
+        {canOpenAsProvider(brand) && (
+          <Button variant="ghost" size="sm" asChild>
+            <Link
+              to="/b/$brandId"
+              params={{ brandId: brand.id }}
+              aria-label={t("table.openAsProviderOf", { name: brand.name })}
+            >
+              {t("table.openAsProvider")}
             </Link>
           </Button>
         )}

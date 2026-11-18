@@ -18,6 +18,8 @@
     "deleteBrand": "删除 {{name}}",
     "openWorkspace": "打开工作区",
     "openWorkspaceOf": "打开 {{name}} 工作区",
+    "openAsProvider": "以提供方身份打开",
+    "openAsProviderOf": "以服务提供方身份打开 {{name}}",
     "copyBrandId": "复制 {{name}} 的品牌 ID",
     "copyId": "复制 ID",
     "copied": "已复制"

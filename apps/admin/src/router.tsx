@@ -46,6 +46,7 @@ import {
   CONSOLE_PAGES,
   defaultWorkspace,
   firstVisiblePage,
+  isListedWorkspace,
   legacyRedirect,
   readLastWorkspace,
   writeLastWorkspace,
@@ -127,11 +128,11 @@ async function requireAccess(access: RouteAccess, brandId?: string): Promise<voi
   if (!hasAccess(me, access, brandId)) throw redirectTo(null);
 }
 
-// Preloads run beforeLoad too; only a real visit counts as entering a workspace
+// Preloads run beforeLoad too; only a real visit to a listed workspace (not a brand opened as provider) is remembered
 async function enterWorkspace(key: string, preload: boolean) {
   const me = await loadMe();
   if (!canOpen(me, key)) throw redirectTo(null);
-  if (!preload) writeLastWorkspace(key);
+  if (!preload && isListedWorkspace(me, key)) writeLastWorkspace(key);
 }
 
 async function enterBrandWorkspace(brandId: string, preload: boolean) {
@@ -180,7 +181,7 @@ function consolePage(segment: string, display: PageDisplay) {
   };
 }
 
-// The brand layout has already checked the brand is in me.brands; this checks the page's action on it
+// The brand layout has already checked the brand can be opened; this checks the page's action on it
 function brandPage(segment: string, display: PageDisplay) {
   const page = BRAND_PAGES.find((p) => p.segment === segment);
   if (!page) throw new Error(`Unknown brand page: ${segment}`);
@@ -282,7 +283,7 @@ const rolesRoute = createRoute({
   ...consolePage("roles", { titleKey: "nav.roles", icon: <ShieldIcon /> }),
 });
 
-// Runs before any page guard or page load, so a brand without a role never reaches a page
+// Runs before any page guard or page load, so a brand without a role or provider access never reaches a page
 const brandLayoutRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
   path: "/b/$brandId",

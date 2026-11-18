@@ -1,6 +1,6 @@
 import type { AuthMeResponseSchemaType, BrandAction, ConsoleAction } from "@bonlift-ai/contracts";
 // Relative, not "@/": the root vitest config has no alias, and this file is unit-tested.
-import { canBrand, canConsole, hasAccess, type MeBrand } from "../auth/permissions";
+import { canBrand, hasAccess, holdsBrandRole, isProvider, type MeBrand } from "../auth/permissions";
 
 type Me = AuthMeResponseSchemaType;
 
@@ -10,7 +10,8 @@ export type BrandWorkspace = {
   brandName: string;
   tenantId: string;
   tenantName: string;
-  roleName: string;
+  // null when the brand is opened as the service provider, without a brand role
+  roleName: string | null;
 };
 export type Workspace = { kind: "console" } | BrandWorkspace;
 export type TenantWorkspaces = { tenantId: string; tenantName: string; brands: BrandWorkspace[] };
@@ -47,9 +48,9 @@ export const BRAND_PAGES: BrandPage[] = [
   { segment: "feedback", legacyPath: "/recommendation-feedback", action: "feedback.view", groupKey: "insights" },
 ];
 
-export const CONSOLE_PAGES: { segment: string; legacyPath: string; action: ConsoleAction }[] = [
+export const CONSOLE_PAGES: { segment: string; legacyPath: string; action: ConsoleAction | ConsoleAction[] }[] = [
   { segment: "tenants", legacyPath: "/tenants", action: "tenants.view" },
-  { segment: "brands", legacyPath: "/brands", action: "brands.view" },
+  { segment: "brands", legacyPath: "/brands", action: ["brands.view", "provider.view", "provider.support"] },
   { segment: "users", legacyPath: "/users", action: "users.view" },
   { segment: "roles", legacyPath: "/roles", action: "roles.view" },
 ];
@@ -78,16 +79,23 @@ export function buildWorkspaces(me: Me) {
   return { console: hasConsole, tenants, count: tenants.reduce((n, t) => n + t.brands.length, hasConsole ? 1 : 0) };
 }
 
+// Provider access opens any brand, though only brands with a role are listed in the switcher
 export function canOpen(me: Me, workspaceKey: string) {
   if (workspaceKey === CONSOLE_KEY) return me.console !== null;
-  return me.brands.some((b) => b.brandId === workspaceKey);
+  return holdsBrandRole(me, workspaceKey) || isProvider(me);
 }
 
-// A workspace counts only if the user can open it and see at least one page in it
+export function isListedWorkspace(me: Me, workspaceKey: string) {
+  return workspaceKey === CONSOLE_KEY ? me.console !== null : holdsBrandRole(me, workspaceKey);
+}
+
+// A workspace counts only if it is listed and the user can see at least one page in it
 export function defaultWorkspace(me: Me, remembered: string | null): string | null {
   const brandIds = buildWorkspaces(me).tenants.flatMap((t) => t.brands.map((b) => b.brandId));
   const candidates = [remembered, CONSOLE_KEY, ...brandIds];
-  return candidates.find((key) => key && firstVisiblePage(me, key) !== null) ?? null;
+  return (
+    candidates.find((key) => key && isListedWorkspace(me, key) && firstVisiblePage(me, key) !== null) ?? null
+  );
 }
 
 export function readLastWorkspace(): string | null {
@@ -112,7 +120,7 @@ function canSeeBrandPage(me: Me, brandId: string, action: BrandPage["action"]) {
 
 export function firstVisiblePage(me: Me, workspaceKey: string): string | null {
   if (workspaceKey === CONSOLE_KEY) {
-    const page = CONSOLE_PAGES.find((p) => canConsole(me, p.action));
+    const page = CONSOLE_PAGES.find((p) => hasAccess(me, { console: p.action }));
     return page ? `/console/${page.segment}` : null;
   }
   const page = BRAND_PAGES.find((p) => canSeeBrandPage(me, workspaceKey, p.action));
@@ -120,7 +128,7 @@ export function firstVisiblePage(me: Me, workspaceKey: string): string | null {
 }
 
 function rememberedBrandFor(me: Me, remembered: string | null, action: BrandAction) {
-  return remembered && canBrand(me, remembered, action) ? remembered : null;
+  return remembered && holdsBrandRole(me, remembered) && canBrand(me, remembered, action) ? remembered : null;
 }
 
 function firstBrandWith(me: Me, action: BrandAction) {

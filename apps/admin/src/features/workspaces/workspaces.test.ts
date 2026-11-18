@@ -47,6 +47,8 @@ const consoleRole = {
   actions: [...CONSOLE_ACTIONS],
 };
 const admin = me({ console: consoleRole });
+const providerView = me({ console: { ...consoleRole, roleName: "Support", isAdmin: false, actions: ["provider.view"] } });
+const staff = me({ console: { ...consoleRole, roleName: "Staff", isAdmin: false, actions: ["users.view"] } });
 
 describe("buildWorkspaces", () => {
   const user = me({
@@ -87,10 +89,15 @@ describe("canOpen", () => {
     expect(canOpen(user, "console")).toBe(false);
   });
 
-  it("opens only brands in me.brands", () => {
+  it("opens brands in me.brands without provider access", () => {
     expect(canOpen(user, BRAND_A)).toBe(true);
     expect(canOpen(user, BRAND_B)).toBe(false);
-    expect(canOpen(admin, BRAND_A)).toBe(false);
+    expect(canOpen(staff, BRAND_A)).toBe(false);
+  });
+
+  it("opens any brand with provider access, including an Admin", () => {
+    expect(canOpen(providerView, BRAND_B)).toBe(true);
+    expect(canOpen(admin, BRAND_A)).toBe(true);
   });
 });
 
@@ -115,7 +122,7 @@ describe("defaultWorkspace", () => {
   });
 
   it("skips a remembered brand with no page the role can see", () => {
-    const user = me({ console: consoleRole, brands: [brand(BRAND_A, "Alpha", "T", [])] });
+    const user = me({ console: staff.console, brands: [brand(BRAND_A, "Alpha", "T", [])] });
     expect(defaultWorkspace(user, BRAND_A)).toBe("console");
   });
 
@@ -125,6 +132,11 @@ describe("defaultWorkspace", () => {
       brands: [brand(BRAND_A, "Alpha", "A", []), brand(BRAND_B, "Beta", "B", ["usage.view"])],
     });
     expect(defaultWorkspace(user, "console")).toBe(BRAND_B);
+  });
+
+  it("ignores a remembered brand opened only as provider", () => {
+    expect(defaultWorkspace(both, BRAND_C)).toBe("console");
+    expect(defaultWorkspace(providerView, BRAND_A)).toBe("console");
   });
 
   it("is null with nothing to open", () => {
@@ -152,8 +164,18 @@ describe("firstVisiblePage", () => {
     },
   );
 
+  it("shows Brands for provider access without brands.view", () => {
+    expect(firstVisiblePage(providerView, "console")).toBe("/console/brands");
+    expect(firstVisiblePage(staff, "console")).toBe("/console/users");
+  });
+
+  it("returns the first page provider access allows on any brand", () => {
+    expect(firstVisiblePage(providerView, BRAND_A)).toBe(`/b/${BRAND_A}/outlets`);
+    expect(firstVisiblePage(admin, BRAND_B)).toBe(`/b/${BRAND_B}/outlets`);
+  });
+
   it("is null for a workspace the user cannot open or without pages", () => {
-    expect(firstVisiblePage(admin, BRAND_A)).toBeNull();
+    expect(firstVisiblePage(staff, BRAND_A)).toBeNull();
     expect(firstVisiblePage(me({ brands: [brand(BRAND_A, "A", "T", [])] }), BRAND_A)).toBeNull();
     expect(firstVisiblePage(me(), "console")).toBeNull();
   });
@@ -171,7 +193,7 @@ describe("page tables", () => {
 
 describe("legacyRedirect", () => {
   const user = me({
-    console: consoleRole,
+    console: staff.console,
     brands: [
       brand(BRAND_A, "Alpha", "T", ["usage.view"]),
       brand(BRAND_B, "Beta", "T", ["usage.view", "apiKeys.view"]),
@@ -236,7 +258,19 @@ describe("legacyRedirect", () => {
 
   it("sends a given brandId the user cannot open to no-access", () => {
     expect(legacyRedirect(user, "/usage", { brandId: BRAND_C, range: "7d" }, null)).toEqual(NO_ACCESS);
-    expect(legacyRedirect(admin, "/outlets", { brandId: BRAND_A }, null)).toEqual(NO_ACCESS);
+    expect(legacyRedirect(staff, "/outlets", { brandId: BRAND_A }, null)).toEqual(NO_ACCESS);
+  });
+
+  it("opens a given brandId through provider access", () => {
+    expect(legacyRedirect(admin, "/outlets", { brandId: BRAND_A }, null)).toEqual({
+      to: `/b/${BRAND_A}/outlets`,
+      search: {},
+    });
+  });
+
+  it("ignores a remembered brand opened only as provider", () => {
+    expect(legacyRedirect(user, "/usage", {}, BRAND_C)).toEqual({ to: `/b/${BRAND_A}/usage`, search: {} });
+    expect(legacyRedirect(admin, "/outlets", {}, BRAND_A)).toEqual(NO_ACCESS);
   });
 
   it("goes to no-access when no brand holds the action", () => {

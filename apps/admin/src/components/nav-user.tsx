@@ -89,7 +89,7 @@ function AccountRow({ account, current, onSwitch }: AccountRowProps) {
     <div
       title={account.email}
       aria-current={current ? "true" : undefined}
-      className={cn("flex items-center gap-3 rounded-md px-2 py-1.5 text-sm", current && "bg-primary/10")}
+      className="flex items-center gap-3 rounded-md px-2 py-1.5 text-sm"
     >
       <span className="grid min-w-0 flex-1 leading-tight">
         <span className={cn("truncate", current && "font-semibold")}>{name}</span>

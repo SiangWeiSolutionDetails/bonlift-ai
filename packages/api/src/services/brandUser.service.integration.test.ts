@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { ConflictError, ForbiddenError, NotFoundError } from "../errors.js";
 import { getTestPool } from "../testing/testDb.js";
 import type { RequestAccess } from "./authorization.service.js";
-import { addBrandMember, listUserBrandRoles, removeBrandMember, setBrandMember } from "./brandMember.service.js";
+import { addBrandUser, listUserBrandRoles, removeBrandUser, setBrandUser } from "./brandUser.service.js";
 
 interface Actor {
   access: RequestAccess;
@@ -110,15 +110,15 @@ async function brandRoleCount(brandId: string): Promise<number> {
   return result.rows[0].n;
 }
 
-const LEAD_ACTIONS: BrandAction[] = ["members.view", "members.manage", "customerScores.view"];
+const LEAD_ACTIONS: BrandAction[] = ["brandUsers.view", "brandUsers.manage", "customerScores.view"];
 
-describe("addBrandMember (integration)", () => {
+describe("addBrandUser (integration)", () => {
   it("creates an invited user plus the assignment for a new email", async () => {
     const brandId = await insertBrand("Tenant A", "Brand A");
     const lead = await brandLead("lead@x.com", brandId, LEAD_ACTIONS);
     const viewer = await insertRole("Viewer", "brand", ["customerScores.view"], brandId);
 
-    const member = await addBrandMember(getTestPool(), lead.access, lead.brandActions, brandId, {
+    const brandUser = await addBrandUser(getTestPool(), lead.access, lead.brandActions, brandId, {
       email: "New@X.com",
       displayName: "Newbie",
       roleId: viewer,
@@ -126,7 +126,7 @@ describe("addBrandMember (integration)", () => {
 
     const stored = await userByEmail("new@x.com");
     expect(stored).toMatchObject({ status: "invited", display_name: "Newbie", display_name_source: "staff" });
-    expect(member).toEqual({
+    expect(brandUser).toEqual({
       userId: stored.id,
       email: "new@x.com",
       displayName: "Newbie",
@@ -142,7 +142,7 @@ describe("addBrandMember (integration)", () => {
     const lead = await brandLead("lead@x.com", brandId, LEAD_ACTIONS);
     const viewer = await insertRole("Viewer", "brand", ["customerScores.view"], brandId);
 
-    await addBrandMember(getTestPool(), lead.access, lead.brandActions, brandId, {
+    await addBrandUser(getTestPool(), lead.access, lead.brandActions, brandId, {
       email: "new@x.com",
       roleId: viewer,
     });
@@ -156,12 +156,12 @@ describe("addBrandMember (integration)", () => {
     const viewer = await insertRole("Viewer", "brand", ["customerScores.view"], brandId);
     const bob = await userNamed("bob@x.com");
 
-    const member = await addBrandMember(getTestPool(), lead.access, lead.brandActions, brandId, {
+    const brandUser = await addBrandUser(getTestPool(), lead.access, lead.brandActions, brandId, {
       email: "bob@x.com",
       roleId: viewer,
     });
 
-    expect(member).toMatchObject({ userId: bob, status: "active" });
+    expect(brandUser).toMatchObject({ userId: bob, status: "active" });
     expect(await storedBrandRole(bob, brandId)).toEqual({ role_id: viewer, granted_by: lead.access.user.id });
   });
 
@@ -172,7 +172,7 @@ describe("addBrandMember (integration)", () => {
     const gone = await userNamed("gone@x.com", "disabled");
 
     await expect(
-      addBrandMember(getTestPool(), lead.access, lead.brandActions, brandId, { email: "gone@x.com", roleId: viewer }),
+      addBrandUser(getTestPool(), lead.access, lead.brandActions, brandId, { email: "gone@x.com", roleId: viewer }),
     ).rejects.toBeInstanceOf(ConflictError);
 
     expect(await storedBrandRole(gone, brandId)).toBeNull();
@@ -185,14 +185,14 @@ describe("addBrandMember (integration)", () => {
     const broader = await insertRole("Owner", "brand", [...LEAD_ACTIONS, "apiKeys.manage"], brandId);
 
     await expect(
-      addBrandMember(getTestPool(), lead.access, lead.brandActions, brandId, { email: "new@x.com", roleId: broader }),
+      addBrandUser(getTestPool(), lead.access, lead.brandActions, brandId, { email: "new@x.com", roleId: broader }),
     ).rejects.toBeInstanceOf(ForbiddenError);
 
     expect(await userByEmail("new@x.com")).toBeNull();
     expect(await brandRoleCount(brandId)).toBe(1);
   });
 
-  it("refuses replacing a member whose current role exceeds the lead's and writes nothing", async () => {
+  it("refuses replacing a user whose current role exceeds the lead's and writes nothing", async () => {
     const brandId = await insertBrand("Tenant A", "Brand A");
     const lead = await brandLead("lead@x.com", brandId, LEAD_ACTIONS);
     const owner = await insertRole("Owner", "brand", [...LEAD_ACTIONS, "apiKeys.manage"], brandId);
@@ -201,15 +201,15 @@ describe("addBrandMember (integration)", () => {
     await assignBrandRole(boss, brandId, owner);
 
     await expect(
-      addBrandMember(getTestPool(), lead.access, lead.brandActions, brandId, { email: "boss@x.com", roleId: viewer }),
+      addBrandUser(getTestPool(), lead.access, lead.brandActions, brandId, { email: "boss@x.com", roleId: viewer }),
     ).rejects.toBeInstanceOf(ForbiddenError);
 
     expect(await storedBrandRole(boss, brandId)).toEqual({ role_id: owner, granted_by: null });
   });
 });
 
-describe("setBrandMember and removeBrandMember (integration)", () => {
-  it("through members.manage, refuses downgrading or removing a broader member and writes nothing", async () => {
+describe("setBrandUser and removeBrandUser (integration)", () => {
+  it("through brandUsers.manage, refuses downgrading or removing a broader user and writes nothing", async () => {
     const brandId = await insertBrand("Tenant A", "Brand A");
     const lead = await brandLead("lead@x.com", brandId, LEAD_ACTIONS);
     const owner = await insertRole("Owner", "brand", [...LEAD_ACTIONS, "apiKeys.manage"], brandId);
@@ -218,10 +218,10 @@ describe("setBrandMember and removeBrandMember (integration)", () => {
     await assignBrandRole(boss, brandId, owner);
 
     await expect(
-      setBrandMember(getTestPool(), lead.access, lead.brandActions, brandId, boss, viewer),
+      setBrandUser(getTestPool(), lead.access, lead.brandActions, brandId, boss, viewer),
     ).rejects.toBeInstanceOf(ForbiddenError);
     await expect(
-      removeBrandMember(getTestPool(), lead.access, lead.brandActions, brandId, boss),
+      removeBrandUser(getTestPool(), lead.access, lead.brandActions, brandId, boss),
     ).rejects.toBeInstanceOf(ForbiddenError);
 
     expect(await storedBrandRole(boss, brandId)).toEqual({ role_id: owner, granted_by: null });
@@ -233,44 +233,44 @@ describe("setBrandMember and removeBrandMember (integration)", () => {
     const owner = await insertRole("Owner", "brand", [...LEAD_ACTIONS, "apiKeys.manage"], brandId);
     const bob = await userNamed("bob@x.com");
 
-    const member = await setBrandMember(getTestPool(), ops.access, ops.brandActions, brandId, bob, owner);
+    const brandUser = await setBrandUser(getTestPool(), ops.access, ops.brandActions, brandId, bob, owner);
 
-    expect(member).toMatchObject({ userId: bob, roleId: owner, roleName: "Owner" });
+    expect(brandUser).toMatchObject({ userId: bob, roleId: owner, roleName: "Owner" });
     expect(await storedBrandRole(bob, brandId)).toEqual({ role_id: owner, granted_by: ops.access.user.id });
   });
 
-  it("through members.manage, replaces and removes a member within the lead's actions", async () => {
+  it("through brandUsers.manage, replaces and removes a user within the lead's actions", async () => {
     const brandId = await insertBrand("Tenant A", "Brand A");
     const lead = await brandLead("lead@x.com", brandId, LEAD_ACTIONS);
     const viewer = await insertRole("Viewer", "brand", ["customerScores.view"], brandId);
-    const helper = await insertRole("Helper", "brand", ["members.view", "customerScores.view"], brandId);
+    const helper = await insertRole("Helper", "brand", ["brandUsers.view", "customerScores.view"], brandId);
     const bob = await userNamed("bob@x.com");
     await assignBrandRole(bob, brandId, viewer);
     await assignBrandRole(bob, await insertSiblingBrand(brandId, "Brand B"), viewer);
 
-    await setBrandMember(getTestPool(), lead.access, lead.brandActions, brandId, bob, helper);
+    await setBrandUser(getTestPool(), lead.access, lead.brandActions, brandId, bob, helper);
     expect(await storedBrandRole(bob, brandId)).toEqual({ role_id: helper, granted_by: lead.access.user.id });
 
-    await removeBrandMember(getTestPool(), lead.access, lead.brandActions, brandId, bob);
+    await removeBrandUser(getTestPool(), lead.access, lead.brandActions, brandId, bob);
     expect(await storedBrandRole(bob, brandId)).toBeNull();
   });
 });
 
-describe("removeBrandMember last role (integration)", () => {
+describe("removeBrandUser last role (integration)", () => {
   const LAST_ROLE = new ConflictError("A user must keep at least one role.");
 
-  async function soleMember() {
+  async function soleUser() {
     const brandId = await insertBrand("Tenant A", "Brand A");
     const ops = await provisioner("ops@x.com");
     const viewer = await insertRole("Viewer", "brand", ["customerScores.view"], brandId);
     const bob = await userNamed("bob@x.com");
     await assignBrandRole(bob, brandId, viewer);
-    const remove = () => removeBrandMember(getTestPool(), ops.access, ops.brandActions, brandId, bob);
+    const remove = () => removeBrandUser(getTestPool(), ops.access, ops.brandActions, brandId, bob);
     return { brandId, viewer, bob, remove };
   }
 
   it("returns 409 for the only brand role of a user with no console role and changes nothing", async () => {
-    const { brandId, viewer, bob, remove } = await soleMember();
+    const { brandId, viewer, bob, remove } = await soleUser();
 
     await expect(remove()).rejects.toThrow(LAST_ROLE);
 
@@ -278,7 +278,7 @@ describe("removeBrandMember last role (integration)", () => {
   });
 
   it("removes the only brand role of a user with a console role", async () => {
-    const { brandId, bob, remove } = await soleMember();
+    const { brandId, bob, remove } = await soleUser();
     const consoleRole = await insertRole("Support", "console", ["users.view"]);
     await getTestPool().query(`INSERT INTO user_console_roles (user_id, role_id) VALUES ($1, $2)`, [bob, consoleRole]);
 
@@ -288,7 +288,7 @@ describe("removeBrandMember last role (integration)", () => {
   });
 
   it("removes one of two brand roles", async () => {
-    const { brandId, viewer, bob, remove } = await soleMember();
+    const { brandId, viewer, bob, remove } = await soleUser();
     const other = await insertSiblingBrand(brandId, "Brand B");
     await assignBrandRole(bob, other, viewer);
 
@@ -299,7 +299,7 @@ describe("removeBrandMember last role (integration)", () => {
   });
 
   it("does not count a brand role on a soft-deleted brand or a brand of a soft-deleted tenant", async () => {
-    const { brandId, viewer, bob, remove } = await soleMember();
+    const { brandId, viewer, bob, remove } = await soleUser();
     const deletedBrand = await insertSiblingBrand(brandId, "Brand B");
     const tenantDeletedBrand = await insertBrand("Tenant C", "Brand C");
     await assignBrandRole(bob, deletedBrand, viewer);
@@ -332,7 +332,7 @@ describe("cross-tenant brand roles (integration)", () => {
     const { brandId, ops, foreignRole } = await twoTenants();
 
     await expect(
-      addBrandMember(getTestPool(), ops.access, ops.brandActions, brandId, { email: "new@x.com", roleId: foreignRole }),
+      addBrandUser(getTestPool(), ops.access, ops.brandActions, brandId, { email: "new@x.com", roleId: foreignRole }),
     ).rejects.toThrow(ROLE_MISSING);
 
     expect(await userByEmail("new@x.com")).toBeNull();
@@ -344,7 +344,7 @@ describe("cross-tenant brand roles (integration)", () => {
     const bob = await userNamed("bob@x.com");
 
     await expect(
-      addBrandMember(getTestPool(), ops.access, ops.brandActions, brandId, { email: "bob@x.com", roleId: foreignRole }),
+      addBrandUser(getTestPool(), ops.access, ops.brandActions, brandId, { email: "bob@x.com", roleId: foreignRole }),
     ).rejects.toThrow(ROLE_MISSING);
 
     expect(await storedBrandRole(bob, brandId)).toBeNull();
@@ -355,7 +355,7 @@ describe("cross-tenant brand roles (integration)", () => {
     const consoleRole = await insertRole("Support", "console", ["users.view"]);
 
     await expect(
-      addBrandMember(getTestPool(), ops.access, ops.brandActions, brandId, { email: "new@x.com", roleId: consoleRole }),
+      addBrandUser(getTestPool(), ops.access, ops.brandActions, brandId, { email: "new@x.com", roleId: consoleRole }),
     ).rejects.toThrow(ROLE_MISSING);
 
     expect(await userByEmail("new@x.com")).toBeNull();
@@ -368,7 +368,7 @@ describe("cross-tenant brand roles (integration)", () => {
     await assignBrandRole(bob, brandId, viewer);
 
     await expect(
-      setBrandMember(getTestPool(), ops.access, ops.brandActions, brandId, bob, foreignRole),
+      setBrandUser(getTestPool(), ops.access, ops.brandActions, brandId, bob, foreignRole),
     ).rejects.toThrow(ROLE_MISSING);
 
     expect(await storedBrandRole(bob, brandId)).toEqual({ role_id: viewer, granted_by: null });
@@ -379,7 +379,7 @@ describe("cross-tenant brand roles (integration)", () => {
     const bob = await userNamed("bob@x.com");
 
     await expect(
-      setBrandMember(getTestPool(), ops.access, ops.brandActions, brandId, bob, foreignRole),
+      setBrandUser(getTestPool(), ops.access, ops.brandActions, brandId, bob, foreignRole),
     ).rejects.toThrow(ROLE_MISSING);
 
     expect(await storedBrandRole(bob, brandId)).toBeNull();
@@ -389,12 +389,12 @@ describe("cross-tenant brand roles (integration)", () => {
     const { brandId, ops } = await twoTenants();
     const ownRole = await insertRole("Viewer", "brand", ["customerScores.view"], brandId);
 
-    const member = await addBrandMember(getTestPool(), ops.access, ops.brandActions, brandId, {
+    const brandUser = await addBrandUser(getTestPool(), ops.access, ops.brandActions, brandId, {
       email: "new@x.com",
       roleId: ownRole,
     });
 
-    expect(await storedBrandRole(member.userId, brandId)).toEqual({ role_id: ownRole, granted_by: ops.access.user.id });
+    expect(await storedBrandRole(brandUser.userId, brandId)).toEqual({ role_id: ownRole, granted_by: ops.access.user.id });
   });
 });
 

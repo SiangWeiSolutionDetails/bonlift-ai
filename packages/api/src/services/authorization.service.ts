@@ -16,7 +16,7 @@ import {
 } from "./session.service.js";
 
 export type BrandRef = "params.brandId" | "params.outletId" | "params.runId" | "body.brandId";
-export type BrandCheck = { brand: BrandAction; from: BrandRef } | { brandMember: BrandRef };
+export type BrandCheck = { brand: BrandAction; from: BrandRef } | { brandUser: BrandRef };
 type ConsoleCheck = { console: ConsoleAction };
 export type AccessCheck = ConsoleCheck | BrandCheck;
 export type RouteAccess = "signedIn" | AccessCheck | { anyOf: AccessCheck[] };
@@ -133,7 +133,7 @@ export function checksOf(access: RouteAccess): AccessCheck[] {
 
 function brandRefOf(check: AccessCheck): BrandRef | null {
   if ("from" in check) return check.from;
-  if ("brandMember" in check) return check.brandMember;
+  if ("brandUser" in check) return check.brandUser;
   return null;
 }
 
@@ -171,7 +171,7 @@ const brandAllows = (brand: BrandAccess, action: BrandAction) =>
 function decideCheck(check: AccessCheck, consoleActions: ConsoleAction[], brand: BrandAccess): Decision {
   if ("console" in check) return consoleActions.includes(check.console) ? "allow" : "forbidden";
   if (!hasBrandAccess(brand)) return "notFound";
-  if ("brandMember" in check) return "allow";
+  if ("brandUser" in check) return "allow";
   return brandAllows(brand, check.brand) ? "allow" : "forbidden";
 }
 

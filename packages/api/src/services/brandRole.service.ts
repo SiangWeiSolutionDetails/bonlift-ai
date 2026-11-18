@@ -177,7 +177,7 @@ function assertBrandRoleGuards(flags: BrandRoleFlags): void {
 
 function assertMayViewHolders(actor: RequestAccess, actorBrandActions: BrandAction[] | null): void {
   const held = new Set<string>([...(actorBrandActions ?? []), ...providerBrandActions(actor.consoleActions)]);
-  if (!held.has("members.view")) throw new ForbiddenError("You cannot view this brand's members.");
+  if (!held.has("brandUsers.view")) throw new ForbiddenError("You cannot view this brand's users.");
 }
 
 export async function listBrandRoles(db: Queryable, brandId: string): Promise<RoleRecordSchemaType[]> {

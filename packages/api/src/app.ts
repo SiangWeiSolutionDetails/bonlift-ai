@@ -28,7 +28,7 @@ import { brandUsageRoutes } from "./routes/brandUsage.route.js";
 import { recommendationFeedbackReportRoutes } from "./routes/recommendationFeedbackReport.route.js";
 import { roleRoutes } from "./routes/role.route.js";
 import { userRoutes } from "./routes/user.route.js";
-import { brandMemberRoutes } from "./routes/brandMember.route.js";
+import { brandUserRoutes } from "./routes/brandUser.route.js";
 import { brandRoleRoutes } from "./routes/brandRole.route.js";
 import { getPool } from "@bonlift-ai/db";
 import {
@@ -120,7 +120,7 @@ export function buildApp(): FastifyInstance {
     admin.register(brandApiKeyRoutes);
     admin.register(roleRoutes);
     admin.register(userRoutes);
-    admin.register(brandMemberRoutes);
+    admin.register(brandUserRoutes);
     admin.register(brandRoleRoutes);
 
     if (areDevRoutesEnabled()) {

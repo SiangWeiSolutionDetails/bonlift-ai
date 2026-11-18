@@ -5,12 +5,12 @@ import { pgResult } from "../utils/pg.test-helpers.js";
 import { CHECK_VIOLATION } from "../utils/pgErrors.js";
 import type { RequestAccess } from "./authorization.service.js";
 import {
-  addBrandMember,
-  listBrandMembers,
+  addBrandUser,
+  listBrandUsers,
   listUserBrandRoles,
-  removeBrandMember,
-  setBrandMember,
-} from "./brandMember.service.js";
+  removeBrandUser,
+  setBrandUser,
+} from "./brandUser.service.js";
 
 const BRAND_ID = "11111111-1111-1111-1111-111111111111";
 const ACTOR_ID = "22222222-2222-2222-2222-222222222222";
@@ -26,10 +26,10 @@ function actorWith(consoleActions: ConsoleAction[], email = "lead@x.com"): Reque
 }
 
 const brandLead = actorWith([]);
-const LEAD_BRAND_ACTIONS: BrandAction[] = ["members.view", "members.manage"];
+const LEAD_BRAND_ACTIONS: BrandAction[] = ["brandUsers.view", "brandUsers.manage"];
 const provisioner = actorWith(["users.view", "users.assignBrandRoles"], "ops@x.com");
 
-function memberRow(overrides: Record<string, unknown> = {}) {
+function userRow(overrides: Record<string, unknown> = {}) {
   return {
     user_id: TARGET_ID,
     email: "bob@x.com",
@@ -41,7 +41,7 @@ function memberRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
-const expectedMember = {
+const expectedUser = {
   userId: TARGET_ID,
   email: "bob@x.com",
   displayName: "Bob",
@@ -59,7 +59,7 @@ function writeFlags(overrides: Record<string, unknown> = {}) {
     new_subset: true,
     current_subset: true,
     written: true,
-    ...memberRow(),
+    ...userRow(),
     ...overrides,
   };
 }
@@ -68,26 +68,26 @@ beforeEach(() => {
   poolQueryMock.mockReset();
 });
 
-describe("listBrandMembers", () => {
-  it("maps each member with their role on the brand", async () => {
-    poolQueryMock.mockResolvedValueOnce(pgResult([{ brand_found: true, ...memberRow() }]));
+describe("listBrandUsers", () => {
+  it("maps each user with their role on the brand", async () => {
+    poolQueryMock.mockResolvedValueOnce(pgResult([{ brand_found: true, ...userRow() }]));
 
-    expect(await listBrandMembers(fakePool, BRAND_ID)).toEqual([expectedMember]);
+    expect(await listBrandUsers(fakePool, BRAND_ID)).toEqual([expectedUser]);
     expect(poolQueryMock.mock.calls[0][1]).toEqual([BRAND_ID]);
   });
 
-  it("returns an empty list for a brand with no members", async () => {
+  it("returns an empty list for a brand with no users", async () => {
     poolQueryMock.mockResolvedValueOnce(
-      pgResult([{ brand_found: true, ...memberRow({ user_id: null, role_id: null }) }]),
+      pgResult([{ brand_found: true, ...userRow({ user_id: null, role_id: null }) }]),
     );
 
-    expect(await listBrandMembers(fakePool, BRAND_ID)).toEqual([]);
+    expect(await listBrandUsers(fakePool, BRAND_ID)).toEqual([]);
   });
 
   it("returns 404 for an unknown or deleted brand", async () => {
     poolQueryMock.mockResolvedValueOnce(pgResult([]));
 
-    await expect(listBrandMembers(fakePool, BRAND_ID)).rejects.toBeInstanceOf(NotFoundError);
+    await expect(listBrandUsers(fakePool, BRAND_ID)).rejects.toBeInstanceOf(NotFoundError);
   });
 });
 
@@ -132,69 +132,69 @@ describe("listUserBrandRoles", () => {
   });
 });
 
-describe("setBrandMember", () => {
+describe("setBrandUser", () => {
   it("refuses to change your own brand role", async () => {
     const OWN_ID_UPPERCASE = "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA";
     const lowercaseActor = { ...provisioner, user: { ...provisioner.user, id: OWN_ID_UPPERCASE.toLowerCase() } };
 
     await expect(
-      setBrandMember(fakePool, lowercaseActor, null, BRAND_ID, OWN_ID_UPPERCASE, ROLE_ID),
+      setBrandUser(fakePool, lowercaseActor, null, BRAND_ID, OWN_ID_UPPERCASE, ROLE_ID),
     ).rejects.toBeInstanceOf(ForbiddenError);
-    await expect(removeBrandMember(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, ACTOR_ID)).rejects.toBeInstanceOf(
+    await expect(removeBrandUser(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, ACTOR_ID)).rejects.toBeInstanceOf(
       ForbiddenError,
     );
     expect(poolQueryMock).not.toHaveBeenCalled();
   });
 
-  it("assigns the role in one statement through members.manage, with the actor's brand actions as the limit", async () => {
+  it("assigns the role in one statement through brandUsers.manage, with the actor's brand actions as the limit", async () => {
     poolQueryMock.mockResolvedValueOnce(pgResult([writeFlags()]));
 
-    const member = await setBrandMember(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, TARGET_ID, ROLE_ID);
+    const brandUser = await setBrandUser(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, TARGET_ID, ROLE_ID);
 
-    expect(member).toEqual(expectedMember);
+    expect(brandUser).toEqual(expectedUser);
     expect(poolQueryMock.mock.calls[0][1]).toEqual([BRAND_ID, TARGET_ID, ROLE_ID, ACTOR_ID, false, LEAD_BRAND_ACTIONS]);
   });
 
-  it("through members.manage, refuses a role with actions the actor lacks on this brand", async () => {
+  it("through brandUsers.manage, refuses a role with actions the actor lacks on this brand", async () => {
     poolQueryMock.mockResolvedValueOnce(pgResult([writeFlags({ new_subset: false, written: false })]));
 
     await expect(
-      setBrandMember(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, TARGET_ID, ROLE_ID),
+      setBrandUser(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, TARGET_ID, ROLE_ID),
     ).rejects.toBeInstanceOf(ForbiddenError);
   });
 
-  it("through members.manage, refuses replacing or removing a member whose current role exceeds the actor's", async () => {
+  it("through brandUsers.manage, refuses replacing or removing a user whose current role exceeds the actor's", async () => {
     poolQueryMock
       .mockResolvedValueOnce(pgResult([writeFlags({ current_subset: false, written: false })]))
       .mockResolvedValueOnce(pgResult([writeFlags({ current_subset: false, written: false })]));
 
     await expect(
-      setBrandMember(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, TARGET_ID, ROLE_ID),
+      setBrandUser(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, TARGET_ID, ROLE_ID),
     ).rejects.toBeInstanceOf(ForbiddenError);
     await expect(
-      removeBrandMember(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, TARGET_ID),
+      removeBrandUser(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, TARGET_ID),
     ).rejects.toBeInstanceOf(ForbiddenError);
   });
 
   it("through users.assignBrandRoles, assigns any brand role", async () => {
     poolQueryMock.mockResolvedValueOnce(pgResult([writeFlags({ new_subset: false, current_subset: false })]));
 
-    const member = await setBrandMember(fakePool, provisioner, null, BRAND_ID, TARGET_ID, ROLE_ID);
+    const brandUser = await setBrandUser(fakePool, provisioner, null, BRAND_ID, TARGET_ID, ROLE_ID);
 
-    expect(member).toEqual(expectedMember);
+    expect(brandUser).toEqual(expectedUser);
     expect(poolQueryMock.mock.calls[0][1]).toEqual([BRAND_ID, TARGET_ID, ROLE_ID, ACTOR_ID, true, []]);
   });
 
   it("uses the console branch when the actor holds users.assignBrandRoles, even with a brand role", async () => {
     poolQueryMock.mockResolvedValueOnce(pgResult([writeFlags({ new_subset: false })]));
 
-    await setBrandMember(fakePool, provisioner, ["members.view"], BRAND_ID, TARGET_ID, ROLE_ID);
+    await setBrandUser(fakePool, provisioner, ["brandUsers.view"], BRAND_ID, TARGET_ID, ROLE_ID);
 
     expect(poolQueryMock.mock.calls[0][1][4]).toBe(true);
   });
 
   it("returns 404 for an actor with neither the console action nor a role on the brand", async () => {
-    await expect(setBrandMember(fakePool, brandLead, null, BRAND_ID, TARGET_ID, ROLE_ID)).rejects.toBeInstanceOf(
+    await expect(setBrandUser(fakePool, brandLead, null, BRAND_ID, TARGET_ID, ROLE_ID)).rejects.toBeInstanceOf(
       NotFoundError,
     );
     expect(poolQueryMock).not.toHaveBeenCalled();
@@ -205,10 +205,10 @@ describe("setBrandMember", () => {
       .mockResolvedValueOnce(pgResult([writeFlags({ target_found: false, written: false })]))
       .mockResolvedValueOnce(pgResult([writeFlags({ role_found: false, written: false })]));
 
-    await expect(setBrandMember(fakePool, provisioner, null, BRAND_ID, TARGET_ID, ROLE_ID)).rejects.toBeInstanceOf(
+    await expect(setBrandUser(fakePool, provisioner, null, BRAND_ID, TARGET_ID, ROLE_ID)).rejects.toBeInstanceOf(
       NotFoundError,
     );
-    await expect(setBrandMember(fakePool, provisioner, null, BRAND_ID, TARGET_ID, ROLE_ID)).rejects.toBeInstanceOf(
+    await expect(setBrandUser(fakePool, provisioner, null, BRAND_ID, TARGET_ID, ROLE_ID)).rejects.toBeInstanceOf(
       NotFoundError,
     );
     expect(poolQueryMock.mock.calls[0][0]).toMatch(/kind = 'brand'/);
@@ -217,17 +217,17 @@ describe("setBrandMember", () => {
   it("returns 404 for a deleted brand on the console branch", async () => {
     poolQueryMock.mockResolvedValueOnce(pgResult([writeFlags({ brand_found: false, written: false })]));
 
-    await expect(setBrandMember(fakePool, provisioner, null, BRAND_ID, TARGET_ID, ROLE_ID)).rejects.toBeInstanceOf(
+    await expect(setBrandUser(fakePool, provisioner, null, BRAND_ID, TARGET_ID, ROLE_ID)).rejects.toBeInstanceOf(
       NotFoundError,
     );
   });
 });
 
-describe("removeBrandMember", () => {
-  it("removes the member in one statement", async () => {
+describe("removeBrandUser", () => {
+  it("removes the user in one statement", async () => {
     poolQueryMock.mockResolvedValueOnce(pgResult([writeFlags()]));
 
-    await removeBrandMember(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, TARGET_ID);
+    await removeBrandUser(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, TARGET_ID);
 
     expect(poolQueryMock.mock.calls[0][0]).toMatch(/DELETE FROM user_brand_roles/);
     expect(poolQueryMock.mock.calls[0][1]).toEqual([BRAND_ID, TARGET_ID, false, LEAD_BRAND_ACTIONS]);
@@ -236,7 +236,7 @@ describe("removeBrandMember", () => {
   it("returns 409 when this brand role is the user's last role", async () => {
     poolQueryMock.mockResolvedValueOnce(pgResult([writeFlags({ last_role: true, written: false })]));
 
-    await expect(removeBrandMember(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, TARGET_ID)).rejects.toThrow(
+    await expect(removeBrandUser(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, TARGET_ID)).rejects.toThrow(
       new ConflictError("A user must keep at least one role."),
     );
   });
@@ -248,34 +248,34 @@ describe("removeBrandMember", () => {
       .mockResolvedValueOnce(pgResult([writeFlags({ current_subset: false, last_role: true, written: false })]));
 
     await expect(
-      removeBrandMember(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, TARGET_ID),
+      removeBrandUser(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, TARGET_ID),
     ).rejects.toBeInstanceOf(NotFoundError);
     await expect(
-      removeBrandMember(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, TARGET_ID),
+      removeBrandUser(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, TARGET_ID),
     ).rejects.toBeInstanceOf(NotFoundError);
     await expect(
-      removeBrandMember(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, TARGET_ID),
+      removeBrandUser(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, TARGET_ID),
     ).rejects.toBeInstanceOf(ForbiddenError);
   });
 
-  it("returns 404 for a user who is not a member of the brand", async () => {
+  it("returns 404 for a user who is not a user of the brand", async () => {
     poolQueryMock.mockResolvedValueOnce(pgResult([writeFlags({ target_found: false, written: false })]));
 
-    await expect(removeBrandMember(fakePool, provisioner, null, BRAND_ID, TARGET_ID)).rejects.toBeInstanceOf(
+    await expect(removeBrandUser(fakePool, provisioner, null, BRAND_ID, TARGET_ID)).rejects.toBeInstanceOf(
       NotFoundError,
     );
   });
 });
 
-describe("addBrandMember", () => {
+describe("addBrandUser", () => {
   const body = { email: "bob@x.com", displayName: "Bob", roleId: ROLE_ID };
 
   it("adds a brand-new email as an invited user", async () => {
-    poolQueryMock.mockResolvedValueOnce(pgResult([writeFlags(memberRow({ status: "invited" }))]));
+    poolQueryMock.mockResolvedValueOnce(pgResult([writeFlags(userRow({ status: "invited" }))]));
 
-    const member = await addBrandMember(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, body);
+    const brandUser = await addBrandUser(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, body);
 
-    expect(member).toEqual({ ...expectedMember, status: "invited" });
+    expect(brandUser).toEqual({ ...expectedUser, status: "invited" });
     const [sql, params] = poolQueryMock.mock.calls[0];
     expect(sql).toMatch(/INSERT INTO users/);
     expect(sql).toMatch(/ON CONFLICT \(email\) DO NOTHING/);
@@ -287,14 +287,14 @@ describe("addBrandMember", () => {
   it("rejects a disabled user with 409", async () => {
     poolQueryMock.mockResolvedValueOnce(pgResult([writeFlags({ target_disabled: true, written: false })]));
 
-    await expect(addBrandMember(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, body)).rejects.toBeInstanceOf(
+    await expect(addBrandUser(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, body)).rejects.toBeInstanceOf(
       ConflictError,
     );
   });
 
   it("refuses your own email", async () => {
     await expect(
-      addBrandMember(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, { ...body, email: "Lead@X.com" }),
+      addBrandUser(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, { ...body, email: "Lead@X.com" }),
     ).rejects.toBeInstanceOf(ForbiddenError);
     expect(poolQueryMock).not.toHaveBeenCalled();
   });
@@ -302,20 +302,20 @@ describe("addBrandMember", () => {
   it("lowercases the email", async () => {
     poolQueryMock.mockResolvedValueOnce(pgResult([writeFlags()]));
 
-    await addBrandMember(fakePool, provisioner, null, BRAND_ID, { email: "Bob@X.com", roleId: ROLE_ID });
+    await addBrandUser(fakePool, provisioner, null, BRAND_ID, { email: "Bob@X.com", roleId: ROLE_ID });
 
     expect(poolQueryMock.mock.calls[0][1]).toEqual([BRAND_ID, "bob@x.com", ROLE_ID, ACTOR_ID, true, [], null, null]);
   });
 
-  it("through members.manage, refuses a role the actor lacks or replacing a broader current role", async () => {
+  it("through brandUsers.manage, refuses a role the actor lacks or replacing a broader current role", async () => {
     poolQueryMock
       .mockResolvedValueOnce(pgResult([writeFlags({ new_subset: false, written: false })]))
       .mockResolvedValueOnce(pgResult([writeFlags({ current_subset: false, written: false })]));
 
-    await expect(addBrandMember(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, body)).rejects.toBeInstanceOf(
+    await expect(addBrandUser(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, body)).rejects.toBeInstanceOf(
       ForbiddenError,
     );
-    await expect(addBrandMember(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, body)).rejects.toBeInstanceOf(
+    await expect(addBrandUser(fakePool, brandLead, LEAD_BRAND_ACTIONS, BRAND_ID, body)).rejects.toBeInstanceOf(
       ForbiddenError,
     );
   });
@@ -323,18 +323,18 @@ describe("addBrandMember", () => {
   it("returns 404 for a console role id", async () => {
     poolQueryMock.mockResolvedValueOnce(pgResult([writeFlags({ role_found: false, written: false })]));
 
-    await expect(addBrandMember(fakePool, provisioner, null, BRAND_ID, body)).rejects.toBeInstanceOf(NotFoundError);
+    await expect(addBrandUser(fakePool, provisioner, null, BRAND_ID, body)).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it("returns 409 when the flags pass but a racing insert hid the user", async () => {
     poolQueryMock.mockResolvedValueOnce(pgResult([writeFlags({ written: false, user_id: null })]));
 
-    await expect(addBrandMember(fakePool, provisioner, null, BRAND_ID, body)).rejects.toBeInstanceOf(ConflictError);
+    await expect(addBrandUser(fakePool, provisioner, null, BRAND_ID, body)).rejects.toBeInstanceOf(ConflictError);
   });
 
   it("returns 400 for an invalid email", async () => {
     await expect(
-      addBrandMember(fakePool, provisioner, null, BRAND_ID, { email: "not-an-email", roleId: ROLE_ID }),
+      addBrandUser(fakePool, provisioner, null, BRAND_ID, { email: "not-an-email", roleId: ROLE_ID }),
     ).rejects.toBeInstanceOf(ValidationError);
     expect(poolQueryMock).not.toHaveBeenCalled();
   });
@@ -342,6 +342,6 @@ describe("addBrandMember", () => {
   it("maps the email lowercase check to a validation error", async () => {
     poolQueryMock.mockRejectedValueOnce({ code: CHECK_VIOLATION, constraint: "users_email_check" });
 
-    await expect(addBrandMember(fakePool, provisioner, null, BRAND_ID, body)).rejects.toBeInstanceOf(ValidationError);
+    await expect(addBrandUser(fakePool, provisioner, null, BRAND_ID, body)).rejects.toBeInstanceOf(ValidationError);
   });
 });

@@ -55,7 +55,7 @@ export async function brandRoutes(app: FastifyInstance) {
   app.get<{ Params: BrandParamsSchemaType }>(
     "/brands/:brandId",
     {
-      config: { access: { anyOf: [{ console: "brands.view" }, { brandMember: "params.brandId" }] } },
+      config: { access: { anyOf: [{ console: "brands.view" }, { brandUser: "params.brandId" }] } },
       schema: {
         params: BrandParamsSchema,
         response: { 200: BrandDetailSchema },

@@ -34,7 +34,7 @@ function isBrandRef(value: unknown): value is BrandRef {
 
 function checkError(check: AccessCheck): string | null {
   if ("console" in check) return isConsoleAction(check.console) ? null : `"${check.console}" is not a console action`;
-  if ("brandMember" in check) return isBrandRef(check.brandMember) ? null : `"${check.brandMember}" is not a brand ref`;
+  if ("brandUser" in check) return isBrandRef(check.brandUser) ? null : `"${check.brandUser}" is not a brand ref`;
   if (!isBrandAction(check.brand)) return `"${check.brand}" is not a brand action`;
   return isBrandRef(check.from) ? null : `"${check.from}" is not a brand ref`;
 }

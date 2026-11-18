@@ -44,7 +44,7 @@ export async function brandRoleRoutes(app: FastifyInstance) {
     },
   );
 
-  // The service also requires members.view on the brand.
+  // The service also requires brandUsers.view on the brand.
   app.get<{ Params: BrandRoleParamsSchemaType }>(
     "/brands/:brandId/roles/:roleId/assignments",
     {

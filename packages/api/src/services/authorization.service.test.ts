@@ -65,7 +65,7 @@ describe("decide", () => {
 
   it("lets provider.view read operational data but not edit it", () => {
     expect(decide(providerView(), brandAccess("outlets.view"))).toBe("allow");
-    expect(decide(providerView(), brandAccess("members.view"))).toBe("allow");
+    expect(decide(providerView(), brandAccess("brandUsers.view"))).toBe("allow");
     expect(decide(providerView(), brandAccess("outlets.edit"))).toBe("forbidden");
   });
 
@@ -78,10 +78,10 @@ describe("decide", () => {
     ["provider.view", providerView],
     ["provider.support", providerSupport],
     ["Admin", adminRole],
-  ] as const)("never gives %s personal data or members.manage through provider access", (_, provider) => {
+  ] as const)("never gives %s personal data or brandUsers.manage through provider access", (_, provider) => {
     expect(decide(provider(), brandAccess("customerScores.view"))).toBe("forbidden");
     expect(decide(provider(), brandAccess("snapshots.viewCustomerIds"))).toBe("forbidden");
-    expect(decide(provider(), brandAccess("members.manage"))).toBe("forbidden");
+    expect(decide(provider(), brandAccess("brandUsers.manage"))).toBe("forbidden");
   });
 
   it("still gives personal data through a brand role held alongside provider access", () => {
@@ -102,7 +102,7 @@ describe("decide", () => {
 
     expect(decide(gone(providerSupport()), brandAccess("outlets.view"))).toBe("notFound");
     expect(decide(gone(adminRole()), brandAccess("outlets.view"))).toBe("notFound");
-    expect(decide(gone(providerView()), { brandMember: "params.brandId" })).toBe("notFound");
+    expect(decide(gone(providerView()), { brandUser: "params.brandId" })).toBe("notFound");
   });
 
   it("forbids a brand action the brand role lacks", () => {
@@ -117,20 +117,20 @@ describe("decide", () => {
     );
   });
 
-  it("allows brandMember for any brand role", () => {
-    expect(decide(brandRole([]), { brandMember: "params.brandId" })).toBe("allow");
-    expect(decide(row(), { brandMember: "params.brandId" })).toBe("notFound");
+  it("allows brandUser for any brand role", () => {
+    expect(decide(brandRole([]), { brandUser: "params.brandId" })).toBe("allow");
+    expect(decide(row(), { brandUser: "params.brandId" })).toBe("notFound");
   });
 
-  it("allows brandMember for provider access", () => {
-    expect(decide(providerView(), { brandMember: "params.brandId" })).toBe("allow");
-    expect(decide(providerSupport(), { brandMember: "params.brandId" })).toBe("allow");
-    expect(decide(adminRole(), { brandMember: "params.brandId" })).toBe("allow");
+  it("allows brandUser for provider access", () => {
+    expect(decide(providerView(), { brandUser: "params.brandId" })).toBe("allow");
+    expect(decide(providerSupport(), { brandUser: "params.brandId" })).toBe("allow");
+    expect(decide(adminRole(), { brandUser: "params.brandId" })).toBe("allow");
   });
 
   it("allows anyOf when one branch allows", () => {
     const access: RouteAccess = {
-      anyOf: [{ console: "brands.view" }, { brandMember: "params.brandId" }],
+      anyOf: [{ console: "brands.view" }, { brandUser: "params.brandId" }],
     };
 
     expect(decide(consoleRole(["brands.view"]), access)).toBe("allow");
@@ -275,7 +275,7 @@ describe("authorizeRequest", () => {
     const result = await authorizeRequest(
       fakePool,
       createSessionToken().token,
-      { brandMember: "params.outletId" },
+      { brandUser: "params.outletId" },
       {},
     );
 
@@ -288,7 +288,7 @@ describe("authorizeRequest", () => {
       authorizeRequest(
         fakePool,
         createSessionToken().token,
-        { anyOf: [{ brandMember: "params.brandId" }, { brand: "outlets.view", from: "params.outletId" }] },
+        { anyOf: [{ brandUser: "params.brandId" }, { brand: "outlets.view", from: "params.outletId" }] },
         {},
       ),
     ).rejects.toThrow(/brand ref/);

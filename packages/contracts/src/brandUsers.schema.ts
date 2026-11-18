@@ -2,7 +2,7 @@ import Type, { type Static } from "typebox";
 import { NameSchema } from "./name.schema.js";
 import { UserStatusSchema } from "./users.schema.js";
 
-export const BrandMemberRecordSchema = Type.Object(
+export const BrandUserRecordSchema = Type.Object(
   {
     userId: Type.String({ format: "uuid" }),
     email: Type.String(),
@@ -13,26 +13,26 @@ export const BrandMemberRecordSchema = Type.Object(
   },
   { additionalProperties: false },
 );
-export type BrandMemberRecordSchemaType = Static<typeof BrandMemberRecordSchema>;
+export type BrandUserRecordSchemaType = Static<typeof BrandUserRecordSchema>;
 
-export const BrandMemberListSchema = Type.Array(BrandMemberRecordSchema);
-export type BrandMemberListSchemaType = Static<typeof BrandMemberListSchema>;
+export const BrandUserListSchema = Type.Array(BrandUserRecordSchema);
+export type BrandUserListSchemaType = Static<typeof BrandUserListSchema>;
 
-export const BrandMemberParamsSchema = Type.Object({
+export const BrandUserParamsSchema = Type.Object({
   brandId: Type.String({ format: "uuid" }),
   userId: Type.String({ format: "uuid" }),
 });
-export type BrandMemberParamsSchemaType = Static<typeof BrandMemberParamsSchema>;
+export type BrandUserParamsSchemaType = Static<typeof BrandUserParamsSchema>;
 
-export const SetBrandMemberBodySchema = Type.Object(
+export const SetBrandUserBodySchema = Type.Object(
   {
     roleId: Type.String({ format: "uuid" }),
   },
   { additionalProperties: false },
 );
-export type SetBrandMemberBodySchemaType = Static<typeof SetBrandMemberBodySchema>;
+export type SetBrandUserBodySchemaType = Static<typeof SetBrandUserBodySchema>;
 
-export const AddBrandMemberBodySchema = Type.Object(
+export const AddBrandUserBodySchema = Type.Object(
   {
     email: Type.String({ format: "email", maxLength: 320 }),
     displayName: Type.Optional(NameSchema),
@@ -40,7 +40,7 @@ export const AddBrandMemberBodySchema = Type.Object(
   },
   { additionalProperties: false },
 );
-export type AddBrandMemberBodySchemaType = Static<typeof AddBrandMemberBodySchema>;
+export type AddBrandUserBodySchemaType = Static<typeof AddBrandUserBodySchema>;
 
 export const UserBrandRoleRecordSchema = Type.Object(
   {

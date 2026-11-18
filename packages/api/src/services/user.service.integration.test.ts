@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { ConflictError, ForbiddenError, NotFoundError } from "../errors.js";
 import { getTestPool } from "../testing/testDb.js";
 import type { RequestAccess } from "./authorization.service.js";
-import { removeBrandMember } from "./brandMember.service.js";
+import { removeBrandUser } from "./brandUser.service.js";
 import type { Queryable } from "./session.service.js";
 import {
   clearConsoleRole,
@@ -346,7 +346,7 @@ describe("last-role races (integration)", () => {
     await assignConsoleRole(target, await insertRole("Viewer", ["users.view"]));
     const brandId = await insertBrandRole(target);
     const clear = (db: Queryable = getTestPool()) => clearConsoleRole(db, actor, target);
-    const remove = (db: Queryable = getTestPool()) => removeBrandMember(db, actor, null, brandId, target);
+    const remove = (db: Queryable = getTestPool()) => removeBrandUser(db, actor, null, brandId, target);
     return { target, clear, remove };
   }
 

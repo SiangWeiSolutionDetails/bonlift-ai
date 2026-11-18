@@ -33,4 +33,4 @@ export * from "./auth.schema.js";
 export * from "./permissions.js";
 export * from "./roles.schema.js";
 export * from "./users.schema.js";
-export * from "./brandMembers.schema.js";
+export * from "./brandUsers.schema.js";

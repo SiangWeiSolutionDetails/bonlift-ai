@@ -144,7 +144,7 @@ describe("createBrandRole", () => {
 
   it("refuses actions beyond a merchant manager's brand role", async () => {
     await expect(
-      createBrandRole(fakePool, merchant, MANAGER_ACTIONS, BRAND_ID, { name: "Lead", actions: ["members.manage"] }),
+      createBrandRole(fakePool, merchant, MANAGER_ACTIONS, BRAND_ID, { name: "Lead", actions: ["brandUsers.manage"] }),
     ).rejects.toBeInstanceOf(ForbiddenError);
     expect(queryMock).not.toHaveBeenCalled();
   });
@@ -156,17 +156,17 @@ describe("createBrandRole", () => {
     expect(queryMock).not.toHaveBeenCalled();
   });
 
-  it("lets provider support grant members.manage and other non-personal actions", async () => {
+  it("lets provider support grant brandUsers.manage and other non-personal actions", async () => {
     queryMock.mockResolvedValueOnce(
       pgResult([{ brand_found: true, id: ROLE_ID, name: "Lead", kind: "brand", is_builtin: false }]),
     );
 
     const role = await createBrandRole(fakePool, support, null, BRAND_ID, {
       name: "Lead",
-      actions: ["members.manage", "apiKeys.create"],
+      actions: ["brandUsers.manage", "apiKeys.create"],
     });
 
-    expect(role.actions).toEqual(["apiKeys.create", "members.manage"]);
+    expect(role.actions).toEqual(["apiKeys.create", "brandUsers.manage"]);
   });
 
   it("returns 404 when the brand is gone", async () => {
@@ -224,7 +224,7 @@ describe("updateBrandRole", () => {
 
   it("refuses new actions beyond the grant limit before querying", async () => {
     await expect(
-      updateBrandRole(fakePool, merchant, MANAGER_ACTIONS, BRAND_ID, ROLE_ID, { actions: ["members.manage"] }),
+      updateBrandRole(fakePool, merchant, MANAGER_ACTIONS, BRAND_ID, ROLE_ID, { actions: ["brandUsers.manage"] }),
     ).rejects.toBeInstanceOf(ForbiddenError);
     await expect(
       updateBrandRole(fakePool, support, null, BRAND_ID, ROLE_ID, { actions: ["snapshots.viewCustomerIds"] }),
@@ -304,7 +304,7 @@ describe("listBrandRoleAssignments", () => {
     tenant_name: "Group",
   };
 
-  it("needs members.view on the brand besides brandRoles.view", async () => {
+  it("needs brandUsers.view on the brand besides brandRoles.view", async () => {
     await expect(
       listBrandRoleAssignments(fakePool, merchant, ["brandRoles.view"], BRAND_ID, ROLE_ID),
     ).rejects.toBeInstanceOf(ForbiddenError);
@@ -314,7 +314,7 @@ describe("listBrandRoleAssignments", () => {
   it("lists the holders for a merchant with both actions", async () => {
     queryMock.mockResolvedValueOnce(pgResult([holderRow]));
 
-    const rows = await listBrandRoleAssignments(fakePool, merchant, ["brandRoles.view", "members.view"], BRAND_ID, ROLE_ID);
+    const rows = await listBrandRoleAssignments(fakePool, merchant, ["brandRoles.view", "brandUsers.view"], BRAND_ID, ROLE_ID);
 
     expect(rows).toEqual([
       { userId: USER_ID, email: "a@x.com", displayName: null, status: "active", brandId: BRAND_ID, brandName: "Alpha", tenantName: "Group" },

@@ -172,7 +172,7 @@ describe("authorization.service (integration)", () => {
       expect(await decisionOf({ brand: "outlets.view", from: "params.outletId" }, { "params.outletId": outletId })).toBe(
         "allow",
       );
-      expect(await decisionOf({ brandMember: "params.brandId" }, { "params.brandId": brandId })).toBe("allow");
+      expect(await decisionOf({ brandUser: "params.brandId" }, { "params.brandId": brandId })).toBe("allow");
       expect(await decisionOf({ brand: "outlets.edit", from: "params.outletId" }, { "params.outletId": outletId })).toBe(
         "forbidden",
       );
@@ -217,8 +217,8 @@ describe("authorization.service (integration)", () => {
     it("gives no access to a brand of a deleted tenant, through a provider action or a brand role", async () => {
       const { brandId, outletId } = await createBrandWithRunAndOutlet();
       const token = await createProvider(["provider.support"]);
-      const member = await createSignedInUser("member@x.com");
-      await assignBrandRole(member.userId, brandId, await createBrandRole(brandId, "Viewer", ["outlets.view"]));
+      const brandUser = await createSignedInUser("brand-user@x.com");
+      await assignBrandRole(brandUser.userId, brandId, await createBrandRole(brandId, "Viewer", ["outlets.view"]));
       // Only the tenant row, so the brand-resolution tenant check is what refuses.
       await getTestPool().query(
         `UPDATE tenants SET deleted_at = now() WHERE id = (SELECT tenant_id FROM brands WHERE id = $1)`,
@@ -233,8 +233,8 @@ describe("authorization.service (integration)", () => {
       );
       const viaRole = await authorizeRequest(
         getTestPool(),
-        member.token,
-        { brandMember: "params.brandId" },
+        brandUser.token,
+        { brandUser: "params.brandId" },
         { "params.brandId": brandId },
       );
 
@@ -284,7 +284,7 @@ describe("authorization.service (integration)", () => {
     const result = await authorizeRequest(
       getTestPool(),
       token,
-      { brandMember: "params.brandId" },
+      { brandUser: "params.brandId" },
       { "params.brandId": brandId },
     );
 

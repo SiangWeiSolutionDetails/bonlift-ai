@@ -30,7 +30,7 @@ describe("permissions catalog", () => {
     expect(CONSOLE_ACTIONS).not.toContain("apiKeys.view");
     expect(BRAND_ACTIONS).toContain("apiKeys.revoke");
     expect(BRAND_ACTIONS).toContain("snapshots.viewCustomerIds");
-    expect(BRAND_ACTIONS).toContain("members.manage");
+    expect(BRAND_ACTIONS).toContain("brandUsers.manage");
     expect(BRAND_ACTIONS).not.toContain("brands.view");
   });
 
@@ -59,8 +59,8 @@ describe("provider grants", () => {
       for (const action of PERSONAL_DATA_ACTIONS) expect(grant).not.toContain(action);
   });
 
-  it("never grants members.manage", () => {
-    expect(support).not.toContain("members.manage");
+  it("never grants brandUsers.manage", () => {
+    expect(support).not.toContain("brandUsers.manage");
   });
 
   it("never lets a provider create a serving API key", () => {

@@ -49,8 +49,8 @@ export const PERMISSIONS = [
   brandEntry("apiKeys", "apiKeys.delete"),
   brandEntry("usage", "usage.view"),
   brandEntry("feedback", "feedback.view"),
-  brandEntry("members", "members.view"),
-  brandEntry("members", "members.manage"),
+  brandEntry("brandUsers", "brandUsers.view"),
+  brandEntry("brandUsers", "brandUsers.manage"),
   brandEntry("brandRoles", "brandRoles.view"),
   brandEntry("brandRoles", "brandRoles.manage"),
 ] as const;
@@ -91,7 +91,7 @@ const PROVIDER_VIEW_ACTIONS: readonly BrandAction[] = [
   "apiKeys.view",
   "usage.view",
   "feedback.view",
-  "members.view",
+  "brandUsers.view",
   "brandRoles.view",
 ];
 

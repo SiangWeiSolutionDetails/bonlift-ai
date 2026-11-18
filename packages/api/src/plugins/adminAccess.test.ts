@@ -103,7 +103,7 @@ describe("registerAdminAccess at startup", () => {
     const access: RouteAccess = {
       anyOf: [
         { brand: "outlets.view", from: "params.outletId" },
-        { brandMember: "params.brandId" },
+        { brandUser: "params.brandId" },
       ],
     };
     await expect(

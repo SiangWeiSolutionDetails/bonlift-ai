@@ -17,7 +17,7 @@ const TENANT_ID = "44444444-4444-4444-4444-444444444444";
 const INVALID_ID = "invalid-id";
 const USER_ID = "55555555-5555-5555-5555-555555555555";
 const ALL_BRANDS = { userId: USER_ID, consoleActions: ["brands.view"] };
-const MEMBER_BRANDS = { userId: USER_ID, consoleActions: ["tenants.view"] };
+const USER_BRANDS = { userId: USER_ID, consoleActions: ["tenants.view"] };
 
 const DEFAULT_BRAND: BrandRecordSchemaType = {
   id: BRAND_ID,
@@ -112,7 +112,7 @@ describe("getBrands", () => {
   it("limits the list to brands where the user holds a role without brands.view or provider access", async () => {
     queryMock.mockResolvedValueOnce(pgResult([fakeBrandRow()]));
 
-    await getBrands(fakePool, { tenantId: TENANT_ID }, MEMBER_BRANDS);
+    await getBrands(fakePool, { tenantId: TENANT_ID }, USER_BRANDS);
 
     expect(queryMock).toHaveBeenCalledWith(
       expect.stringContaining(

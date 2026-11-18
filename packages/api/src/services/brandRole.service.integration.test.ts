@@ -87,7 +87,7 @@ async function tenantWithBrands(name: string, ...brandNames: string[]) {
   return { tenantId, brandIds };
 }
 
-const MANAGER_ACTIONS: BrandAction[] = ["brandRoles.view", "brandRoles.manage", "members.view", "outlets.view"];
+const MANAGER_ACTIONS: BrandAction[] = ["brandRoles.view", "brandRoles.manage", "brandUsers.view", "outlets.view"];
 
 // A merchant manager holding MANAGER_ACTIONS on the brand, as the request's brandActions would carry them.
 async function managerOn(email: string, tenantId: string, brandId: string) {
@@ -211,7 +211,7 @@ describe("grant limit through a brand role (integration)", () => {
     await expect(
       createBrandRole(getTestPool(), actor, MANAGER_ACTIONS, alpha.brandIds[0], {
         name: "Lead",
-        actions: ["outlets.view", "members.manage"],
+        actions: ["outlets.view", "brandUsers.manage"],
       }),
     ).rejects.toBeInstanceOf(ForbiddenError);
 
@@ -244,10 +244,10 @@ describe("grant limit through a brand role (integration)", () => {
     });
     const edited = await updateBrandRole(getTestPool(), actor, MANAGER_ACTIONS, alpha.brandIds[0], role.id, {
       name: "Viewer",
-      actions: ["outlets.view", "members.view"],
+      actions: ["outlets.view", "brandUsers.view"],
     });
-    expect(edited).toMatchObject({ name: "Viewer", actions: ["outlets.view", "members.view"], assignmentCount: 0 });
-    expect(await storedRole(role.id)).toMatchObject({ name: "Viewer", actions: ["members.view", "outlets.view"] });
+    expect(edited).toMatchObject({ name: "Viewer", actions: ["outlets.view", "brandUsers.view"], assignmentCount: 0 });
+    expect(await storedRole(role.id)).toMatchObject({ name: "Viewer", actions: ["brandUsers.view", "outlets.view"] });
 
     await deleteBrandRole(getTestPool(), actor, MANAGER_ACTIONS, alpha.brandIds[0], role.id);
     expect(await storedRole(role.id)).toBeNull();
@@ -255,17 +255,17 @@ describe("grant limit through a brand role (integration)", () => {
 });
 
 describe("grant limit through provider support (integration)", () => {
-  it("grants every non-personal action, members.manage included", async () => {
+  it("grants every non-personal action, brandUsers.manage included", async () => {
     const alpha = await tenantWithBrands("Alpha Group", "Alpha");
     const actor = await supportFor("support@x.com");
 
     const role = await createBrandRole(getTestPool(), actor, null, alpha.brandIds[0], {
       name: "Lead",
-      actions: ["members.manage", "apiKeys.create", "brandRoles.manage"],
+      actions: ["brandUsers.manage", "apiKeys.create", "brandRoles.manage"],
     });
 
     expect(await storedRole(role.id)).toMatchObject({
-      actions: ["apiKeys.create", "brandRoles.manage", "members.manage"],
+      actions: ["apiKeys.create", "brandRoles.manage", "brandUsers.manage"],
     });
   });
 
@@ -348,7 +348,7 @@ describe("listBrandRoleAssignments (integration)", () => {
     ]);
   });
 
-  it("refuses a merchant without members.view", async () => {
+  it("refuses a merchant without brandUsers.view", async () => {
     const alpha = await tenantWithBrands("Alpha Group", "Alpha");
     const actor = await merchantFor("lead@x.com");
     const roleId = await insertBrandRole(alpha.tenantId, "Reader", ["outlets.view"]);

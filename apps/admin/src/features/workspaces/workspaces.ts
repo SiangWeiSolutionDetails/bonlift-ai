@@ -104,17 +104,22 @@ export function defaultWorkspace(me: Me, remembered: string | null): string | nu
   );
 }
 
-export function readLastWorkspace(): string | null {
+// Per user, so accounts sharing a browser each return to their own workspace
+function lastWorkspaceKey(userId: string) {
+  return `${STORAGE_KEY}:${userId.toLowerCase()}`;
+}
+
+export function readLastWorkspace(userId: string): string | null {
   try {
-    return localStorage.getItem(STORAGE_KEY);
+    return localStorage.getItem(lastWorkspaceKey(userId));
   } catch {
     return null;
   }
 }
 
-export function writeLastWorkspace(key: string) {
+export function writeLastWorkspace(userId: string, key: string) {
   try {
-    localStorage.setItem(STORAGE_KEY, key);
+    localStorage.setItem(lastWorkspaceKey(userId), key);
   } catch {
     // storage unavailable (private window); the workspace just isn't remembered
   }

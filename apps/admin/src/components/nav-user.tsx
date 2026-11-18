@@ -55,14 +55,11 @@ function useRemoveThisAccount(email: string) {
   }
 }
 
-function currentPath() {
-  return `${window.location.pathname}${window.location.search}`
-}
-
+// Land on "/" so the new account opens its own default workspace, never the previous account's page
 function useSwitchToAccount() {
   const endSession = useEndSession()
   return async (email: string) => {
-    if (await endSession()) window.location.assign(signInHref(currentPath(), { loginHint: email }))
+    if (await endSession()) window.location.assign(signInHref("/", { loginHint: email }))
   }
 }
 
@@ -70,12 +67,12 @@ function useSwitchToAccount() {
 function useAddAccount() {
   const endSession = useEndSession()
   return async () => {
-    if (await endSession()) window.location.assign(signInHref(currentPath(), { selectAccount: true }))
+    if (await endSession()) window.location.assign(signInHref("/", { selectAccount: true }))
   }
 }
 
-// "Signed in" and the Switch button share one column width so they line up
-const ACCOUNT_ACTION_WIDTH = "w-18 shrink-0"
+// The Signed in badge and the Switch button share one size so they line up
+const ACCOUNT_ACTION = "flex h-7 w-18 shrink-0 items-center justify-center rounded-md text-xs font-medium"
 
 type AccountRowProps = {
   account: Pick<KnownAccount, "email" | "displayName">
@@ -99,7 +96,7 @@ function AccountRow({ account, current, onSwitch }: AccountRowProps) {
         {name !== account.email && <span className="truncate text-xs text-muted-foreground">{account.email}</span>}
       </span>
       {current ? (
-        <span className={cn(ACCOUNT_ACTION_WIDTH, "text-center text-xs text-muted-foreground")}>{t("signedIn")}</span>
+        <span className={cn(ACCOUNT_ACTION, "bg-primary/15 text-primary")}>{t("signedIn")}</span>
       ) : (
         <SwitchAccountItem email={account.email} onSwitch={onSwitch} />
       )}
@@ -113,7 +110,7 @@ function SwitchAccountItem({ email, onSwitch }: { email: string; onSwitch: () =>
     <DropdownMenuItem
       onSelect={onSwitch}
       aria-label={t("switchToAccount", { email })}
-      className={cn(ACCOUNT_ACTION_WIDTH, "h-7 cursor-pointer justify-center rounded-md border px-0 text-xs font-medium")}
+      className={cn(ACCOUNT_ACTION, "cursor-pointer border px-0 py-0")}
     >
       {t("switch")}
     </DropdownMenuItem>

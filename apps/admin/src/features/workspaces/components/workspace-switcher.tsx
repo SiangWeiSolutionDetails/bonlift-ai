@@ -23,8 +23,9 @@ const SEARCH_THRESHOLD = 8
 
 function useSwitchWorkspace() {
   const navigate = useNavigate()
+  const me = useCurrentUser()
   return (key: string) => {
-    writeLastWorkspace(key)
+    writeLastWorkspace(me.id, key)
     void navigate({ to: key === CONSOLE_KEY ? "/console" : `/b/${key}` })
   }
 }

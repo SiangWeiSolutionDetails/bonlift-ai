@@ -137,7 +137,7 @@ async function requireAccess(access: RouteAccess, brandId?: string): Promise<voi
 async function enterWorkspace(key: string, preload: boolean) {
   const me = await loadMe();
   if (!canOpen(me, key)) throw redirectTo(null);
-  if (!preload && isListedWorkspace(me, key)) writeLastWorkspace(key);
+  if (!preload && isListedWorkspace(me, key)) writeLastWorkspace(me.id, key);
 }
 
 // Provider access opens any id, so a brand without a role must still exist; a preload only prefetches it
@@ -169,14 +169,14 @@ async function redirectToFirstPage(key: string): Promise<never> {
 // Only a bare "/" uses the remembered workspace; it doesn't write it, entering the workspace does
 async function redirectToDefaultWorkspace(): Promise<never> {
   const me = await loadMe();
-  const key = defaultWorkspace(me, readLastWorkspace());
+  const key = defaultWorkspace(me, readLastWorkspace(me.id));
   throw redirectTo(key ? { to: firstVisiblePage(me, key) ?? "/no-access" } : null);
 }
 
 async function redirectLegacyPath(location: ParsedLocation): Promise<never> {
   const me = await loadMe();
   const pathname = location.pathname.replace(/\/+$/, "");
-  const target = legacyRedirect(me, pathname, location.search as Record<string, unknown>, readLastWorkspace());
+  const target = legacyRedirect(me, pathname, location.search as Record<string, unknown>, readLastWorkspace(me.id));
   if (!target) throw notFound();
   throw redirectTo(target);
 }

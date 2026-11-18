@@ -19,14 +19,17 @@ export function SidebarWorkspaceHeader() {
   const tooltip = subtitle ? `${title} · ${subtitle}` : title
 
   return (
-    <SidebarHeader>
+    // Without an icon there's nothing to show in icon mode, so a brand header hides there
+    <SidebarHeader className={isConsole ? undefined : "group-data-[collapsible=icon]:hidden"}>
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton asChild size="lg" tooltip={tooltip} className="cursor-default">
             <div title={tooltip}>
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground">
-                {isConsole ? <LayoutGridIcon className="size-4" /> : title.charAt(0).toUpperCase()}
-              </span>
+              {isConsole && (
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                  <LayoutGridIcon className="size-4" />
+                </span>
+              )}
               <span className="grid min-w-0 flex-1 leading-tight">
                 <span className="truncate font-medium">{title}</span>
                 {subtitle && <span className="truncate text-xs text-muted-foreground">{subtitle}</span>}

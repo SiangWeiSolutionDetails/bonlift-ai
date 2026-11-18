@@ -85,6 +85,12 @@ export function canOpen(me: Me, workspaceKey: string) {
   return holdsBrandRole(me, workspaceKey) || isProvider(me);
 }
 
+// Where a brand workspace's name and tenant come from: the user's brand role, or provider access
+export function brandWorkspaceSource(me: Me, brandId: string): "role" | "provider" | null {
+  if (holdsBrandRole(me, brandId)) return "role";
+  return isProvider(me) ? "provider" : null;
+}
+
 export function isListedWorkspace(me: Me, workspaceKey: string) {
   return workspaceKey === CONSOLE_KEY ? me.console !== null : holdsBrandRole(me, workspaceKey);
 }

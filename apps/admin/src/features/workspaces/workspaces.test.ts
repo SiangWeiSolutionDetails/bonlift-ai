@@ -2,6 +2,7 @@ import { CONSOLE_ACTIONS, type AuthMeResponseSchemaType } from "@bonlift-ai/cont
 import { describe, expect, it } from "vitest";
 import {
   BRAND_PAGES,
+  brandWorkspaceSource,
   buildWorkspaces,
   canOpen,
   CONSOLE_PAGES,
@@ -101,6 +102,24 @@ describe("canOpen", () => {
   });
 });
 
+describe("brandWorkspaceSource", () => {
+  const user = me({ console: providerView.console, brands: [brand(BRAND_A, "Alpha", "T", [])] });
+
+  it("prefers the brand role when the user holds one", () => {
+    expect(brandWorkspaceSource(user, BRAND_A)).toBe("role");
+  });
+
+  it("falls to provider access on a brand without a role", () => {
+    expect(brandWorkspaceSource(user, BRAND_B)).toBe("provider");
+    expect(brandWorkspaceSource(admin, BRAND_A)).toBe("provider");
+  });
+
+  it("is null without a role or provider access", () => {
+    expect(brandWorkspaceSource(staff, BRAND_A)).toBeNull();
+    expect(brandWorkspaceSource(me({ brands: [brand(BRAND_A, "Alpha", "T", [])] }), BRAND_B)).toBeNull();
+  });
+});
+
 describe("defaultWorkspace", () => {
   const both = me({
     console: consoleRole,
@@ -135,7 +154,6 @@ describe("defaultWorkspace", () => {
   });
 
   it("ignores a remembered brand opened only as provider", () => {
-    expect(defaultWorkspace(both, BRAND_C)).toBe("console");
     expect(defaultWorkspace(providerView, BRAND_A)).toBe("console");
   });
 

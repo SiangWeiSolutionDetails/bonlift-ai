@@ -27,8 +27,9 @@ import {
   UsersIcon,
 } from "lucide-react";
 import App from "@/App";
-import { canBrand, hasAccess, type RouteAccess } from "@/features/auth/permissions";
+import { canBrand, hasAccess, holdsBrandRole, type RouteAccess } from "@/features/auth/permissions";
 import { meQueryOptions } from "@/features/auth/queries";
+import { brandDetailQueryOptions } from "@/features/brands/queries";
 import { nameConfirmationRedirect, WELCOME_PATH } from "@/features/auth/name-confirmation";
 import { validateLoginSearch, validateWelcomeSearch } from "@/features/auth/search";
 import { resolveSettingsTab, validateSettingsSearch, visibleSettingsTabs } from "@/features/brand-settings/tabs";
@@ -83,6 +84,10 @@ function isUnauthorized(error: unknown) {
   return error instanceof ApiError && error.status === 401;
 }
 
+function isNotFound(error: unknown) {
+  return error instanceof ApiError && error.status === 404;
+}
+
 // Every guard below runs after the _app layout's requireSession, so /auth/me is already cached
 function loadMe() {
   return queryClient.ensureQueryData(meQueryOptions);
@@ -135,9 +140,24 @@ async function enterWorkspace(key: string, preload: boolean) {
   if (!preload && isListedWorkspace(me, key)) writeLastWorkspace(key);
 }
 
+// Provider access opens any id, so a brand without a role must still exist; a preload only prefetches it
+async function requireProviderBrand(brandId: string, preload: boolean) {
+  const me = await loadMe();
+  if (holdsBrandRole(me, brandId)) return;
+  const brand = queryClient.ensureQueryData(brandDetailQueryOptions(brandId));
+  if (preload) return void brand.catch(() => undefined);
+  try {
+    await brand;
+  } catch (error) {
+    if (isNotFound(error)) throw redirectTo(null);
+    throw error;
+  }
+}
+
 async function enterBrandWorkspace(brandId: string, preload: boolean) {
   if (!UUID.test(brandId)) throw redirectTo(null);
   await enterWorkspace(brandId, preload);
+  await requireProviderBrand(brandId, preload);
 }
 
 async function redirectToFirstPage(key: string): Promise<never> {

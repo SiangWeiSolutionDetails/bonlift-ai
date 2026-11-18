@@ -2,7 +2,7 @@ import { getRouteApi, useMatches } from "@tanstack/react-router";
 import { useCurrentUser } from "@/features/auth/queries";
 import { useBrand } from "@/features/brands/queries";
 import type { BrandDetail } from "@/features/brands/type";
-import { canOpen, CONSOLE_KEY, toBrandWorkspace, type BrandWorkspace, type Workspace } from "./workspaces";
+import { brandWorkspaceSource, CONSOLE_KEY, toBrandWorkspace, type BrandWorkspace, type Workspace } from "./workspaces";
 
 export const CONSOLE_ROUTE_ID = "/_app/console";
 export const BRAND_ROUTE_ID = "/_app/b/$brandId";
@@ -14,7 +14,7 @@ export function useWorkspaceBrandId() {
   return brandWorkspaceRoute.useParams({ select: (params) => params.brandId });
 }
 
-function useWorkspaceKey() {
+export function useWorkspaceKey() {
   return useMatches({
     select: (matches) => {
       for (const match of matches) {
@@ -40,11 +40,11 @@ export type BrandWorkspaceInfo = {
 // A brand opened as the service provider isn't in me.brands, so its name and tenant are read from the API
 export function useBrandWorkspaceInfo(brandId: string | undefined): BrandWorkspaceInfo {
   const me = useCurrentUser();
-  const held = brandId ? me.brands.find((b) => b.brandId === brandId) : undefined;
-  const viaProvider = !!brandId && !held && canOpen(me, brandId);
-  const { data, isPending } = useBrand(viaProvider ? brandId : undefined);
+  const source = brandId ? brandWorkspaceSource(me, brandId) : null;
+  const { data, isPending } = useBrand(source === "provider" ? brandId : undefined);
+  const held = source === "role" ? me.brands.find((b) => b.brandId === brandId) : undefined;
   if (held) return { workspace: toBrandWorkspace(held), viaProvider: false, isPending: false };
-  if (!viaProvider) return { workspace: null, viaProvider: false, isPending: false };
+  if (source !== "provider") return { workspace: null, viaProvider: false, isPending: false };
   return { workspace: data ? toProviderWorkspace(data) : null, viaProvider: true, isPending };
 }
 

@@ -1,4 +1,5 @@
 import {
+  queryOptions,
   skipToken,
   useMutation,
   useQuery,
@@ -29,10 +30,17 @@ export function useBrands(params: BrandListParams = {}) {
   });
 }
 
+export function brandDetailQueryOptions(brandId: string) {
+  return queryOptions({
+    queryKey: brandKeys.detail(brandId),
+    queryFn: ({ signal }) => getBrand(brandId, signal),
+  });
+}
+
 export function useBrand(brandId: string | undefined) {
   return useQuery({
     queryKey: brandKeys.detail(brandId ?? ""),
-    queryFn: brandId ? ({ signal }) => getBrand(brandId, signal) : skipToken,
+    queryFn: brandId ? brandDetailQueryOptions(brandId).queryFn : skipToken,
   });
 }
 

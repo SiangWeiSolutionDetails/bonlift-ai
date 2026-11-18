@@ -45,11 +45,22 @@ function useLogOut() {
   }
 }
 
+function currentPath() {
+  return `${window.location.pathname}${window.location.search}`
+}
+
 function useSwitchToAccount() {
   const endSession = useEndSession()
   return async (email: string) => {
-    const returnTo = `${window.location.pathname}${window.location.search}`
-    if (await endSession()) window.location.assign(signInHref(returnTo, { loginHint: email }))
+    if (await endSession()) window.location.assign(signInHref(currentPath(), { loginHint: email }))
+  }
+}
+
+// One session per browser: adding an account signs out the current one, which stays remembered
+function useAddAccount() {
+  const endSession = useEndSession()
+  return async () => {
+    if (await endSession()) window.location.assign(signInHref(currentPath(), { selectAccount: true }))
   }
 }
 
@@ -135,6 +146,7 @@ export function NavUser() {
   const user = useCurrentUser()
   const logOut = useLogOut()
   const switchToAccount = useSwitchToAccount()
+  const addAccount = useAddAccount()
   const name = user.displayName ?? user.email
   useRememberCurrentAccount(user.email, user.displayName)
 
@@ -154,6 +166,9 @@ export function NavUser() {
         </MenuBand>
         <div className="p-1">
           <AccountList onSwitch={(email) => void switchToAccount(email)} />
+          <DropdownMenuItem className="cursor-pointer px-2 py-1.5" onSelect={() => void addAccount()}>
+            {t("addAccount")}
+          </DropdownMenuItem>
         </div>
         <WorkspaceSwitcher />
         <MenuBand>{t("account")}</MenuBand>

@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { formatWindow } from "@/features/outlet-item-scores/format";
-import { shortRunId } from "@/features/recommendation-feedback/run-links";
 import type { CalculationDetailsTarget } from "../registry";
 import type { CalculationRun } from "../type";
+
+const SHORT_RUN_ID_LENGTH = 8;
 
 type PublishedRunProps = {
   run: CalculationRun;
@@ -30,7 +31,7 @@ export function RunIdLink({ runId, target }: RunIdLinkProps) {
       title={runId}
       className="pointer-events-auto relative w-fit font-mono text-xs font-normal text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
     >
-      {shortRunId(runId)}
+      {runId.slice(0, SHORT_RUN_ID_LENGTH)}
     </Link>
   );
 }

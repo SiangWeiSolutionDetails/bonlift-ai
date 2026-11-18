@@ -46,7 +46,7 @@ describe("permissions catalog", () => {
     expect(BRAND_ACTIONS).toContain("brandRoles.view");
     expect(BRAND_ACTIONS).toContain("brandRoles.manage");
     expect(CONSOLE_ACTIONS).toHaveLength(19);
-    expect(BRAND_ACTIONS).toHaveLength(30);
+    expect(BRAND_ACTIONS).toHaveLength(29);
   });
 });
 

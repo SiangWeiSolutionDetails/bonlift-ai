@@ -13,7 +13,7 @@
   "repeatCooldownHours": "Rotate Shown Items For (Hours)",
   "repeatCooldownHoursHint": "How long an item shown to a customer but not accepted moves down in their recommendations, so other items get a turn. Accepting it lifts this. 0 turns this off.",
   "feedbackWindowMinutes": "Feedback Window (Minutes)",
-  "feedbackWindowMinutesHint": "How long after recommendations are shown accepted or rejected feedback still counts towards them in the Recommendation Feedback report. Later feedback still updates the customer's preferences. A shown item only starts rotating once this has passed, so suggestions stay put during a visit.",
+  "feedbackWindowMinutesHint": "How long after items are shown before they start rotating, so suggestions stay put during a visit. Accepted or rejected feedback updates the customer's preferences at any time.",
   "cooldownAfterFeedbackWindow": "Rotation must last longer than the feedback window, or be 0 to turn it off.",
   "save": "Save As New Version",
   "history": {

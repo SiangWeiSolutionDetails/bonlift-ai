@@ -204,7 +204,7 @@ describe("page tables", () => {
   it("lists pages in sidebar order", () => {
     expect(BRAND_PAGES.map((p) => p.segment)).toEqual([
       "outlets", "users", "roles", "settings", "snapshots", "calculations", "results",
-      "customer-scores", "item-affinity", "api-keys", "usage", "feedback",
+      "customer-scores", "item-affinity", "api-keys", "usage",
     ]);
     expect(CONSOLE_PAGES.map((p) => p.segment)).toEqual(["tenants", "brands", "users", "roles"]);
   });
@@ -235,7 +235,6 @@ describe("legacyRedirect", () => {
     ["item-affinity", "item-affinity"],
     ["brand-api-keys", "api-keys"],
     ["usage", "usage"],
-    ["recommendation-feedback", "feedback"],
   ])("moves /%s with brandId into the brand path", (legacy, segment) => {
     expect(legacyRedirect(user, `/${legacy}`, { brandId: BRAND_B, runId: "r1" }, null)).toEqual({
       to: `/b/${BRAND_B}/${segment}`,

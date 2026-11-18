@@ -7,7 +7,7 @@ import {
 import { getPool } from "@bonlift-ai/db";
 import { FastifyInstance } from "fastify";
 import { readCustomerIdSecret } from "../config/env.js";
-import { createRecommendationServeHook } from "../plugins/recommendationServes.js";
+import { createServedExposureHook } from "../plugins/servedExposures.js";
 import { getItemAffinityRecommendations } from "../services/itemAffinityServing.service.js";
 
 export async function itemAffinityServingRoutes(app: FastifyInstance) {
@@ -23,11 +23,12 @@ export async function itemAffinityServingRoutes(app: FastifyInstance) {
           "recently. Apply your own availability and dietary filters before display. Any failure on our side " +
           "returns an empty list, so the order can always continue.\n\n" +
           "**Feedback**\n\n" +
-          "Report what the customer did with each item to `POST /v1/feedback`, with the same `customerId`, exactly " +
-          "as for recommendations. An item the customer rejects is then not returned to them for a while, here or " +
-          "by `POST /v1/recommendations`. Send `outletId` and the customer's `customerId` to get a " +
-          "`recommendationId` back, and send it with the feedback so it is counted for this response; without " +
-          "`outletId` or `customerId` the response has a null `recommendationId` and the serve is not recorded.\n\n" +
+          "Report what the customer did with each item to `POST /v1/feedback`, with the same `customerId` and the " +
+          "item's `itemId`, exactly as for recommendations. An item the customer rejects is then not returned to them " +
+          "for a while, here or by `POST /v1/recommendations`. Send `outletId` and the customer's `customerId` so the " +
+          "returned items count as shown to that customer: like items shown by `POST /v1/recommendations`, they then " +
+          "move down there for a while unless the customer accepts them. Without an `outletId` of your brand or a " +
+          "`customerId`, the items are not counted as shown.\n\n" +
           "**Reasons**\n\n" +
           "| Reason | When it is used |\n" +
           "|---|---|\n" +
@@ -38,19 +39,19 @@ export async function itemAffinityServingRoutes(app: FastifyInstance) {
         body: ItemAffinityRequestSchema,
         response: { 200: ItemAffinityResponseSchema, ...ServingErrorResponseSchemas },
       },
-      onResponse: createRecommendationServeHook(getPool),
+      onResponse: createServedExposureHook(getPool),
     },
     async (request) => {
       const pool = getPool();
       // Set by the /v1 API key hook, which rejects the request before this handler without a brand.
-      const { response, serve } = await getItemAffinityRecommendations(
+      const { response, exposure } = await getItemAffinityRecommendations(
         pool,
         request.log,
         request.servingBrandId as string,
         request.body,
         readCustomerIdSecret(),
       );
-      request.recommendationServe = serve;
+      request.servedExposure = exposure;
       return response;
     },
   );

@@ -15,7 +15,6 @@
     "channels": "Channels",
     "apiKeys": "API keys",
     "usage": "Usage",
-    "feedback": "Recommendation feedback",
     "brandUsers": "Users",
     "provider": "Provider access",
     "brandRoles": "Brand roles"
@@ -91,9 +90,6 @@
   },
   "usage": {
     "view": "View usage"
-  },
-  "feedback": {
-    "view": "View recommendation feedback"
   },
   "brandUsers": {
     "view": "View users",

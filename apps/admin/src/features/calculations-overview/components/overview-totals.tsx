@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type { OverviewTotals } from "../overview";
 
-// Same solid icon tiles as the recommendation feedback and usage summaries; full class names so Tailwind finds them.
+// Same solid icon tiles as the usage summaries; full class names so Tailwind finds them.
 const TONES = {
   info: "bg-blue-500 text-white",
   good: "bg-green-500 text-white",

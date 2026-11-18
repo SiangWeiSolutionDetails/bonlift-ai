@@ -22,7 +22,7 @@ const NO_ACCESS = { to: "/no-access", search: {} };
 
 type BrandPageBase = {
   segment: string;
-  groupKey: "management" | "dataset" | "computation" | "integration" | "insights";
+  groupKey: "management" | "dataset" | "computation" | "integration";
 };
 // A page with a legacy path has one action, so a redirect without brandId can pick a brand by it
 type LegacyBrandPage = BrandPageBase & { legacyPath: string; action: BrandAction };
@@ -45,7 +45,6 @@ export const BRAND_PAGES: BrandPage[] = [
   { segment: "item-affinity", legacyPath: "/item-affinity", action: "itemAffinity.view", groupKey: "computation" },
   { segment: "api-keys", legacyPath: "/brand-api-keys", action: "apiKeys.view", groupKey: "integration" },
   { segment: "usage", legacyPath: "/usage", action: "usage.view", groupKey: "integration" },
-  { segment: "feedback", legacyPath: "/recommendation-feedback", action: "feedback.view", groupKey: "insights" },
 ];
 
 export const CONSOLE_PAGES: { segment: string; legacyPath: string; action: ConsoleAction | ConsoleAction[] }[] = [

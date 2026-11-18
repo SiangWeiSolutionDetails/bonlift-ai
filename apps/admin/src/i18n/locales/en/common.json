@@ -28,7 +28,6 @@
     "dataset": "Dataset",
     "computation": "Calculation",
     "integration": "Integration",
-    "insights": "Insights",
     "tenants": "Tenants",
     "roles": "Roles",
     "users": "Users",
@@ -41,7 +40,6 @@
     "itemAffinity": "Item Affinity",
     "apiKeys": "API Keys",
     "usage": "Usage",
-    "recommendationFeedback": "Recommendation Feedback",
     "brandUsers": "Users",
     "settings": "Settings"
   },

@@ -7,7 +7,7 @@ import {
 import { getPool } from "@bonlift-ai/db";
 import { FastifyInstance } from "fastify";
 import { readCustomerIdSecret } from "../config/env.js";
-import { createRecommendationServeHook } from "../plugins/recommendationServes.js";
+import { createServedExposureHook } from "../plugins/servedExposures.js";
 import { getRecommendations } from "../services/recommendation.service.js";
 
 export async function recommendationRoutes(app: FastifyInstance) {
@@ -55,19 +55,19 @@ export async function recommendationRoutes(app: FastifyInstance) {
         body: RecommendationRequestSchema,
         response: { 200: RecommendationResponseSchema, ...ServingErrorResponseSchemas },
       },
-      onResponse: createRecommendationServeHook(getPool),
+      onResponse: createServedExposureHook(getPool),
     },
     async (request) => {
       const pool = getPool();
       // Set by the /v1 API key hook, which rejects the request before this handler without a brand.
-      const { response, serve } = await getRecommendations(
+      const { response, exposure } = await getRecommendations(
         pool,
         request.log,
         request.servingBrandId as string,
         request.body,
         readCustomerIdSecret(),
       );
-      request.recommendationServe = serve;
+      request.servedExposure = exposure;
       return response;
     },
   );

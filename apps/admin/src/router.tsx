@@ -22,7 +22,6 @@ import {
   SquareStackIcon,
   StoreIcon,
   TagIcon,
-  ThumbsUpIcon,
   UserRoundCogIcon,
   UsersIcon,
 } from "lucide-react";
@@ -38,7 +37,6 @@ import { validateCustomerScoresSearch } from "@/features/customer-item-scores/se
 import { validateItemAffinitySearch } from "@/features/item-affinity/search";
 import { validateSnapshotsSearch } from "@/features/order-snapshots/search";
 import { validateResultsSearch } from "@/features/outlet-item-scores/search";
-import { validateRecommendationFeedbackSearch } from "@/features/recommendation-feedback/search";
 import { BrandWorkspaceLayout } from "@/features/workspaces/components/brand-workspace-layout";
 import {
   BRAND_PAGES,
@@ -67,7 +65,6 @@ import { LoginPage } from "@/pages/login-page";
 import { NoAccessPage } from "@/pages/no-access-page";
 import { OrderSnapshotsPage } from "@/pages/order-snapshots-page";
 import { OutletsPage } from "@/pages/outlets-page";
-import { RecommendationFeedbackPage } from "@/pages/recommendation-feedback-page";
 import { ResultsPage } from "@/pages/results-page";
 import { RolesPage } from "@/pages/roles-page";
 import { UsersPage } from "@/pages/users-page";
@@ -415,14 +412,6 @@ const usageRoute = createRoute({
   ...brandPage("usage", { titleKey: "nav.usage", icon: <GaugeIcon /> }),
 });
 
-const recommendationFeedbackRoute = createRoute({
-  getParentRoute: () => brandLayoutRoute,
-  path: "feedback",
-  component: RecommendationFeedbackPage,
-  validateSearch: validateRecommendationFeedbackSearch,
-  ...brandPage("feedback", { titleKey: "nav.recommendationFeedback", icon: <ThumbsUpIcon /> }),
-});
-
 // Child order is the sidebar order, and matches CONSOLE_PAGES / BRAND_PAGES (the first-visible-page order)
 const consoleRoutes = consoleLayoutRoute.addChildren([
   consoleIndexRoute,
@@ -446,7 +435,6 @@ const brandRoutes = brandLayoutRoute.addChildren([
   itemAffinityRoute,
   apiKeysRoute,
   usageRoute,
-  recommendationFeedbackRoute,
 ]);
 
 const appRoutes = appLayoutRoute.addChildren([

@@ -26,7 +26,6 @@ import { brandApiKeyRoutes } from "./routes/brandApiKey.route.js";
 import { authRoutes } from "./routes/auth.route.js";
 import { brandChannelRoutes } from "./routes/brandChannel.route.js";
 import { brandUsageRoutes } from "./routes/brandUsage.route.js";
-import { recommendationFeedbackReportRoutes } from "./routes/recommendationFeedbackReport.route.js";
 import { roleRoutes } from "./routes/role.route.js";
 import { userRoutes } from "./routes/user.route.js";
 import { brandUserRoutes } from "./routes/brandUser.route.js";
@@ -131,7 +130,6 @@ export function buildApp(): FastifyInstance {
     admin.register(itemAffinityResultRoutes);
     admin.register(servingConfigVersionRoutes);
     admin.register(brandUsageRoutes);
-    admin.register(recommendationFeedbackReportRoutes);
     admin.register(brandChannelRoutes);
     admin.register(brandApiKeyRoutes);
     admin.register(roleRoutes);
@@ -151,7 +149,7 @@ export function buildApp(): FastifyInstance {
       serving.decorateRequest("servingApiKeyId", null);
       serving.decorateRequest("servingChannel", null);
       // Set by both /v1/recommendations and /v1/item-affinity, recorded by their onResponse hook.
-      serving.decorateRequest("recommendationServe", null);
+      serving.decorateRequest("servedExposure", null);
       serving.addHook(
         "onRequest",
         createServingAuthHook(createServingKeyAuthenticator({ getPool })),

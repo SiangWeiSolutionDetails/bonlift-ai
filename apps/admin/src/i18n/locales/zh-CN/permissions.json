@@ -15,7 +15,6 @@
     "channels": "渠道",
     "apiKeys": "API 密钥",
     "usage": "用量",
-    "feedback": "推荐反馈",
     "brandUsers": "用户",
     "provider": "服务商访问",
     "brandRoles": "品牌角色"
@@ -91,9 +90,6 @@
   },
   "usage": {
     "view": "查看用量"
-  },
-  "feedback": {
-    "view": "查看推荐反馈"
   },
   "brandUsers": {
     "view": "查看用户",

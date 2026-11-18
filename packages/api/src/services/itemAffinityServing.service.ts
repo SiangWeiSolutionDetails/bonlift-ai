@@ -5,11 +5,10 @@ import {
   ItemAffinityResponseSchemaType,
 } from "@bonlift-ai/contracts";
 import type { FastifyBaseLogger } from "fastify";
-import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
 import { toStoredCustomerId } from "../utils/customerIdHash.js";
 import { assertValid } from "../utils/validate.js";
-import type { RecommendationServe } from "./recommendation.service.js";
+import type { ServedExposure } from "./recommendation.service.js";
 
 // $1 = the API key's brand id, $2 = item ids to find partners for (the target item, else the cart), $3 = item ids to
 // remove (target, cart and exclude), $4 = item ids allowed to be returned, empty for any, $5 = limit or NULL for all,
@@ -17,7 +16,7 @@ import type { RecommendationServe } from "./recommendation.service.js";
 // A partner of several cart items is returned once, ranked by its best confidence, then lift; item id keeps ties stable.
 // An identified customer is never served an item they rejected within the brand's rejection window; a window of 0 days
 // suppresses nothing. Items shown before are not moved down here: cart pairings stay strongest first.
-// outlet_in_brand says whether $7 is an active outlet of the brand; only then can the serve be recorded for feedback.
+// outlet_in_brand says whether $7 is an active outlet of the brand; only then are the served items recorded as shown.
 // Returns no rows for an inactive or deleted brand or no published run; otherwise at least one row, with a NULL item
 // when none matches.
 const SERVE_ITEM_AFFINITY_SQL = `
@@ -74,7 +73,7 @@ LEFT JOIN partners p
 ORDER BY p.confidence DESC, p.lift DESC, p.item_b;
 `;
 
-const NO_ITEMS: ItemAffinityResponseSchemaType = { recommendationId: null, runId: null, items: [] };
+const NO_ITEMS: ItemAffinityResponseSchemaType = { runId: null, items: [] };
 
 interface ServedRow {
   run_id: string;
@@ -84,9 +83,8 @@ interface ServedRow {
 
 export interface ServedItemAffinity {
   response: ItemAffinityResponseSchemaType;
-  // Null unless an identified customer was served items at an outlet of the brand: otherwise there is nothing to give
-  // feedback on.
-  serve: RecommendationServe | null;
+  // Null unless an identified customer was served items at an outlet of the brand: only then are they recorded as shown.
+  exposure: ServedExposure | null;
 }
 
 function toItems(rows: ServedRow[]): ItemAffinityResponseSchemaType["items"] {
@@ -99,38 +97,22 @@ function toItems(rows: ServedRow[]): ItemAffinityResponseSchemaType["items"] {
     }));
 }
 
-// Only identified customers at an outlet of the brand can give feedback, so only their responses are identified.
-function toResponse(rows: ServedRow[], identified: boolean): ItemAffinityResponseSchemaType {
+function toResponse(rows: ServedRow[]): ItemAffinityResponseSchemaType {
   const first = rows[0];
   if (!first) {
     return NO_ITEMS;
   }
-
-  const items = toItems(rows);
-  const recordable = identified && first.outlet_in_brand && items.length > 0;
-  return { recommendationId: recordable ? randomUUID() : null, runId: first.run_id, items };
+  return { runId: first.run_id, items: toItems(rows) };
 }
 
-// Item affinity is not daypart-specific, so the serve is recorded for the whole day.
-function toServe(
+function toExposure(
   brandId: string,
-  outletId: string | undefined,
   storedCustomerId: string | null,
+  outletInBrand: boolean,
   response: ItemAffinityResponseSchemaType,
-): RecommendationServe | null {
-  if (response.recommendationId === null || storedCustomerId === null || outletId === undefined) return null;
-  return {
-    id: response.recommendationId,
-    brandId,
-    storedCustomerId,
-    outletId,
-    daypart: ALL_DAY_DAYPART,
-    runId: null,
-    customerRunId: null,
-    affinityRunId: response.runId,
-    itemIds: response.items.map((item) => item.itemId),
-    reasons: response.items.map((item) => item.reason),
-  };
+): ServedExposure | null {
+  if (storedCustomerId === null || !outletInBrand || response.items.length === 0) return null;
+  return { brandId, storedCustomerId, itemIds: response.items.map((item) => item.itemId) };
 }
 
 function uniqueItemIds(itemIds: string[]): string[] {
@@ -143,7 +125,7 @@ async function serveResponse(
   brandId: string,
   request: ItemAffinityRequestSchemaType,
   customerId: string | null,
-): Promise<ItemAffinityResponseSchemaType> {
+): Promise<ServedItemAffinity> {
   const cartItemIds = uniqueItemIds(request.cart.map((item) => item.itemId));
   const targetItemIds = request.itemId ? [request.itemId] : cartItemIds;
 
@@ -157,15 +139,17 @@ async function serveResponse(
       customerId,
       request.outletId ?? null,
     ]);
-    return toResponse(result.rows, customerId !== null);
+    const response = toResponse(result.rows);
+    const outletInBrand = result.rows[0]?.outlet_in_brand === true;
+    return { response, exposure: toExposure(brandId, customerId, outletInBrand, response) };
   } catch (error) {
     log.error({ err: error, brandId }, "Item affinity recommendations failed");
-    return NO_ITEMS;
+    return { response: NO_ITEMS, exposure: null };
   }
 }
 
 // A malformed request gets a 400; anything else returns an empty list so the order is never blocked (NF-2).
-// The response does not say whether another brand's outlet exists: it is only never identified.
+// The response does not say whether another brand's outlet exists: its items are only not recorded as shown.
 export async function getItemAffinityRecommendations(
   pool: Pool,
   log: Pick<FastifyBaseLogger, "error">,
@@ -176,6 +160,5 @@ export async function getItemAffinityRecommendations(
   assertValid(ItemAffinityRequestSchema, request);
   const customerId = toStoredCustomerId(customerIdSecret, request.customerId);
 
-  const response = await serveResponse(pool, log, brandId, request, customerId);
-  return { response, serve: toServe(brandId, request.outletId, customerId, response) };
+  return serveResponse(pool, log, brandId, request, customerId);
 }

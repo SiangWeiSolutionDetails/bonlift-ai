@@ -35,16 +35,6 @@ export const RecommendationFeedbackBodySchema = Type.Object(
         "lifts that.",
       examples: ["6591234567"],
     }),
-    recommendationId: Type.Optional(
-      Type.Union([Type.String({ format: "uuid" }), Type.Null()], {
-        description:
-          "Optional. The `recommendationId` of the recommendations or item affinity response the item was in, when " +
-          "there was one. It only links the feedback to that response, for reporting, and only when the item was in " +
-          "it and the feedback is sent within the brand's feedback window (2 hours by default); otherwise that link " +
-          "is skipped. The customer's preference is recorded either way.",
-        examples: ["7b1f3c2a-5d4e-4f6a-8b9c-0d1e2f3a4b5c"],
-      }),
-    ),
   },
   {
     description:

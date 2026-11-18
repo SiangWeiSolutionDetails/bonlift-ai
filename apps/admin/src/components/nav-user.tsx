@@ -25,7 +25,7 @@ import { useKnownAccounts, useRememberCurrentAccount } from "@/features/auth/use
 import { WorkspaceSwitcher } from "@/features/workspaces/components/workspace-switcher"
 import { getErrorMessage } from "@/lib/error-message"
 import { cn } from "@/lib/utils"
-import { ChevronDownIcon } from "lucide-react"
+import { ChevronDownIcon, PlusIcon } from "lucide-react"
 
 function useEndSession() {
   const queryClient = useQueryClient()
@@ -104,6 +104,15 @@ function SwitchAccountMenu({ onSwitch, onAdd }: { onSwitch: (account: KnownAccou
   const user = useCurrentUser()
   const others = useKnownAccounts().filter((a) => a.email.toLowerCase() !== user.email.toLowerCase())
 
+  if (others.length === 0) {
+    return (
+      <DropdownMenuItem className="cursor-pointer px-2 py-1.5" onSelect={onAdd}>
+        <PlusIcon />
+        {t("addAccount")}
+      </DropdownMenuItem>
+    )
+  }
+
   return (
     <DropdownMenuSub>
       <DropdownMenuSubTrigger className="cursor-pointer px-2 py-1.5">{t("switchAccount")}</DropdownMenuSubTrigger>
@@ -119,7 +128,7 @@ function SwitchAccountMenu({ onSwitch, onAdd }: { onSwitch: (account: KnownAccou
             <AccountText account={account} />
           </DropdownMenuItem>
         ))}
-        {others.length > 0 && <DropdownMenuSeparator />}
+        <DropdownMenuSeparator />
         <DropdownMenuItem className="cursor-pointer px-2 py-1.5" onSelect={onAdd}>
           {t("addAccount")}
         </DropdownMenuItem>

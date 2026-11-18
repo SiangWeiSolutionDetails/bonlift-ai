@@ -48,12 +48,10 @@
   "members": {
     "description": "可以处理此品牌的人员及其在该品牌上的角色。",
     "empty": "暂无用户。",
-    "roleFor": "{{name}} 的角色",
     "remove": "移除",
     "removeNamed": "移除 {{name}}",
     "removeConfirmTitle": "移除 {{name}}？",
     "removeConfirmDescription": "该用户将失去此品牌的访问权限。",
-    "addTitle": "添加用户",
     "email": "邮箱",
     "displayName": "名称（可选）",
     "displayNameHint": "填写名称后，用户将无法自行修改。留空则由用户在首次登录时自行设置。",
@@ -61,7 +59,14 @@
     "rolePlaceholder": "选择角色",
     "add": "添加",
     "adding": "添加中…",
-    "accountDisabled": "此人的账号已停用，请联系管理员。"
+    "accountDisabled": "此人的账号已停用，请联系管理员。",
+    "name": "名称",
+    "rowActions": "操作",
+    "ownRow": "你不能更改自己的权限。",
+    "editNamed": "编辑 {{name}}",
+    "editTitle": "编辑 {{name}}",
+    "newUser": "新建用户",
+    "newTitle": "新建用户"
   },
   "dataSource": {
     "title": "数据源",

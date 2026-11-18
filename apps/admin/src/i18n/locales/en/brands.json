@@ -48,12 +48,10 @@
   "members": {
     "description": "People who can work on this brand, and their role on it.",
     "empty": "No users yet.",
-    "roleFor": "Role for {{name}}",
     "remove": "Remove",
     "removeNamed": "Remove {{name}}",
     "removeConfirmTitle": "Remove {{name}}?",
     "removeConfirmDescription": "They will lose access to this brand.",
-    "addTitle": "Add a user",
     "email": "Email",
     "displayName": "Name (optional)",
     "displayNameHint": "If you enter a name, the user can't change it. Leave it blank to let them choose their own when they first sign in.",
@@ -61,7 +59,14 @@
     "rolePlaceholder": "Select a role",
     "add": "Add",
     "adding": "Adding…",
-    "accountDisabled": "This person's account is disabled; ask an Admin."
+    "accountDisabled": "This person's account is disabled; ask an Admin.",
+    "name": "Name",
+    "rowActions": "Actions",
+    "ownRow": "You can't change your own access.",
+    "editNamed": "Edit {{name}}",
+    "editTitle": "Edit {{name}}",
+    "newUser": "New User",
+    "newTitle": "New user"
   },
   "dataSource": {
     "title": "Data Source",

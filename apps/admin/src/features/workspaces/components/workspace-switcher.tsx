@@ -6,6 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu"
+import { CurrentMark } from "@/components/current-mark"
 import { MenuBand } from "@/components/menu-band"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
@@ -36,31 +37,28 @@ type WorkspaceRowProps = {
   onSwitch: () => void
 }
 
-// The current workspace keeps the primary colours on hover and focus too
-const CURRENT_ROW =
-  "bg-primary text-primary-foreground focus:bg-primary/90 focus:text-primary-foreground not-data-[variant=destructive]:focus:**:text-primary-foreground"
-
 function WorkspaceRow({ title, subtitle, role, current, onSwitch }: WorkspaceRowProps) {
   return (
     <DropdownMenuItem
       onSelect={onSwitch}
       title={[title, subtitle, role].filter(Boolean).join(" · ")}
       aria-current={current ? "true" : undefined}
-      className={cn("cursor-pointer gap-3 px-2 py-1.5", current && CURRENT_ROW)}
+      className="cursor-pointer gap-3 px-2 py-1.5"
     >
       <span className="grid min-w-0 flex-1 leading-tight">
-        <span className={cn("truncate", current && "font-medium")}>{title}</span>
+        <span className={cn("truncate", current && "font-semibold")}>{title}</span>
         {subtitle && (
-          <span className={cn("truncate text-xs", current ? "text-primary-foreground/80" : "text-muted-foreground")}>
+          <span className="truncate text-xs text-muted-foreground">
             {subtitle}
           </span>
         )}
       </span>
       {role && (
-        <span className={cn("max-w-24 shrink-0 truncate text-xs", current ? "text-primary-foreground/85" : "text-muted-foreground")}>
+        <span className="max-w-24 shrink-0 truncate text-xs text-muted-foreground">
           {role}
         </span>
       )}
+      <CurrentMark current={current} />
     </DropdownMenuItem>
   )
 }

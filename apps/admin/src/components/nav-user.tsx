@@ -2,6 +2,7 @@ import { useNavigate } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+import { CurrentMark } from "@/components/current-mark"
 import { MenuBand } from "@/components/menu-band"
 import { Button } from "@/components/ui/button"
 import {
@@ -52,10 +53,6 @@ function useSwitchToAccount() {
   }
 }
 
-// Same colours as the current workspace row, kept on hover and focus too
-const CURRENT_ROW =
-  "bg-primary text-primary-foreground focus:bg-primary/90 focus:text-primary-foreground not-data-[variant=destructive]:focus:**:text-primary-foreground"
-
 type AccountRowProps = {
   account: Pick<KnownAccount, "email" | "displayName">
   current: boolean
@@ -65,7 +62,6 @@ type AccountRowProps = {
 function AccountRow({ account, current, onSwitch }: AccountRowProps) {
   const { t } = useTranslation("auth")
   const name = account.displayName ?? account.email
-  const muted = current ? "text-primary-foreground/80" : "text-muted-foreground"
 
   return (
     <DropdownMenuItem
@@ -73,15 +69,17 @@ function AccountRow({ account, current, onSwitch }: AccountRowProps) {
       title={account.email}
       aria-current={current ? "true" : undefined}
       aria-label={current ? undefined : t("switchToAccount", { email: account.email })}
-      className={cn("min-w-0 flex-1 cursor-pointer gap-3 px-2 py-1.5", current && CURRENT_ROW)}
+      className="min-w-0 flex-1 cursor-pointer gap-3 px-2 py-1.5"
     >
       <span className="grid min-w-0 flex-1 leading-tight">
-        <span className={cn("truncate", current && "font-medium")}>{name}</span>
-        {name !== account.email && <span className={cn("truncate text-xs", muted)}>{account.email}</span>}
+        <span className={cn("truncate", current && "font-semibold")}>{name}</span>
+        {name !== account.email && <span className="truncate text-xs text-muted-foreground">{account.email}</span>}
       </span>
-      <span className={cn("shrink-0 text-xs", current ? "text-primary-foreground/85" : "text-muted-foreground")}>
+      <span className="shrink-0 text-xs text-muted-foreground">
         {current ? t("signedIn") : t("signedOut")}
       </span>
+      <CurrentMark current={current} />
+      <CurrentMark current={current} />
     </DropdownMenuItem>
   )
 }

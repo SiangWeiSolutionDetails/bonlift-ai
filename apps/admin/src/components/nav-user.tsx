@@ -1,4 +1,3 @@
-import type { ReactNode } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
@@ -8,10 +7,11 @@ import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { logout, signInHref } from "@/features/auth/api"
@@ -75,78 +75,45 @@ function useAddAccount() {
   }
 }
 
-type AccountRowProps = {
-  account: Pick<KnownAccount, "email" | "displayName">
-  current: boolean
-  onSwitch: () => void
-}
 
-function AccountRow({ account, current, onSwitch }: AccountRowProps) {
+type AccountLines = Pick<KnownAccount, "email" | "displayName">
+
+function AccountText({ account, bold = false }: { account: AccountLines; bold?: boolean }) {
   const name = account.displayName ?? account.email
-
-  // The row itself is not clickable: switching only happens through the Switch button
   return (
-    <div
-      title={account.email}
-      aria-current={current ? "true" : undefined}
-      className="flex items-center gap-3 rounded-md px-2 py-1.5 text-sm"
-    >
-      <span className="grid min-w-0 flex-1 leading-tight">
-        <span className={cn("truncate", current && "font-semibold")}>{name}</span>
-        {name !== account.email && <span className="truncate text-xs text-muted-foreground">{account.email}</span>}
-      </span>
-      {!current && <SwitchAccountItem email={account.email} onSwitch={onSwitch} />}
-    </div>
+    <span className="grid min-w-0 flex-1 leading-tight" title={account.email}>
+      <span className={cn("truncate", bold && "font-semibold")}>{name}</span>
+      {name !== account.email && <span className="truncate text-xs text-muted-foreground">{account.email}</span>}
+    </span>
   )
 }
 
-function SwitchAccountItem({ email, onSwitch }: { email: string; onSwitch: () => void }) {
+function SwitchAccountMenu({ onSwitch, onAdd }: { onSwitch: (email: string) => void; onAdd: () => void }) {
   const { t } = useTranslation("auth")
-  return (
-    <DropdownMenuItem
-      onSelect={onSwitch}
-      aria-label={t("switchToAccount", { email })}
-      className="h-7 w-18 shrink-0 cursor-pointer justify-center rounded-md border px-0 py-0 text-xs font-medium"
-    >
-      {t("switch")}
-    </DropdownMenuItem>
-  )
-}
-
-function AccountList({ onSwitch }: { onSwitch: (email: string) => void }) {
   const user = useCurrentUser()
-  const known = useKnownAccounts()
-  const others = known.filter((a) => a.email.toLowerCase() !== user.email.toLowerCase())
-  const { t } = useTranslation("auth")
+  const others = useKnownAccounts().filter((a) => a.email.toLowerCase() !== user.email.toLowerCase())
 
   return (
-    <>
-      <AccountGroup label={t("currentAccount")}>
-        <AccountRow account={user} current onSwitch={() => {}} />
-      </AccountGroup>
-      {others.length > 0 && <DropdownMenuSeparator className="my-0" />}
-      {others.length > 0 && (
-        <AccountGroup label={t("otherAccounts")}>
-          {others.map((account) => (
-            <AccountRow
-              key={account.email}
-              account={account}
-              current={false}
-              onSwitch={() => onSwitch(account.email)}
-            />
-          ))}
-        </AccountGroup>
-      )}
-    </>
-  )
-}
-
-function AccountGroup({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <DropdownMenuGroup className="flex flex-col gap-1">
-      <DropdownMenuLabel className="px-2 pt-0.5 pb-0 text-xs font-medium text-muted-foreground">{label}</DropdownMenuLabel>
-      {children}
-    </DropdownMenuGroup>
+    <DropdownMenuSub>
+      <DropdownMenuSubTrigger className="cursor-pointer px-2 py-1.5">{t("switchAccount")}</DropdownMenuSubTrigger>
+      {/* The trigger sits inside the menu's padding, so the offset is what clears the main menu's edge */}
+      <DropdownMenuSubContent sideOffset={10} className="w-64 max-w-[calc(100vw-2rem)]">
+        {others.map((account) => (
+          <DropdownMenuItem
+            key={account.email}
+            onSelect={() => onSwitch(account.email)}
+            aria-label={t("switchToAccount", { email: account.email })}
+            className="cursor-pointer px-2 py-1.5"
+          >
+            <AccountText account={account} />
+          </DropdownMenuItem>
+        ))}
+        {others.length > 0 && <DropdownMenuSeparator />}
+        <DropdownMenuItem className="cursor-pointer px-2 py-1.5" onSelect={onAdd}>
+          {t("addAccount")}
+        </DropdownMenuItem>
+      </DropdownMenuSubContent>
+    </DropdownMenuSub>
   )
 }
 
@@ -172,16 +139,16 @@ export function NavUser() {
         <MenuBand
           aside={user.console && <span className="max-w-28 shrink-0 truncate normal-case">{user.console.roleName}</span>}
         >
-          {t("accounts")}
+          {t("account")}
         </MenuBand>
-        <div className="flex flex-col gap-3 p-1">
-          <AccountList onSwitch={(email) => void switchToAccount(email)} />
-          <DropdownMenuItem className="cursor-pointer px-2 py-1.5" onSelect={() => void addAccount()}>
-            {t("addAccount")}
-          </DropdownMenuItem>
+        <div className="flex flex-col gap-1 p-1">
+          <div className="flex px-2 py-1.5 text-sm">
+            <AccountText account={user} bold />
+          </div>
+          <SwitchAccountMenu onSwitch={(email) => void switchToAccount(email)} onAdd={() => void addAccount()} />
         </div>
         <WorkspaceSwitcher />
-        <MenuBand>{t("account")}</MenuBand>
+        <MenuBand>{t("actions")}</MenuBand>
         <div className="p-1">
           <DropdownMenuItem className="cursor-pointer px-2 py-1.5" onSelect={() => void removeThisAccount()}>
             {t("removeThisAccount")}

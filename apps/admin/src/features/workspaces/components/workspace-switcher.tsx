@@ -6,6 +6,7 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { useCurrentUser } from "@/features/auth/queries"
@@ -86,8 +87,9 @@ export function WorkspaceSwitcher() {
             <Tick visible={current?.kind === "console"} />
           </DropdownMenuItem>
         )}
-        {tenants.map((tenant) => (
+        {tenants.map((tenant, index) => (
           <DropdownMenuGroup key={tenant.tenantId}>
+            {(index > 0 || workspaces.console) && <DropdownMenuSeparator />}
             <DropdownMenuLabel className="truncate text-xs font-normal text-muted-foreground" title={tenant.tenantName}>
               {tenant.tenantName}
             </DropdownMenuLabel>

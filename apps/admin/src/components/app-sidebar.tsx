@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next"
 
 import { NavMain } from "@/components/nav-main"
 import { usePermissions } from "@/features/auth/permissions"
+import { SidebarWorkspaceHeader } from "@/features/workspaces/components/sidebar-workspace-header"
 import { BRAND_ROUTE_ID, CONSOLE_ROUTE_ID, useCurrentWorkspace } from "@/features/workspaces/use-workspace"
 import {
   Sidebar,
@@ -46,6 +47,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
   return (
     <Sidebar collapsible="icon" {...props}>
+      <SidebarWorkspaceHeader />
       <SidebarContent>
         {[...navGroups].map(([groupKey, items]) => (
           <NavMain key={groupKey} label={t(groupKey)} items={items} />

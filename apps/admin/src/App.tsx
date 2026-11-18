@@ -13,12 +13,9 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { Toaster } from '@/components/ui/sonner'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
-import { WorkspaceLabel } from '@/features/workspaces/components/workspace-label'
-import { useCurrentWorkspace } from '@/features/workspaces/use-workspace'
 
 function App() {
   const { t } = useTranslation()
-  const hasWorkspace = !!useCurrentWorkspace()
   const titleKey = useMatches({ select: (matches) => matches.at(-1)?.staticData.titleKey })
 
   return (
@@ -28,10 +25,7 @@ function App() {
         <header className="sticky top-0 z-10 flex h-12 shrink-0 items-center gap-2 border-b border-border bg-background/80 backdrop-blur-xl transition-[width,height] ease-linear">
           <div className="flex min-w-0 items-center gap-2 px-4 md:px-6">
             <SidebarTrigger className="-ml-1" />
-            <WorkspaceLabel />
-            {hasWorkspace && (
-              <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
-            )}
+            <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
             <Breadcrumb className="min-w-0">
               <BreadcrumbList className="flex-nowrap">
                 {titleKey && (

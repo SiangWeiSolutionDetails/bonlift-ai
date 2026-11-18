@@ -1,5 +1,6 @@
 import type { AuthProvider } from "@bonlift-ai/contracts";
 import { useSearch } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import { ShieldCheckIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/language-switcher";
@@ -8,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { signInHref } from "@/features/auth/api";
+import { type ProviderButtonState, providerButtonState } from "@/features/auth/providers";
+import { useAuthProviders } from "@/features/auth/queries";
 
 const KNOWN_ERROR_CODES = ["ACCOUNT_NOT_APPROVED", "SIGN_IN_FAILED"] as const;
 
@@ -40,6 +43,48 @@ function MicrosoftMark() {
       <rect x="0" y="11" width="10" height="10" fill="#00A4EF" />
       <rect x="11" y="11" width="10" height="10" fill="#FFB900" />
     </svg>
+  );
+}
+
+function ErrorAlert({ children }: { children: ReactNode }) {
+  return (
+    <p
+      role="alert"
+      className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+    >
+      {children}
+    </p>
+  );
+}
+
+type ProviderButtonProps = { state: ProviderButtonState; href: string; icon: ReactNode; label: string };
+
+function ProviderButton({ state, href, icon, label }: ProviderButtonProps) {
+  const { t } = useTranslation("auth");
+  const content = (
+    <>
+      {icon}
+      {label}
+    </>
+  );
+
+  if (state === "enabled") {
+    return (
+      <Button asChild variant="outline" size="lg" className="w-full gap-3">
+        <a href={href}>{content}</a>
+      </Button>
+    );
+  }
+
+  return (
+    <div className="grid gap-1">
+      <Button variant="outline" size="lg" className="w-full gap-3" disabled>
+        {content}
+      </Button>
+      {state === "unavailable" && (
+        <p className="text-center text-xs text-muted-foreground">{t("providerUnavailable")}</p>
+      )}
+    </div>
   );
 }
 
@@ -82,32 +127,27 @@ function ModuleBadges() {
 function SignInCard() {
   const { t } = useTranslation("auth");
   const { error, returnTo, selectAccount } = useSearch({ from: "/login" });
+  const providers = useAuthProviders();
   const hrefFor = (provider: AuthProvider) => signInHref(provider, returnTo ?? "/", { selectAccount });
 
   return (
     <section className="grid w-full max-w-sm gap-6 rounded-2xl bg-card p-6 text-card-foreground shadow-panel">
       <p className="text-center text-sm text-muted-foreground">{t("signInSubtitle")}</p>
-      {error !== undefined && (
-        <p
-          role="alert"
-          className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
-        >
-          {t(`errors.${toLoginErrorCode(error)}`)}
-        </p>
-      )}
+      {error !== undefined && <ErrorAlert>{t(`errors.${toLoginErrorCode(error)}`)}</ErrorAlert>}
+      {providers.isError && <ErrorAlert>{t("errors.PROVIDERS_UNAVAILABLE")}</ErrorAlert>}
       <div className="grid gap-3">
-        <Button asChild variant="outline" size="lg" className="w-full gap-3">
-          <a href={hrefFor("google")}>
-            <GoogleMark />
-            {t("signInWithGoogle")}
-          </a>
-        </Button>
-        <Button asChild variant="outline" size="lg" className="w-full gap-3">
-          <a href={hrefFor("microsoft")}>
-            <MicrosoftMark />
-            {t("signInWithMicrosoft")}
-          </a>
-        </Button>
+        <ProviderButton
+          state={providerButtonState(providers, "google")}
+          href={hrefFor("google")}
+          icon={<GoogleMark />}
+          label={t("signInWithGoogle")}
+        />
+        <ProviderButton
+          state={providerButtonState(providers, "microsoft")}
+          href={hrefFor("microsoft")}
+          icon={<MicrosoftMark />}
+          label={t("signInWithMicrosoft")}
+        />
       </div>
       <Separator />
       <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground">

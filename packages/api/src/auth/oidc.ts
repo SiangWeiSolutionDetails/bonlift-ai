@@ -31,7 +31,9 @@ export function redirectUri(config: AuthConfig, provider: AuthProvider): string 
 function discover(provider: AuthProvider): Promise<client.Configuration> {
   const cached = discoveries.get(provider);
   if (cached) return cached;
-  const { clientId, clientSecret } = readAuthConfig()[provider];
+  const credentials = readAuthConfig()[provider];
+  if (!credentials) return Promise.reject(new Error(`${provider} sign-in is not enabled`));
+  const { clientId, clientSecret } = credentials;
   const pending = client.discovery(ISSUERS[provider], clientId, clientSecret);
   discoveries.set(provider, pending);
   pending.catch(() => discoveries.delete(provider));

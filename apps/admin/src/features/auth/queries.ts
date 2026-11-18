@@ -1,5 +1,5 @@
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { fetchMe } from "./api";
+import { queryOptions, useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { fetchAuthProviders, fetchMe } from "./api";
 
 export const meQueryOptions = queryOptions({
   queryKey: ["auth", "me"] as const,
@@ -9,4 +9,13 @@ export const meQueryOptions = queryOptions({
 // The protected layout's beforeLoad has already loaded this, so it never suspends there
 export function useCurrentUser() {
   return useSuspenseQuery(meQueryOptions).data;
+}
+
+// Provider config only changes on a server restart
+export function useAuthProviders() {
+  return useQuery({
+    queryKey: ["auth", "providers"] as const,
+    queryFn: ({ signal }) => fetchAuthProviders(signal),
+    staleTime: Infinity,
+  });
 }

@@ -15,6 +15,12 @@ export const AuthLoginQuerySchema = Type.Object({
 });
 export type AuthLoginQuerySchemaType = Static<typeof AuthLoginQuerySchema>;
 
+export const AuthProvidersResponseSchema = Type.Object(
+  { google: Type.Boolean(), microsoft: Type.Boolean() },
+  { additionalProperties: false },
+);
+export type AuthProvidersResponseSchemaType = Static<typeof AuthProvidersResponseSchema>;
+
 const ConsoleAccessSchema = Type.Object(
   {
     roleId: Type.String({ format: "uuid" }),

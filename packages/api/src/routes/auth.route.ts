@@ -3,8 +3,10 @@ import {
   AuthLoginQuerySchema,
   AuthLoginQuerySchemaType,
   AuthMeResponseSchema,
+  type AuthProvider,
   AuthProviderParamsSchema,
   AuthProviderParamsSchemaType,
+  AuthProvidersResponseSchema,
   UpdateOwnNameBodySchema,
   UpdateOwnNameBodySchemaType,
 } from "@bonlift-ai/contracts";
@@ -14,7 +16,7 @@ import * as oidcClient from "openid-client";
 import { finishSignIn, startSignIn, type OAuthTransaction } from "../auth/oidc.js";
 import { safeReturnTo } from "../auth/returnTo.js";
 import { assertSameOriginWrite } from "../auth/sameOrigin.js";
-import { readAuthConfig } from "../config/env.js";
+import { enabledAuthProviders, readAuthConfig } from "../config/env.js";
 import { AccountNotApprovedError, NotFoundError, UnauthorizedError } from "../errors.js";
 import {
   createSession,
@@ -110,6 +112,15 @@ function redirectToLogin(reply: FastifyReply, code: SignInErrorCode): FastifyRep
   return reply.redirect(`/login?error=${code}`);
 }
 
+function isProviderEnabled(provider: AuthProvider): boolean {
+  return enabledAuthProviders(readAuthConfig())[provider];
+}
+
+function refuseDisabledProvider(request: FastifyRequest, reply: FastifyReply, provider: AuthProvider): FastifyReply {
+  request.log.warn({ provider }, "sign-in attempted with a disabled provider");
+  return redirectToLogin(reply, "SIGN_IN_FAILED");
+}
+
 // openid-client derives redirect_uri from this URL minus its query, so it must be the URL the browser called.
 function callbackUrl(request: FastifyRequest): URL {
   return new URL(readAuthConfig().appBaseUrl + "/api" + request.url);
@@ -129,6 +140,15 @@ async function signIn(
 }
 
 export async function authRoutes(app: FastifyInstance) {
+  app.get(
+    "/auth/providers",
+    { schema: { response: { 200: AuthProvidersResponseSchema } } },
+    async (_request, reply) => {
+      reply.header("Cache-Control", "no-store");
+      return enabledAuthProviders(readAuthConfig());
+    },
+  );
+
   app.get<{ Params: AuthProviderParamsSchemaType; Querystring: AuthLoginQuerySchemaType }>(
     "/auth/login/:provider",
     {
@@ -138,6 +158,9 @@ export async function authRoutes(app: FastifyInstance) {
     async (request, reply) => {
       if (request.validationError?.validationContext === "params") {
         throw new NotFoundError("Unknown sign-in provider");
+      }
+      if (!isProviderEnabled(request.params.provider)) {
+        return refuseDisabledProvider(request, reply, request.params.provider);
       }
       try {
         const { url, tx } = await startSignIn(
@@ -173,6 +196,7 @@ export async function authRoutes(app: FastifyInstance) {
         request.log.warn("sign-in callback without a valid provider or matching transaction cookie");
         return redirectToLogin(reply, "SIGN_IN_FAILED");
       }
+      if (!isProviderEnabled(tx.provider)) return refuseDisabledProvider(request, reply, tx.provider);
 
       try {
         const token = await signIn(request, tx);

@@ -17,7 +17,8 @@ import {
 import { logout, signInHref } from "@/features/auth/api"
 import type { KnownAccount } from "@/features/auth/known-accounts"
 import { forgetAccount } from "@/features/auth/known-accounts"
-import { useCurrentUser } from "@/features/auth/queries"
+import { isProviderAvailable } from "@/features/auth/providers"
+import { useAuthProviders, useCurrentUser } from "@/features/auth/queries"
 import { useKnownAccounts, useRememberCurrentAccount } from "@/features/auth/use-known-accounts"
 import { WorkspaceSwitcher } from "@/features/workspaces/components/workspace-switcher"
 import { getErrorMessage } from "@/lib/error-message"
@@ -59,11 +60,17 @@ function useRemoveThisAccount(email: string) {
   }
 }
 
-// Land on "/" so the new account opens its own default workspace, never the previous account's page
+// Land on "/" so the new account opens its own default workspace, never the previous account's page.
+// A provider that is off (or not yet known) falls back to the login page, which explains why.
 function useSwitchToAccount() {
   const endSession = useEndSession()
+  const navigate = useNavigate()
+  const { data: providers } = useAuthProviders()
   return async ({ email, provider }: KnownAccount) => {
-    if (await endSession()) window.location.assign(signInHref(provider, "/", { loginHint: email }))
+    const available = isProviderAvailable(providers, provider)
+    if (!(await endSession())) return
+    if (available) window.location.assign(signInHref(provider, "/", { loginHint: email }))
+    else await navigate({ to: "/login", search: { returnTo: "/" } })
   }
 }
 

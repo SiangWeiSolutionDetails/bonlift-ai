@@ -39,7 +39,13 @@ import {
 import { createServingUsageHook } from "./plugins/servingUsage.js";
 import { registerApiDocs } from "./plugins/apiDocs.js";
 import { registerAdminAccess } from "./plugins/adminAccess.js";
-import { areDevRoutesEnabled, readAuthConfig, readCustomerIdSecret } from "./config/env.js";
+import {
+  areDevRoutesEnabled,
+  enabledAuthProviders,
+  readAuthConfig,
+  readCustomerIdSecret,
+  type AuthConfig,
+} from "./config/env.js";
 
 const CALLBACK_PATH_PREFIX = "/auth/callback/";
 
@@ -56,6 +62,14 @@ function serializeRequest(request: FastifyRequest) {
     remoteAddress: request.ip,
     remotePort: request.socket?.remotePort,
   };
+}
+
+// Logged at start so a mistyped variable name shows up as a missing provider.
+function logEnabledAuthProviders(app: FastifyInstance, authConfig: AuthConfig): void {
+  const providers = Object.entries(enabledAuthProviders(authConfig))
+    .filter(([, enabled]) => enabled)
+    .map(([provider]) => provider);
+  app.log.info({ providers }, "sign-in providers enabled");
 }
 
 export function buildApp(): FastifyInstance {
@@ -89,6 +103,7 @@ export function buildApp(): FastifyInstance {
       .send({ error: "INTERNAL_ERROR", message: "Unexpected error" });
   });
 
+  logEnabledAuthProviders(app, authConfig);
   registerApiDocs(app);
 
   app.register(fastifyCookie, { secret: authConfig.cookieSecret });

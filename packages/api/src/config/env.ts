@@ -1,3 +1,5 @@
+import type { AuthProvider } from "@bonlift-ai/contracts";
+
 const SECRET_PATTERN = /^[A-Za-z0-9_-]{32,}$/;
 const PLACEHOLDER_MARKER = "replace-with";
 
@@ -23,12 +25,17 @@ export function areDevRoutesEnabled(): boolean {
   return process.env.ENABLE_DEV_ROUTES === "true";
 }
 
+export interface ProviderCredentials {
+  clientId: string;
+  clientSecret: string;
+}
+
 export interface AuthConfig {
   appBaseUrl: string;
   cookieSecret: string;
   secureCookies: boolean;
-  google: { clientId: string; clientSecret: string };
-  microsoft: { clientId: string; clientSecret: string };
+  google: ProviderCredentials | null;
+  microsoft: ProviderCredentials | null;
 }
 
 let authConfig: AuthConfig | undefined;
@@ -41,6 +48,30 @@ function readRequired(name: string): string {
   const value = process.env[name]?.trim() ?? "";
   if (!value) throw new Error(`${name} must be set.`);
   return value;
+}
+
+function readOptional(name: string): string {
+  return process.env[name]?.trim() ?? "";
+}
+
+// Both unset turns the provider off; only one set is a typo or half-done setup, so it stops the API.
+function readProviderCredentials(prefix: "GOOGLE" | "MICROSOFT", label: string): ProviderCredentials | null {
+  const idName = `${prefix}_CLIENT_ID`;
+  const secretName = `${prefix}_CLIENT_SECRET`;
+  const clientId = readOptional(idName);
+  const clientSecret = readOptional(secretName);
+  if (!clientId && !clientSecret) return null;
+  if (!clientId || !clientSecret) {
+    const [missing, present] = clientId ? [secretName, idName] : [idName, secretName];
+    throw new Error(
+      `${missing} must be set when ${present} is set (set both to enable ${label} sign-in, or neither to disable it).`,
+    );
+  }
+  return { clientId, clientSecret };
+}
+
+export function enabledAuthProviders(config: AuthConfig): Record<AuthProvider, boolean> {
+  return { google: config.google !== null, microsoft: config.microsoft !== null };
 }
 
 function readSessionCookieSecret(): string {
@@ -74,14 +105,8 @@ export function readAuthConfig(): AuthConfig {
     appBaseUrl,
     cookieSecret: readSessionCookieSecret(),
     secureCookies: appBaseUrl.startsWith("https://"),
-    google: {
-      clientId: readRequired("GOOGLE_CLIENT_ID"),
-      clientSecret: readRequired("GOOGLE_CLIENT_SECRET"),
-    },
-    microsoft: {
-      clientId: readRequired("MICROSOFT_CLIENT_ID"),
-      clientSecret: readRequired("MICROSOFT_CLIENT_SECRET"),
-    },
+    google: readProviderCredentials("GOOGLE", "Google"),
+    microsoft: readProviderCredentials("MICROSOFT", "Microsoft"),
   };
   return authConfig;
 }

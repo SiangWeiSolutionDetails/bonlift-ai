@@ -70,14 +70,7 @@ describe("readAuthConfig", () => {
     return readAuthConfig;
   }
 
-  it.each([
-    "APP_BASE_URL",
-    "SESSION_COOKIE_SECRET",
-    "GOOGLE_CLIENT_ID",
-    "GOOGLE_CLIENT_SECRET",
-    "MICROSOFT_CLIENT_ID",
-    "MICROSOFT_CLIENT_SECRET",
-  ])(
+  it.each(["APP_BASE_URL", "SESSION_COOKIE_SECRET"])(
     "names %s when it is missing",
     async (name) => {
       stubAuthEnv({ [name]: undefined });
@@ -86,6 +79,44 @@ describe("readAuthConfig", () => {
       expect(() => readAuthConfig()).toThrow(name);
     },
   );
+
+  it.each([
+    ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "Google"],
+    ["GOOGLE_CLIENT_SECRET", "GOOGLE_CLIENT_ID", "Google"],
+    ["MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET", "Microsoft"],
+    ["MICROSOFT_CLIENT_SECRET", "MICROSOFT_CLIENT_ID", "Microsoft"],
+  ])("names %s when only %s is set", async (missing, present, label) => {
+    stubAuthEnv({ [missing]: " " });
+    const readAuthConfig = await loadReadAuthConfig();
+
+    expect(() => readAuthConfig()).toThrow(
+      `${missing} must be set when ${present} is set (set both to enable ${label} sign-in, or neither to disable it).`,
+    );
+  });
+
+  it.each([
+    ["unset", undefined],
+    ["blank", " "],
+  ])("turns a provider off when both its variables are %s", async (_label, value) => {
+    stubAuthEnv({ GOOGLE_CLIENT_ID: value, GOOGLE_CLIENT_SECRET: value });
+    const readAuthConfig = await loadReadAuthConfig();
+
+    expect(readAuthConfig().google).toBeNull();
+    expect(readAuthConfig().microsoft).toEqual({
+      clientId: "microsoft-client-id",
+      clientSecret: "microsoft-client-secret",
+    });
+  });
+
+  it("trims provider credentials", async () => {
+    stubAuthEnv({ MICROSOFT_CLIENT_ID: " microsoft-client-id ", MICROSOFT_CLIENT_SECRET: " microsoft-client-secret " });
+    const readAuthConfig = await loadReadAuthConfig();
+
+    expect(readAuthConfig().microsoft).toEqual({
+      clientId: "microsoft-client-id",
+      clientSecret: "microsoft-client-secret",
+    });
+  });
 
   it.each([
     ["shorter than 32 characters", "a".repeat(31)],
@@ -133,6 +164,22 @@ describe("readAuthConfig", () => {
 
     vi.stubEnv("GOOGLE_CLIENT_ID", "other-client-id");
 
-    expect(readAuthConfig().google.clientId).toBe("client-id.apps.googleusercontent.com");
+    expect(readAuthConfig().google?.clientId).toBe("client-id.apps.googleusercontent.com");
+  });
+});
+
+describe("enabledAuthProviders", () => {
+  const credentials = { clientId: "client-id", clientSecret: "client-secret" };
+  const baseConfig = { appBaseUrl: "http://localhost:5173", cookieSecret: VALID_SECRET, secureCookies: false };
+
+  it.each([
+    [credentials, credentials, { google: true, microsoft: true }],
+    [credentials, null, { google: true, microsoft: false }],
+    [null, credentials, { google: false, microsoft: true }],
+    [null, null, { google: false, microsoft: false }],
+  ])("maps google %j and microsoft %j to %j", async (google, microsoft, expected) => {
+    const { enabledAuthProviders } = await loadEnv();
+
+    expect(enabledAuthProviders({ ...baseConfig, google, microsoft })).toEqual(expected);
   });
 });

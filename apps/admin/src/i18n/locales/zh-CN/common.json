@@ -25,7 +25,6 @@
   "nav": {
     "admin": "管理后台",
     "management": "管理",
-    "brand": "品牌",
     "dataset": "数据集",
     "computation": "计算",
     "integration": "集成",

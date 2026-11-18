@@ -25,7 +25,6 @@
   "nav": {
     "admin": "Admin",
     "management": "Management",
-    "brand": "Brand",
     "dataset": "Dataset",
     "computation": "Calculation",
     "integration": "Integration",

@@ -22,21 +22,21 @@ const NO_ACCESS = { to: "/no-access", search: {} };
 
 type BrandPageBase = {
   segment: string;
-  groupKey: "brand" | "dataset" | "computation" | "integration" | "insights";
+  groupKey: "management" | "dataset" | "computation" | "integration" | "insights";
 };
 // A page with a legacy path has one action, so a redirect without brandId can pick a brand by it
 type LegacyBrandPage = BrandPageBase & { legacyPath: string; action: BrandAction };
 type BrandPage = LegacyBrandPage | (BrandPageBase & { legacyPath: null; action: BrandAction | BrandAction[] });
 
 export const BRAND_PAGES: BrandPage[] = [
-  { segment: "outlets", legacyPath: "/outlets", action: "outlets.view", groupKey: "brand" },
-  { segment: "users", legacyPath: null, action: "brandUsers.view", groupKey: "brand" },
-  { segment: "roles", legacyPath: null, action: "brandRoles.view", groupKey: "brand" },
+  { segment: "outlets", legacyPath: "/outlets", action: "outlets.view", groupKey: "management" },
+  { segment: "users", legacyPath: null, action: "brandUsers.view", groupKey: "management" },
+  { segment: "roles", legacyPath: null, action: "brandRoles.view", groupKey: "management" },
   {
     segment: "settings",
     legacyPath: null,
     action: ["dataSource.view", "configs.view", "calculations.view", "channels.view"],
-    groupKey: "brand",
+    groupKey: "management",
   },
   { segment: "snapshots", legacyPath: "/snapshots", action: "snapshots.view", groupKey: "dataset" },
   { segment: "calculations", legacyPath: "/calculations", action: "calculations.view", groupKey: "computation" },

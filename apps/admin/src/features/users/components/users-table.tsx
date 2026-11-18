@@ -110,14 +110,6 @@ function UsersTableRows({
         <TableCell>{user.brandCount}</TableCell>
         <TableCell>{user.lastLoginAt ? formatDateTime(user.lastLoginAt) : "-"}</TableCell>
         <TableCell className="text-right">
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-label={t("table.viewUser", { email: user.email })}
-            onClick={() => onView(user)}
-          >
-            {tCommon("actions.view")}
-          </Button>
           {onEdit && (
             <Button
               variant="ghost"
@@ -130,6 +122,14 @@ function UsersTableRows({
               {tCommon("actions.edit")}
             </Button>
           )}
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={t("table.viewUser", { email: user.email })}
+            onClick={() => onView(user)}
+          >
+            {tCommon("actions.view")}
+          </Button>
           {onDelete && (
             <Button
               variant="ghost"

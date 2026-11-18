@@ -39,10 +39,20 @@ export function promptParams(selectAccount: boolean): { prompt?: string } {
   return selectAccount ? { prompt: "select_account" } : {};
 }
 
+export interface SignInOptions {
+  selectAccount?: boolean;
+  loginHint?: string;
+}
+
+// The hint only pre-fills Google's form; it is never treated as the user's identity
+export function hintParams(loginHint?: string): { login_hint?: string } {
+  return loginHint ? { login_hint: loginHint } : {};
+}
+
 export async function startSignIn(
   provider: AuthProvider,
   returnTo: string,
-  selectAccount = false,
+  { selectAccount = false, loginHint }: SignInOptions = {},
 ): Promise<{ url: URL; tx: OAuthTransaction }> {
   const oidcConfig = await discover(provider);
   const tx: OAuthTransaction = {
@@ -59,6 +69,7 @@ export async function startSignIn(
     code_challenge: await client.calculatePKCECodeChallenge(tx.codeVerifier),
     code_challenge_method: "S256",
     ...promptParams(selectAccount),
+    ...hintParams(loginHint),
   });
   return { url, tx };
 }

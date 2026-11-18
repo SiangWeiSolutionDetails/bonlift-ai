@@ -138,7 +138,10 @@ export async function authRoutes(app: FastifyInstance) {
         const { url, tx } = await startSignIn(
           request.params.provider,
           safeReturnTo(request.query.returnTo),
-          request.query.selectAccount === "1",
+          {
+            selectAccount: request.query.selectAccount === "1",
+            loginHint: request.validationError ? undefined : request.query.loginHint,
+          },
         );
         reply.setCookie(TX_COOKIE, JSON.stringify(tx), {
           ...txCookieOptions(),

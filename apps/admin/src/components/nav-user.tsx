@@ -11,6 +11,7 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { logout, signInHref } from "@/features/auth/api"
@@ -123,6 +124,7 @@ function AccountList({ onSwitch }: { onSwitch: (email: string) => void }) {
       <AccountGroup label={t("currentAccount")}>
         <AccountRow account={user} current onSwitch={() => {}} />
       </AccountGroup>
+      {others.length > 0 && <DropdownMenuSeparator className="my-0" />}
       {others.length > 0 && (
         <AccountGroup label={t("otherAccounts")}>
           {others.map((account) => (

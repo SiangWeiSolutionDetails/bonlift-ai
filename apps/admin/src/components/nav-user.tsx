@@ -96,7 +96,7 @@ function AccountRow({ account, current, onSwitch }: AccountRowProps) {
         {name !== account.email && <span className="truncate text-xs text-muted-foreground">{account.email}</span>}
       </span>
       {current ? (
-        <span className={cn(ACCOUNT_ACTION, "text-green-700 dark:text-green-400")}>{t("signedIn")}</span>
+        <span className={cn(ACCOUNT_ACTION, "text-primary")}>{t("signedIn")}</span>
       ) : (
         <SwitchAccountItem email={account.email} onSwitch={onSwitch} />
       )}

@@ -97,7 +97,7 @@ describe("canOpen", () => {
 describe("defaultWorkspace", () => {
   const both = me({
     console: consoleRole,
-    brands: [brand(BRAND_B, "Beta", "Zulu", []), brand(BRAND_A, "Alpha", "Alpha T", [])],
+    brands: [brand(BRAND_B, "Beta", "Zulu", ["usage.view"]), brand(BRAND_A, "Alpha", "Alpha T", ["usage.view"])],
   });
 
   it("prefers a remembered workspace that can still be opened", () => {
@@ -114,8 +114,22 @@ describe("defaultWorkspace", () => {
     expect(defaultWorkspace(me({ brands: both.brands }), null)).toBe(BRAND_A);
   });
 
+  it("skips a remembered brand with no page the role can see", () => {
+    const user = me({ console: consoleRole, brands: [brand(BRAND_A, "Alpha", "T", [])] });
+    expect(defaultWorkspace(user, BRAND_A)).toBe("console");
+  });
+
+  it("skips a console role with no page and falls to a brand that has one", () => {
+    const user = me({
+      console: { ...consoleRole, isAdmin: false, actions: [] },
+      brands: [brand(BRAND_A, "Alpha", "A", []), brand(BRAND_B, "Beta", "B", ["usage.view"])],
+    });
+    expect(defaultWorkspace(user, "console")).toBe(BRAND_B);
+  });
+
   it("is null with nothing to open", () => {
     expect(defaultWorkspace(me(), "console")).toBeNull();
+    expect(defaultWorkspace(me({ brands: [brand(BRAND_A, "Alpha", "T", [])] }), BRAND_A)).toBeNull();
   });
 });
 

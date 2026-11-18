@@ -33,10 +33,6 @@ export function canBrand(me: Me, brandId: string, action: BrandAction) {
   return !!brand && brandActions(brand).includes(action);
 }
 
-export function brandsWith(me: Me, action: BrandAction): MeBrand[] {
-  return me.brands.filter((brand) => brandActions(brand).includes(action));
-}
-
 export function hasAccess(me: Me, access: RouteAccess, brandId?: string) {
   if ("console" in access) return canConsole(me, access.console);
   return !!brandId && [access.brand].flat().some((action) => canBrand(me, brandId, action));
@@ -49,7 +45,6 @@ export function usePermissions() {
       canConsole: (action: ConsoleAction) => canConsole(me, action),
       canBrand: (brandId: string | undefined, action: BrandAction) =>
         !!brandId && canBrand(me, brandId, action),
-      brandsWith: (action: BrandAction) => brandsWith(me, action),
       hasAccess: (access: RouteAccess, brandId?: string) => hasAccess(me, access, brandId),
     }),
     [me],

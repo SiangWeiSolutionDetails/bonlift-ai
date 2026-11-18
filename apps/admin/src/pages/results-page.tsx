@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PlayIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getRouteApi } from "@tanstack/react-router";
@@ -15,7 +15,8 @@ import {
   useOutletItemScoresRuns,
 } from "@/features/outlet-item-scores/queries";
 import type { ResultsSearch } from "@/features/outlet-item-scores/search";
-import { useBrandOutletId } from "@/features/outlets/queries";
+import { useBrandOutletId, useOutlets } from "@/features/outlets/queries";
+import { isOtherBrandOutletRun } from "@/features/workspaces/run-scope";
 import { useWorkspaceBrandId } from "@/features/workspaces/use-workspace";
 
 const routeApi = getRouteApi("/_app/b/$brandId/results");
@@ -28,6 +29,8 @@ export function ResultsPage() {
   const [isRunDialogOpen, setIsRunDialogOpen] = useState(false);
   const { canBrand } = usePermissions();
   const outletId = useBrandOutletId(brandId, search.outletId);
+  const { data: brandOutlets } = useOutlets({ brandId });
+  const brandOutletIds = brandOutlets?.filter((outlet) => outlet.brandId === brandId).map((outlet) => outlet.id);
 
   const runs = useOutletItemScoresRuns(outletId);
   const runList = runs.data ?? [];
@@ -39,6 +42,12 @@ export function ResultsPage() {
   );
   const unlistedRun =
     linkedRun.data?.outletId === outletId ? linkedRun.data : undefined;
+  const isForeignRun = isOtherBrandOutletRun(linkedRun.data, brandOutletIds);
+  // A run outside the workspace brand is dropped from the URL, so the URL never names a run the page doesn't show
+  useEffect(() => {
+    if (!isForeignRun) return;
+    navigate({ search: (prev) => ({ ...prev, runId: undefined }), replace: true, resetScroll: false });
+  }, [isForeignRun, navigate]);
   // No run chosen: show what the outlet serves now, else the newest run
   const viewingRun =
     listedRun ??

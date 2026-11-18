@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PlayIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getRouteApi } from "@tanstack/react-router";
@@ -14,6 +14,7 @@ import {
   useItemAffinityRuns,
 } from "@/features/item-affinity/queries";
 import type { ItemAffinitySearch } from "@/features/item-affinity/search";
+import { isOtherBrandRun } from "@/features/workspaces/run-scope";
 import { useWorkspaceBrandId } from "@/features/workspaces/use-workspace";
 
 const routeApi = getRouteApi("/_app/b/$brandId/item-affinity");
@@ -36,6 +37,12 @@ export function ItemAffinityPage() {
   );
   const unlistedRun =
     linkedRun.data?.brandId === brandId ? linkedRun.data : undefined;
+  const isForeignRun = isOtherBrandRun(linkedRun.data, brandId);
+  // A run outside the workspace brand is dropped from the URL, so the URL never names a run the page doesn't show
+  useEffect(() => {
+    if (!isForeignRun) return;
+    navigate({ search: (prev) => ({ ...prev, runId: undefined, itemId: undefined }), replace: true, resetScroll: false });
+  }, [isForeignRun, navigate]);
   // No run chosen: show what the brand serves now, else the newest run
   const viewingRun =
     listedRun ??

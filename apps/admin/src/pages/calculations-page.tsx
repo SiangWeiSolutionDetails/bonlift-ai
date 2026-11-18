@@ -16,10 +16,7 @@ export function CalculationsPage() {
   const brandId = useWorkspaceBrandId();
   const { canBrand } = usePermissions();
   const [isRunDialogOpen, setIsRunDialogOpen] = useState(false);
-  const [started, setStarted] = useState<{ brandId: string; response: StartAllResponse }>();
-
-  // The last click only counts for the brand it was made on
-  const startResponse = started && started.brandId === brandId ? started.response : undefined;
+  const [startResponse, setStartResponse] = useState<StartAllResponse>();
   const trackedRunIds = useMemo(
     () => startResponse?.runs.map((run) => run.runId) ?? [],
     [startResponse],
@@ -54,7 +51,7 @@ export function CalculationsPage() {
           onOpenChange={setIsRunDialogOpen}
           onStarted={(response) => {
             setIsRunDialogOpen(false);
-            setStarted({ brandId: response.brandId, response });
+            setStartResponse(response);
           }}
         />
       )}

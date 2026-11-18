@@ -1,6 +1,6 @@
 import { CONSOLE_ACTIONS, type AuthMeResponseSchemaType, type BrandAction } from "@bonlift-ai/contracts";
 import { describe, expect, it } from "vitest";
-import { brandsWith, canBrand, canConsole, hasAccess } from "./permissions";
+import { canBrand, canConsole, hasAccess } from "./permissions";
 
 const BRAND_A = "00000000-0000-4000-8000-00000000000a";
 const BRAND_B = "00000000-0000-4000-8000-00000000000b";
@@ -70,21 +70,6 @@ describe("canBrand", () => {
   it("ignores action strings that are not in the catalog", () => {
     const user = me({ brands: [brand(BRAND_A, ["stale.action"])] });
     expect(canBrand(user, BRAND_A, "stale.action" as BrandAction)).toBe(false);
-  });
-});
-
-describe("brandsWith", () => {
-  it("lists only the brands whose role holds the action", () => {
-    const user = me({
-      brands: [brand(BRAND_A, ["results.view", "usage.view"]), brand(BRAND_B, ["usage.view"])],
-    });
-    expect(brandsWith(user, "results.view").map((b) => b.brandId)).toEqual([BRAND_A]);
-    expect(brandsWith(user, "usage.view").map((b) => b.brandId)).toEqual([BRAND_A, BRAND_B]);
-    expect(brandsWith(user, "apiKeys.view")).toEqual([]);
-  });
-
-  it("lists nothing for an Admin with no brand role", () => {
-    expect(brandsWith(admin, "outlets.view")).toEqual([]);
   });
 });
 

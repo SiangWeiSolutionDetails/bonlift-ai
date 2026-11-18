@@ -82,10 +82,11 @@ export function canOpen(me: Me, workspaceKey: string) {
   return me.brands.some((b) => b.brandId === workspaceKey);
 }
 
+// A workspace counts only if the user can open it and see at least one page in it
 export function defaultWorkspace(me: Me, remembered: string | null): string | null {
-  if (remembered && canOpen(me, remembered)) return remembered;
-  if (me.console) return CONSOLE_KEY;
-  return buildWorkspaces(me).tenants[0]?.brands[0]?.brandId ?? null;
+  const brandIds = buildWorkspaces(me).tenants.flatMap((t) => t.brands.map((b) => b.brandId));
+  const candidates = [remembered, CONSOLE_KEY, ...brandIds];
+  return candidates.find((key) => key && firstVisiblePage(me, key) !== null) ?? null;
 }
 
 export function readLastWorkspace(): string | null {

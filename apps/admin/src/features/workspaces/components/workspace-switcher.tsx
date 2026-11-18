@@ -43,7 +43,7 @@ function WorkspaceRow({ title, subtitle, role, current, onSwitch }: WorkspaceRow
       onSelect={onSwitch}
       title={[title, subtitle, role].filter(Boolean).join(" · ")}
       aria-current={current ? "true" : undefined}
-      className="cursor-pointer gap-3 px-2 py-1.5"
+      className={cn("cursor-pointer gap-3 px-2 py-1.5", current && "bg-primary/10 focus:bg-primary/15")}
     >
       <span className="grid min-w-0 flex-1 leading-tight">
         <span className={cn("truncate", current && "font-semibold")}>{title}</span>

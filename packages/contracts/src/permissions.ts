@@ -21,6 +21,8 @@ export const PERMISSIONS = [
   consoleEntry("users", "users.assignBrandRoles"),
   consoleEntry("roles", "roles.view"),
   consoleEntry("roles", "roles.manage"),
+  consoleEntry("provider", "provider.view"),
+  consoleEntry("provider", "provider.support"),
   brandEntry("outlets", "outlets.view"),
   brandEntry("outlets", "outlets.create"),
   brandEntry("outlets", "outlets.edit"),
@@ -49,6 +51,8 @@ export const PERMISSIONS = [
   brandEntry("feedback", "feedback.view"),
   brandEntry("members", "members.view"),
   brandEntry("members", "members.manage"),
+  brandEntry("brandRoles", "brandRoles.view"),
+  brandEntry("brandRoles", "brandRoles.manage"),
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -69,3 +73,55 @@ export const isConsoleAction = (key: string): key is ConsoleAction =>
 
 export const isBrandAction = (key: string): key is BrandAction =>
   (BRAND_ACTIONS as readonly string[]).includes(key);
+
+export const PERSONAL_DATA_ACTIONS: readonly BrandAction[] = [
+  "customerScores.view",
+  "snapshots.viewCustomerIds",
+];
+
+const PROVIDER_VIEW_ACTIONS: readonly BrandAction[] = [
+  "outlets.view",
+  "dataSource.view",
+  "snapshots.view",
+  "calculations.view",
+  "configs.view",
+  "results.view",
+  "itemAffinity.view",
+  "channels.view",
+  "apiKeys.view",
+  "usage.view",
+  "feedback.view",
+  "members.view",
+  "brandRoles.view",
+];
+
+export const PROVIDER_GRANTS: Record<
+  "provider.view" | "provider.support",
+  readonly BrandAction[]
+> = {
+  "provider.view": PROVIDER_VIEW_ACTIONS,
+  "provider.support": [
+    ...PROVIDER_VIEW_ACTIONS,
+    "outlets.create",
+    "outlets.edit",
+    "outlets.delete",
+    "dataSource.edit",
+    "snapshots.upload",
+    "calculations.trigger",
+    "calculations.editSchedule",
+    "calculations.publish",
+    "configs.edit",
+    "channels.edit",
+    "apiKeys.create",
+    "apiKeys.revoke",
+    "apiKeys.delete",
+    "brandRoles.manage",
+  ],
+};
+
+export const providerBrandActions = (consoleActions: readonly string[]): BrandAction[] => {
+  const granted = (Object.keys(PROVIDER_GRANTS) as (keyof typeof PROVIDER_GRANTS)[])
+    .filter((key) => consoleActions.includes(key))
+    .flatMap((key) => PROVIDER_GRANTS[key]);
+  return [...new Set(granted)];
+};

@@ -16,7 +16,9 @@
     "apiKeys": "API 密钥",
     "usage": "用量",
     "feedback": "推荐反馈",
-    "members": "成员"
+    "members": "成员",
+    "provider": "服务商访问",
+    "brandRoles": "品牌角色"
   },
   "tenants": {
     "view": "查看租户",
@@ -96,5 +98,13 @@
   "members": {
     "view": "查看成员",
     "manage": "管理成员"
+  },
+  "provider": {
+    "view": "以服务商身份查看所有品牌",
+    "support": "以服务商身份支持所有品牌"
+  },
+  "brandRoles": {
+    "view": "查看品牌角色",
+    "manage": "管理品牌角色"
   }
 }

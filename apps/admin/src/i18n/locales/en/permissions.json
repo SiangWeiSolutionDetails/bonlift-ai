@@ -16,7 +16,9 @@
     "apiKeys": "API keys",
     "usage": "Usage",
     "feedback": "Recommendation feedback",
-    "members": "Members"
+    "members": "Members",
+    "provider": "Provider access",
+    "brandRoles": "Brand roles"
   },
   "tenants": {
     "view": "View tenants",
@@ -96,5 +98,13 @@
   "members": {
     "view": "View members",
     "manage": "Manage members"
+  },
+  "provider": {
+    "view": "View all brands as provider",
+    "support": "Support all brands as provider"
+  },
+  "brandRoles": {
+    "view": "View brand roles",
+    "manage": "Manage brand roles"
   }
 }

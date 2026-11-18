@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildApp } from "../app.js";
+import { resetAuthConfigCache } from "../config/env.js";
 import { NotFoundError, ValidationError } from "../errors.js";
 import { getTestPool } from "../testing/testDb.js";
 import { createBrandApiKey } from "./brandApiKey.service.js";
@@ -54,12 +55,19 @@ async function waitForUsageRows(count: number) {
 }
 
 beforeAll(async () => {
+  vi.stubEnv("APP_BASE_URL", "http://localhost:5173");
+  vi.stubEnv("SESSION_COOKIE_SECRET", "c".repeat(64));
+  vi.stubEnv("GOOGLE_CLIENT_ID", "test-client-id");
+  vi.stubEnv("GOOGLE_CLIENT_SECRET", "test-client-secret");
+  resetAuthConfigCache();
   app = buildApp();
   await app.ready();
 });
 
 afterAll(async () => {
   await app.close();
+  vi.unstubAllEnvs();
+  resetAuthConfigCache();
 });
 
 beforeEach(async () => {

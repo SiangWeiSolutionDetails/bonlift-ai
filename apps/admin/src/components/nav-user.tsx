@@ -74,9 +74,6 @@ function useAddAccount() {
   }
 }
 
-// The Signed in badge and the Switch button share one size so they line up
-const ACCOUNT_ACTION = "flex h-7 w-18 shrink-0 items-center justify-center rounded-md text-xs font-medium"
-
 type AccountRowProps = {
   account: Pick<KnownAccount, "email" | "displayName">
   current: boolean
@@ -84,7 +81,6 @@ type AccountRowProps = {
 }
 
 function AccountRow({ account, current, onSwitch }: AccountRowProps) {
-  const { t } = useTranslation("auth")
   const name = account.displayName ?? account.email
 
   // The row itself is not clickable: switching only happens through the Switch button
@@ -98,11 +94,7 @@ function AccountRow({ account, current, onSwitch }: AccountRowProps) {
         <span className={cn("truncate", current && "font-semibold")}>{name}</span>
         {name !== account.email && <span className="truncate text-xs text-muted-foreground">{account.email}</span>}
       </span>
-      {current ? (
-        <span className={cn(ACCOUNT_ACTION, "text-primary")}>{t("signedIn")}</span>
-      ) : (
-        <SwitchAccountItem email={account.email} onSwitch={onSwitch} />
-      )}
+      {!current && <SwitchAccountItem email={account.email} onSwitch={onSwitch} />}
     </div>
   )
 }
@@ -113,7 +105,7 @@ function SwitchAccountItem({ email, onSwitch }: { email: string; onSwitch: () =>
     <DropdownMenuItem
       onSelect={onSwitch}
       aria-label={t("switchToAccount", { email })}
-      className={cn(ACCOUNT_ACTION, "cursor-pointer border px-0 py-0")}
+      className="h-7 w-18 shrink-0 cursor-pointer justify-center rounded-md border px-0 py-0 text-xs font-medium"
     >
       {t("switch")}
     </DropdownMenuItem>

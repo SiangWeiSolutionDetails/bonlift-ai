@@ -12,7 +12,8 @@ import { recordRecommendationFeedback } from "../services/recommendationFeedback
 
 const FEEDBACK_DESCRIPTION =
   "Tells us what a customer did with an item. Send `accepted` when the customer adds a suggested item to the cart " +
-  "and `rejected` when they dismiss it: one call per action.\n\n" +
+  "and `rejected` when they dismiss it: one call per action. Only send `accepted` when the item is added from the " +
+  "suggestion itself, not when the customer finds it elsewhere in the menu.\n\n" +
   "The customer's preference is always recorded for your brand, whether or not you send a `recommendationId`. A " +
   "rejected item is not returned to that customer by `POST /v1/recommendations` or `POST /v1/item-affinity` for the " +
   "brand's rejection window, and accepting it later lifts that. Other customers and anonymous requests are not " +

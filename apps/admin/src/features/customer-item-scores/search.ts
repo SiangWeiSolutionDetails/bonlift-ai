@@ -1,5 +1,4 @@
 export type CustomerScoresSearch = {
-  brandId?: string;
   runId?: string;
   customerId?: string;
 };
@@ -13,7 +12,6 @@ export function validateCustomerScoresSearch(
   search: Record<string, unknown>,
 ): CustomerScoresSearch {
   return {
-    brandId: optionalString(search.brandId),
     runId: optionalString(search.runId),
     customerId: optionalString(search.customerId),
   };

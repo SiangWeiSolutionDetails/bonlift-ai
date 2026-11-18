@@ -1,7 +1,7 @@
 {
   "page": {
     "title": "Order Snapshots",
-    "noOutlet": "Choose a brand and an outlet to see which order dates are stored."
+    "noOutlet": "Choose an outlet to see which order dates are stored."
   },
   "card": {
     "date": "Date",

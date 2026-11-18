@@ -1,6 +1,5 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Tabs as TabsPrimitive } from "radix-ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FieldError } from "@/components/field-error";
 import { Button } from "@/components/ui/button";
@@ -16,7 +15,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getErrorMessage } from "@/lib/error-message";
 import { getChanges } from "@/lib/get-changes";
 import type { Brand, UpdateBrandInput } from "../type";
@@ -25,37 +23,6 @@ import { typeboxResolver } from "@/lib/typebox-resolver";
 import { UpdateBrandBodySchema } from "@bonlift-ai/contracts";
 import { useUpdateBrand } from "../queries";
 import { usePermissions } from "@/features/auth/permissions";
-import { BrandDataSourceSection } from "@/features/brand-data-source/components/brand-data-source-section";
-import { OutletItemScoresConfigSection } from "@/features/outlet-item-scores-config/components/outlet-item-scores-config-section";
-import { CustomerItemScoresConfigSection } from "@/features/customer-item-scores-config/components/customer-item-scores-config-section";
-import { ItemAffinityConfigSection } from "@/features/item-affinity-config/components/item-affinity-config-section";
-import { ServingConfigSection } from "@/features/serving-config/components/serving-config-section";
-import { BrandCalculationScheduleSection } from "@/features/brand-calculation-schedule/components/brand-calculation-schedule-section";
-import { BrandChannelsSection } from "@/features/brand-channels/components/brand-channels-section";
-import { BrandMembersSection } from "@/features/brand-members/components/brand-members-section";
-
-const CALCULATIONS = [
-  {
-    value: "popularItems",
-    titleKey: "outletItemScoresConfig.title",
-    Section: OutletItemScoresConfigSection,
-  },
-  {
-    value: "customerItems",
-    titleKey: "customerItemScoresConfig.title",
-    Section: CustomerItemScoresConfigSection,
-  },
-  {
-    value: "itemAffinity",
-    titleKey: "itemAffinityConfig.title",
-    Section: ItemAffinityConfigSection,
-  },
-  {
-    value: "serving",
-    titleKey: "servingConfig:title",
-    Section: ServingConfigSection,
-  },
-] as const;
 
 type BrandDialogProps = {
   brand: Brand | null;
@@ -67,161 +34,26 @@ type BrandDialogProps = {
 export function BrandDialog({ brand, tenantName, readOnly = false, onClose }: BrandDialogProps) {
   const { t } = useTranslation("brands");
   const mode = readOnly ? "view" : "edit";
-  const { canConsole, canBrand } = usePermissions();
-  const brandId = brand?.id;
-  const sections = {
-    dataSource: canBrand(brandId, "dataSource.view"),
-    calculationConfigs: canBrand(brandId, "configs.view"),
-    schedule: canBrand(brandId, "calculations.view"),
-    channels: canBrand(brandId, "channels.view"),
-    members: canBrand(brandId, "members.view") || canConsole("users.view"),
-  };
-  const canManageMembers =
-    canBrand(brandId, "members.manage") || canConsole("users.assignBrandRoles");
+  const { canConsole } = usePermissions();
 
   return (
     <Dialog open={brand !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden sm:max-w-3xl">
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>{t(`${mode}.title`)}</DialogTitle>
           <DialogDescription>{brand?.name}</DialogDescription>
         </DialogHeader>
         {brand && (
-          // key resets every tab's form state when a different brand is opened.
-          // Fixed height so switching tabs doesn't resize the dialog; min-h-0 lets it shrink on short screens.
-          <Tabs key={brand.id} defaultValue="general" className="h-[36rem] min-h-0 gap-4">
-            <TabsList variant="line" className="w-full justify-start">
-              <TabsTrigger value="general" className="flex-none">
-                {t("tabs.general")}
-              </TabsTrigger>
-              {sections.dataSource && (
-                <TabsTrigger value="dataSource" className="flex-none">
-                  {t("dataSource.title")}
-                </TabsTrigger>
-              )}
-              {sections.calculationConfigs && (
-                <TabsTrigger value="calculationConfigs" className="flex-none">
-                  {t("tabs.calculationConfigs")}
-                </TabsTrigger>
-              )}
-              {sections.schedule && (
-                <TabsTrigger value="schedule" className="flex-none">
-                  {t("tabs.schedule")}
-                </TabsTrigger>
-              )}
-              {sections.channels && (
-                <TabsTrigger value="channels" className="flex-none">
-                  {t("tabs.channels")}
-                </TabsTrigger>
-              )}
-              {sections.members && (
-                <TabsTrigger value="members" className="flex-none">
-                  {t("tabs.members")}
-                </TabsTrigger>
-              )}
-            </TabsList>
-            <BrandTab value="general">
-              <BrandForm
-                brand={brand}
-                tenantName={tenantName}
-                readOnly={readOnly || !canConsole("brands.edit")}
-              />
-            </BrandTab>
-            {sections.dataSource && (
-              <BrandTab value="dataSource">
-                <BrandDataSourceSection
-                  brandId={brand.id}
-                  readOnly={readOnly || !canBrand(brand.id, "dataSource.edit")}
-                />
-              </BrandTab>
-            )}
-            {sections.calculationConfigs && (
-              <BrandTab value="calculationConfigs">
-                <BrandCalculationConfigs
-                  brandId={brand.id}
-                  readOnly={readOnly || !canBrand(brand.id, "configs.edit")}
-                />
-              </BrandTab>
-            )}
-            {sections.schedule && (
-              <BrandTab value="schedule">
-                <BrandCalculationScheduleSection
-                  brandId={brand.id}
-                  readOnly={readOnly || !canBrand(brand.id, "calculations.editSchedule")}
-                />
-              </BrandTab>
-            )}
-            {sections.channels && (
-              <BrandTab value="channels">
-                <BrandChannelsSection
-                  brandId={brand.id}
-                  readOnly={readOnly || !canBrand(brand.id, "channels.edit")}
-                />
-              </BrandTab>
-            )}
-            {sections.members && (
-              <BrandTab value="members">
-                <BrandMembersSection
-                  brandId={brand.id}
-                  readOnly={readOnly || !canManageMembers}
-                />
-              </BrandTab>
-            )}
-          </Tabs>
+          // key resets the form when a different brand is opened
+          <BrandForm
+            key={brand.id}
+            brand={brand}
+            tenantName={tenantName}
+            readOnly={readOnly || !canConsole("brands.edit")}
+          />
         )}
       </DialogContent>
     </Dialog>
-  );
-}
-
-// Kept mounted while hidden, so unsaved edits survive switching tabs.
-// Each tab's form scrolls its own fields so its footer stays pinned at the bottom.
-function BrandTab({ value, children }: { value: string; children: ReactNode }) {
-  return (
-    <TabsContent
-      value={value}
-      forceMount
-      className="flex min-h-0 min-w-0 flex-col data-[state=inactive]:hidden"
-    >
-      {children}
-    </TabsContent>
-  );
-}
-
-type BrandCalculationConfigsProps = {
-  brandId: string;
-  readOnly: boolean;
-};
-
-// Uses the Radix primitive because ui/tabs styles triggers by the nearest group/tabs,
-// which would also match the horizontal tabs this is nested in.
-// gap-6 absorbs the -mx-6 overhang of each section's scroll body so it can't cover the nav.
-function BrandCalculationConfigs({ brandId, readOnly }: BrandCalculationConfigsProps) {
-  const { t } = useTranslation(["brands", "servingConfig"]);
-
-  return (
-    <TabsPrimitive.Root
-      orientation="vertical"
-      defaultValue={CALCULATIONS[0].value}
-      className="flex min-h-0 flex-1 flex-col gap-4 sm:flex-row sm:gap-6"
-    >
-      <TabsPrimitive.List className="flex shrink-0 gap-1 overflow-x-auto [scrollbar-width:none] sm:w-44 sm:flex-col sm:overflow-x-hidden sm:overflow-y-auto sm:[scrollbar-width:auto]">
-        {CALCULATIONS.map(({ value, titleKey }) => (
-          <TabsPrimitive.Trigger
-            key={value}
-            value={value}
-            className="shrink-0 rounded-md px-3 py-2 text-left text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset data-[state=active]:bg-muted data-[state=active]:text-foreground sm:whitespace-normal"
-          >
-            {t(titleKey)}
-          </TabsPrimitive.Trigger>
-        ))}
-      </TabsPrimitive.List>
-      {CALCULATIONS.map(({ value, Section }) => (
-        <BrandTab key={value} value={value}>
-          <Section brandId={brandId} readOnly={readOnly} />
-        </BrandTab>
-      ))}
-    </TabsPrimitive.Root>
   );
 }
 

@@ -3,21 +3,15 @@
     "title": "门店",
     "newOutlet": "新建门店"
   },
-  "filter": {
-    "brand": "品牌",
-    "allBrands": "全部品牌"
-  },
   "search": {
     "placeholder": "按名称搜索门店",
     "noMatches": "没有匹配的门店。"
   },
   "table": {
     "name": "名称",
-    "brand": "品牌",
     "status": "状态",
     "actions": "操作",
     "empty": "暂无门店。",
-    "unknownBrand": "未知品牌",
     "editOutlet": "编辑 {{name}}",
     "viewOutlet": "查看 {{name}}",
     "deleteOutlet": "删除 {{name}}",
@@ -27,8 +21,6 @@
   },
   "create": {
     "title": "新建门店",
-    "brand": "品牌",
-    "brandPlaceholder": "选择品牌",
     "name": "名称"
   },
   "edit": {

@@ -12,9 +12,8 @@ import { useCurrentUser } from "./queries";
 type Me = AuthMeResponseSchemaType;
 export type MeBrand = Me["brands"][number];
 
-export type RouteAccess =
-  | { console: ConsoleAction; orAnyBrandRole?: boolean }
-  | { anyBrand: BrandAction };
+// A brand page passes with any one of its actions on the workspace brand
+export type RouteAccess = { console: ConsoleAction } | { brand: BrandAction | BrandAction[] };
 
 function consoleActions(me: Me): ConsoleAction[] {
   return (me.console?.actions ?? []).filter(isConsoleAction);
@@ -34,13 +33,9 @@ export function canBrand(me: Me, brandId: string, action: BrandAction) {
   return !!brand && brandActions(brand).includes(action);
 }
 
-export function brandsWith(me: Me, action: BrandAction): MeBrand[] {
-  return me.brands.filter((brand) => brandActions(brand).includes(action));
-}
-
-export function hasAccess(me: Me, access: RouteAccess) {
-  if ("anyBrand" in access) return brandsWith(me, access.anyBrand).length > 0;
-  return canConsole(me, access.console) || (!!access.orAnyBrandRole && me.brands.length > 0);
+export function hasAccess(me: Me, access: RouteAccess, brandId?: string) {
+  if ("console" in access) return canConsole(me, access.console);
+  return !!brandId && [access.brand].flat().some((action) => canBrand(me, brandId, action));
 }
 
 export function usePermissions() {
@@ -50,8 +45,7 @@ export function usePermissions() {
       canConsole: (action: ConsoleAction) => canConsole(me, action),
       canBrand: (brandId: string | undefined, action: BrandAction) =>
         !!brandId && canBrand(me, brandId, action),
-      brandsWith: (action: BrandAction) => brandsWith(me, action),
-      hasAccess: (access: RouteAccess) => hasAccess(me, access),
+      hasAccess: (access: RouteAccess, brandId?: string) => hasAccess(me, access, brandId),
     }),
     [me],
   );

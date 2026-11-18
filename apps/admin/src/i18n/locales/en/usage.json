@@ -3,9 +3,6 @@
     "title": "Usage"
   },
   "picker": {
-    "brand": "Brand",
-    "brandPlaceholder": "Select a brand",
-    "noBrand": "Select a brand to see its usage.",
     "from": "From",
     "to": "To"
   },

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { meQueryOptions } from "@/features/auth/queries";
 import { brandKeys } from "@/features/brands/queries";
 import { listRoles } from "@/features/roles/api";
 import { roleKeys } from "@/features/roles/queries";
@@ -35,6 +36,7 @@ function useInvalidateMembers(brandId: string) {
       queryClient.invalidateQueries({ queryKey: brandMemberKeys.list(brandId) }),
       queryClient.invalidateQueries({ queryKey: userKeys.all }),
       queryClient.invalidateQueries({ queryKey: roleKeys.all }),
+      queryClient.invalidateQueries({ queryKey: meQueryOptions.queryKey }),
     ]);
 }
 

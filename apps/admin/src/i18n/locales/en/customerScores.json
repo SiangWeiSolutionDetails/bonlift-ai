@@ -18,11 +18,6 @@
     "exampleDays_other": "{{count}} days",
     "note": "Only parent items count: addons and modifiers inside a line are ignored. The half-life is set per brand, and each run's value is shown in its config. The Orders column is an unweighted count."
   },
-  "picker": {
-    "brand": "Brand",
-    "brandPlaceholder": "Select a brand",
-    "noBrand": "Choose a brand to see its customers' favourite items."
-  },
   "status": {
     "running": "Running",
     "succeeded": "Succeeded",

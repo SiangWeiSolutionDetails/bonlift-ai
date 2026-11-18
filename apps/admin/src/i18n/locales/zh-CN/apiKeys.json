@@ -2,11 +2,6 @@
   "page": {
     "title": "API 密钥"
   },
-  "picker": {
-    "brand": "品牌",
-    "brandPlaceholder": "选择品牌",
-    "noBrand": "请选择品牌以查看其 API 密钥。"
-  },
   "list": {
     "create": "创建密钥",
     "empty": "暂无 API 密钥。",
@@ -48,7 +43,7 @@
     "channelHint": "使用此密钥的点单应用。密钥只服务该渠道。",
     "channelPlaceholder": "选择渠道",
     "noChannels": "该品牌没有启用的渠道。请先在品牌的“渠道”标签页中启用一个。",
-    "openBrands": "打开品牌",
+    "openChannelSettings": "打开渠道设置",
     "unassigned": "未分配"
   }
 }

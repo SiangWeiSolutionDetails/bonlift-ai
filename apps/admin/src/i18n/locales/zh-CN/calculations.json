@@ -3,11 +3,6 @@
     "title": "计算总览",
     "runAll": "运行全部计算"
   },
-  "picker": {
-    "brand": "品牌",
-    "brandPlaceholder": "选择品牌",
-    "noBrand": "请选择品牌以查看其计算状态。"
-  },
   "status": {
     "running": "运行中",
     "succeeded": "成功",

@@ -4,9 +4,6 @@
     "description": "顾客对所推荐商品的反馈情况。日期按 {{tz}} 时区划分。仅记录已识别顾客的推荐。"
   },
   "picker": {
-    "brand": "品牌",
-    "brandPlaceholder": "选择品牌",
-    "noBrand": "请选择品牌以查看其推荐反馈。",
     "from": "从",
     "to": "至",
     "outlet": "门店",

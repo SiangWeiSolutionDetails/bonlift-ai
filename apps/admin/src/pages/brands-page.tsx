@@ -5,7 +5,6 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { BrandAction } from "@bonlift-ai/contracts";
 import { usePermissions } from "@/features/auth/permissions";
 import { useCurrentUser } from "@/features/auth/queries";
 import { BrandsTable } from "@/features/brands/components/brands-table";
@@ -28,14 +27,6 @@ function useTenantOptions() {
   return [...names].map(([id, name]) => ({ id, name }));
 }
 
-// The brand dialog's sections each save on their own brand action
-const BRAND_DIALOG_EDIT_ACTIONS: BrandAction[] = [
-  "dataSource.edit",
-  "configs.edit",
-  "calculations.editSchedule",
-  "channels.edit",
-];
-
 export function BrandsPage() {
   const { t } = useTranslation("brands");
   const { t: tCommon } = useTranslation();
@@ -43,7 +34,8 @@ export function BrandsPage() {
   const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
   const [brandToDelete, setBrandToDelete] = useState<Brand | null>(null);
   const deleteBrandMutation = useDeleteBrand();
-  const { canConsole, canBrand } = usePermissions();
+  const { canConsole } = usePermissions();
+  const me = useCurrentUser();
   // Not reset on close, so the title doesn't flip while the dialog animates out
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [searchText, setSearchText] = useState("");
@@ -95,10 +87,8 @@ export function BrandsPage() {
         isPending={isPending}
         error={error}
         emptyMessage={searchText.trim() ? t("search.noMatches") : undefined}
-        canEdit={(brand) =>
-          canConsole("brands.edit") ||
-          BRAND_DIALOG_EDIT_ACTIONS.some((action) => canBrand(brand.id, action))
-        }
+        canEdit={() => canConsole("brands.edit")}
+        canOpenWorkspace={(brand) => me.brands.some((b) => b.brandId === brand.id)}
         onEdit={(brand) => openBrand(brand, false)}
         onView={(brand) => openBrand(brand, true)}
         onDelete={canConsole("brands.delete") ? setBrandToDelete : undefined}

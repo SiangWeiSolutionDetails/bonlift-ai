@@ -5,26 +5,15 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { usePermissions } from "@/features/auth/permissions";
-import { useBrands } from "@/features/brands/queries";
 import { CreateOutletDialog } from "@/features/outlets/components/create-outlet-dialog";
 import { OutletDialog } from "@/features/outlets/components/outlet-dialog";
 import { OutletsTable } from "@/features/outlets/components/outlets-table";
 import { useDeleteOutlet, useOutlets } from "@/features/outlets/queries";
-import type { Outlet, OutletListParams } from "@/features/outlets/type";
+import { useWorkspaceBrandId } from "@/features/workspaces/use-workspace";
+import type { Outlet } from "@/features/outlets/type";
 import { getErrorMessage } from "@/lib/error-message";
 import { filterByName } from "@/lib/filter-by-name";
-
-// Radix Select reserves "" for "no selection", so the "all brands" option needs its own value
-const ALL_BRANDS = "all";
 
 export function OutletsPage() {
   const { t } = useTranslation("outlets");
@@ -36,34 +25,26 @@ export function OutletsPage() {
   const { canBrand } = usePermissions();
   // Not reset on close, so the title doesn't flip while the dialog animates out
   const [isReadOnly, setIsReadOnly] = useState(false);
-  const [brandFilter, setBrandFilter] = useState(ALL_BRANDS);
+  const brandId = useWorkspaceBrandId();
   const [searchText, setSearchText] = useState("");
+  const canCreate = canBrand(brandId, "outlets.create");
+  const canEdit = canBrand(brandId, "outlets.edit");
+  const canDelete = canBrand(brandId, "outlets.delete");
 
   function openOutlet(outlet: Outlet, readOnly: boolean) {
     setSelectedOutlet(outlet);
     setIsReadOnly(readOnly);
   }
 
-  const listParams: OutletListParams =
-    brandFilter === ALL_BRANDS ? {} : { brandId: brandFilter };
-
-  const { data: outlets, isPending, error } = useOutlets(listParams);
-  // Feeds the filter, the create dialog and the brand column
-  const { data: brands = [] } = useBrands();
-  // GET /outlets lists every brand role's outlets; this page shows only brands with outlets.view
-  const viewableBrands = brands.filter((brand) => canBrand(brand.id, "outlets.view"));
-  const creatableBrands = brands.filter((brand) => canBrand(brand.id, "outlets.create"));
-  const filteredOutlets = filterByName(
-    outlets?.filter((outlet) => canBrand(outlet.brandId, "outlets.view")),
-    searchText,
-  );
+  const { data: outlets, isPending, error } = useOutlets({ brandId });
+  const filteredOutlets = filterByName(outlets, searchText);
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title={t("page.title")}
         action={
-          creatableBrands.length > 0 && (
+          canCreate && (
             <Button onClick={() => setIsCreateOpen(true)}>
               <PlusIcon data-icon="inline-start" />
               {t("page.newOutlet")}
@@ -72,32 +53,14 @@ export function OutletsPage() {
         }
       />
 
-      <div className="flex items-center gap-3">
-        <Label htmlFor="outlet-brand-filter" className="shrink-0">
-          {t("filter.brand")}
-        </Label>
-        <Select value={brandFilter} onValueChange={setBrandFilter}>
-          <SelectTrigger id="outlet-brand-filter" className="w-56">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL_BRANDS}>{t("filter.allBrands")}</SelectItem>
-            {viewableBrands.map((brand) => (
-              <SelectItem key={brand.id} value={brand.id}>
-                {brand.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Input
-          type="search"
-          className="w-72"
-          aria-label={t("search.placeholder")}
-          placeholder={t("search.placeholder")}
-          value={searchText}
-          onChange={(event) => setSearchText(event.target.value)}
-        />
-      </div>
+      <Input
+        type="search"
+        className="w-72"
+        aria-label={t("search.placeholder")}
+        placeholder={t("search.placeholder")}
+        value={searchText}
+        onChange={(event) => setSearchText(event.target.value)}
+      />
 
       {deleteOutletMutation.error && (
         <p className="text-sm text-destructive">
@@ -107,12 +70,11 @@ export function OutletsPage() {
 
       <OutletsTable
         outlets={filteredOutlets}
-        brands={brands}
         emptyMessage={searchText.trim() ? t("search.noMatches") : undefined}
         isPending={isPending}
         error={error}
-        canEdit={(outlet) => canBrand(outlet.brandId, "outlets.edit")}
-        canDelete={(outlet) => canBrand(outlet.brandId, "outlets.delete")}
+        canEdit={canEdit}
+        canDelete={canDelete}
         onEdit={(outlet) => openOutlet(outlet, false)}
         onView={(outlet) => openOutlet(outlet, true)}
         onDelete={setOutletToDelete}
@@ -130,14 +92,7 @@ export function OutletsPage() {
         }
       />
 
-      <CreateOutletDialog
-        open={isCreateOpen}
-        onOpenChange={setIsCreateOpen}
-        brands={creatableBrands}
-        defaultBrandId={
-          brandFilter !== ALL_BRANDS && canBrand(brandFilter, "outlets.create") ? brandFilter : undefined
-        }
-      />
+      <CreateOutletDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} brandId={brandId} />
       <OutletDialog
         outlet={selectedOutlet}
         readOnly={isReadOnly}

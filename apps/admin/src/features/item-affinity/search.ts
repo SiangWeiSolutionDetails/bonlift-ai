@@ -1,5 +1,4 @@
 export type ItemAffinitySearch = {
-  brandId?: string;
   runId?: string;
   itemId?: string;
 };
@@ -13,7 +12,6 @@ export function validateItemAffinitySearch(
   search: Record<string, unknown>,
 ): ItemAffinitySearch {
   return {
-    brandId: optionalString(search.brandId),
     runId: optionalString(search.runId),
     itemId: optionalString(search.itemId),
   };

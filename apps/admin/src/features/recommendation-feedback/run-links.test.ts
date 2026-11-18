@@ -22,7 +22,8 @@ function serve(runs: Partial<ServeLogEntry["runs"]> = {}): ServeLogEntry {
 }
 
 describe("serveRunLinks", () => {
-  it("links each run to its page with the brand, outlet and run selected", () => {
+  it("links each run to its page in the brand workspace with the outlet and run selected", () => {
+    const params = { brandId: BRAND_ID };
     const links = serveRunLinks(
       BRAND_ID,
       serve({
@@ -33,9 +34,9 @@ describe("serveRunLinks", () => {
     );
 
     expect(links.map((link) => link.target)).toEqual([
-      { to: "/results", search: { brandId: BRAND_ID, outletId: OUTLET_ID, runId: RUN_ID } },
-      { to: "/customer-scores", search: { brandId: BRAND_ID, runId: CUSTOMER_RUN_ID } },
-      { to: "/item-affinity", search: { brandId: BRAND_ID, runId: AFFINITY_RUN_ID } },
+      { to: "/b/$brandId/results", params, search: { outletId: OUTLET_ID, runId: RUN_ID } },
+      { to: "/b/$brandId/customer-scores", params, search: { runId: CUSTOMER_RUN_ID } },
+      { to: "/b/$brandId/item-affinity", params, search: { runId: AFFINITY_RUN_ID } },
     ]);
   });
 

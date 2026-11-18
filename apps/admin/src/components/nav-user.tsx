@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { logout } from "@/features/auth/api"
 import { useCurrentUser } from "@/features/auth/queries"
+import { WorkspaceSwitcher } from "@/features/workspaces/components/workspace-switcher"
 import { getErrorMessage } from "@/lib/error-message"
 import { ChevronDownIcon, LogOutIcon } from "lucide-react"
 
@@ -47,11 +48,13 @@ export function NavUser() {
           <ChevronDownIcon data-icon="inline-end" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-56">
+      <DropdownMenuContent align="end" className="w-72 max-w-[calc(100vw-2rem)]">
         <DropdownMenuLabel className="grid font-normal leading-tight">
           <span className="truncate font-medium">{name}</span>
           <span className="truncate text-xs text-muted-foreground">{user.email}</span>
         </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <WorkspaceSwitcher />
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => void logOut()}>
           <LogOutIcon />

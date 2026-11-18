@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PlayIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getRouteApi } from "@tanstack/react-router";
@@ -15,17 +15,24 @@ import {
   useOutletItemScoresRuns,
 } from "@/features/outlet-item-scores/queries";
 import type { ResultsSearch } from "@/features/outlet-item-scores/search";
+import { useBrandOutletId, useOutlets } from "@/features/outlets/queries";
+import { isOtherBrandOutletRun, isRunUnavailable } from "@/features/workspaces/run-scope";
+import { useWorkspaceBrandId } from "@/features/workspaces/use-workspace";
 
-const routeApi = getRouteApi("/_app/results");
+const routeApi = getRouteApi("/_app/b/$brandId/results");
 
 export function ResultsPage() {
   const { t } = useTranslation("results");
+  const brandId = useWorkspaceBrandId();
   const search = routeApi.useSearch();
   const navigate = routeApi.useNavigate();
   const [isRunDialogOpen, setIsRunDialogOpen] = useState(false);
   const { canBrand } = usePermissions();
+  const outletId = useBrandOutletId(brandId, search.outletId);
+  const { data: brandOutlets } = useOutlets({ brandId });
+  const brandOutletIds = brandOutlets?.filter((outlet) => outlet.brandId === brandId).map((outlet) => outlet.id);
 
-  const runs = useOutletItemScoresRuns(search.outletId);
+  const runs = useOutletItemScoresRuns(outletId);
   const runList = runs.data ?? [];
   const publishedRun = runList.find((run) => run.isPublished);
   const listedRun = runList.find((run) => run.id === search.runId);
@@ -34,7 +41,14 @@ export function ResultsPage() {
     runs.isSuccess && !listedRun ? search.runId : undefined,
   );
   const unlistedRun =
-    linkedRun.data?.outletId === search.outletId ? linkedRun.data : undefined;
+    linkedRun.data?.outletId === outletId ? linkedRun.data : undefined;
+  const isForeignRun = isOtherBrandOutletRun(linkedRun.data, brandOutletIds);
+  const isUnavailableRun = isRunUnavailable(linkedRun.error);
+  // A run outside the workspace brand is dropped from the URL, so the URL never names a run the page doesn't show
+  useEffect(() => {
+    if (!isForeignRun && !isUnavailableRun) return;
+    navigate({ search: (prev) => ({ ...prev, runId: undefined }), replace: true, resetScroll: false });
+  }, [isForeignRun, isUnavailableRun, navigate]);
   // No run chosen: show what the outlet serves now, else the newest run
   const viewingRun =
     listedRun ??
@@ -54,9 +68,9 @@ export function ResultsPage() {
         action={
           <div className="flex flex-wrap items-center gap-2">
             <ScoreFormula />
-            {canBrand(search.brandId, "calculations.trigger") && (
+            {canBrand(brandId, "calculations.trigger") && (
               <Button
-                disabled={!search.outletId}
+                disabled={!outletId}
                 onClick={() => setIsRunDialogOpen(true)}
               >
                 <PlayIcon data-icon="inline-start" />
@@ -68,16 +82,12 @@ export function ResultsPage() {
       />
 
       <OutletPicker
-        action="results.view"
-        brandId={search.brandId}
-        outletId={search.outletId}
-        onBrandChange={(brandId) =>
-          updateSearch({ brandId, outletId: undefined, runId: undefined })
-        }
-        onOutletChange={(outletId) => updateSearch({ outletId, runId: undefined })}
+        brandId={brandId}
+        outletId={outletId}
+        onOutletChange={(next) => updateSearch({ outletId: next, runId: undefined })}
       />
 
-      {!search.outletId ? (
+      {!outletId ? (
         <p className="rounded-2xl border border-dashed py-16 text-center text-sm text-muted-foreground">
           {t("picker.noOutlet")}
         </p>
@@ -89,12 +99,12 @@ export function ResultsPage() {
             isPending={runs.isPending}
             error={runs.error}
             viewingRunId={viewingRun?.id}
-            canPublishRuns={canBrand(search.brandId, "calculations.publish")}
+            canPublishRuns={canBrand(brandId, "calculations.publish")}
             onView={(runId) => updateSearch({ runId })}
             onPublished={(runId) => updateSearch({ runId })}
           />
           <RunCalculationDialog
-            outletId={search.outletId}
+            outletId={outletId}
             open={isRunDialogOpen}
             onOpenChange={setIsRunDialogOpen}
             onStarted={(runId) => {

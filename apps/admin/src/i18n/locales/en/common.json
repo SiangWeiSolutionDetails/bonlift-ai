@@ -25,6 +25,7 @@
   "nav": {
     "admin": "Admin",
     "management": "Management",
+    "brand": "Brand",
     "dataset": "Dataset",
     "computation": "Calculation",
     "integration": "Integration",
@@ -41,7 +42,9 @@
     "itemAffinity": "Item Affinity",
     "apiKeys": "API Keys",
     "usage": "Usage",
-    "recommendationFeedback": "Recommendation Feedback"
+    "recommendationFeedback": "Recommendation Feedback",
+    "members": "Members",
+    "settings": "Settings"
   },
   "language": {
     "label": "Language"

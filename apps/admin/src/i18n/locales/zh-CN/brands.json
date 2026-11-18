@@ -16,6 +16,8 @@
     "editBrand": "编辑 {{name}}",
     "viewBrand": "查看 {{name}}",
     "deleteBrand": "删除 {{name}}",
+    "openWorkspace": "打开工作区",
+    "openWorkspaceOf": "打开 {{name}} 工作区",
     "copyBrandId": "复制 {{name}} 的品牌 ID",
     "copyId": "复制 ID",
     "copied": "已复制"
@@ -39,8 +41,7 @@
     "general": "基本信息",
     "calculationConfigs": "计算配置",
     "schedule": "计划任务",
-    "channels": "渠道",
-    "members": "成员"
+    "channels": "渠道"
   },
   "members": {
     "description": "可以处理此品牌的人员及其在该品牌上的角色。",

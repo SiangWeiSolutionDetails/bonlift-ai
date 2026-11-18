@@ -9,7 +9,7 @@ import { FieldHint } from "@/components/field-hint";
 import { HalfLifePreview } from "@/components/half-life-preview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DialogClose, DialogFooter } from "@/components/ui/dialog";
+import { DialogFooter } from "@/components/ui/dialog";
 import {
   Collapsible,
   CollapsibleContent,
@@ -117,6 +117,7 @@ function CustomerItemScoresConfigForm({
     register,
     control,
     handleSubmit,
+    reset,
     formState: { errors, isDirty },
   } = useForm<CreateCustomerItemScoresConfigVersionInput>({
     resolver: typeboxResolver(
@@ -203,11 +204,14 @@ function CustomerItemScoresConfigForm({
 
       {!readOnly && (
         <DialogFooter>
-          <DialogClose asChild>
-            <Button type="button" variant="outline">
-              {tCommon("actions.cancel")}
-            </Button>
-          </DialogClose>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!isDirty || isSubmitting}
+            onClick={() => reset()}
+          >
+            {tCommon("actions.cancel")}
+          </Button>
           <Button type="submit" disabled={!isDirty || isSubmitting}>
             {isSubmitting
               ? tCommon("actions.saving")

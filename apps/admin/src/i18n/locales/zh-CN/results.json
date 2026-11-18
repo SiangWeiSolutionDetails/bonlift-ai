@@ -19,11 +19,9 @@
     "note": "只统计主行商品，行内的加购项和修饰项不计入。半衰期按品牌设置，每次运行使用的值显示在其配置中。“订单数”列为未加权的计数。"
   },
   "picker": {
-    "brand": "品牌",
-    "brandPlaceholder": "选择品牌",
     "outlet": "门店",
     "outletPlaceholder": "选择门店",
-    "noOutlet": "选择品牌和门店以查看热门商品。"
+    "noOutlet": "选择门店以查看热门商品。"
   },
   "status": {
     "running": "运行中",

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
 import { CircleCheckIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +29,7 @@ type BrandsTableProps = {
   error: Error | null;
   emptyMessage?: string;
   canEdit: (brand: Brand) => boolean;
+  canOpenWorkspace: (brand: Brand) => boolean;
   onEdit: (brand: Brand) => void;
   onView: (brand: Brand) => void;
   onDelete?: (brand: Brand) => void;
@@ -44,7 +46,7 @@ export function BrandsTable(props: BrandsTableProps) {
             <TableHead>{t("table.name")}</TableHead>
             <TableHead>{t("table.tenant")}</TableHead>
             <TableHead className="w-32">{t("table.status")}</TableHead>
-            <TableHead className="w-64 text-right">
+            <TableHead className="w-96 text-right">
               <span className="sr-only">{t("table.actions")}</span>
             </TableHead>
           </TableRow>
@@ -64,6 +66,7 @@ function BrandsTableRows({
   error,
   emptyMessage,
   canEdit,
+  canOpenWorkspace,
   onEdit,
   onView,
   onDelete,
@@ -105,6 +108,17 @@ function BrandsTableRows({
       </TableCell>
       <TableCell className="text-right">
         <CopyBrandIdButton brand={brand} />
+        {canOpenWorkspace(brand) && (
+          <Button variant="ghost" size="sm" asChild>
+            <Link
+              to="/b/$brandId"
+              params={{ brandId: brand.id }}
+              aria-label={t("table.openWorkspaceOf", { name: brand.name })}
+            >
+              {t("table.openWorkspace")}
+            </Link>
+          </Button>
+        )}
         {canEdit(brand) && (
           <Button
             variant="ghost"

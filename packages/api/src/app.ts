@@ -21,6 +21,7 @@ import { servingConfigVersionRoutes } from "./routes/servingConfigVersion.route.
 import { itemAffinityResultRoutes } from "./routes/itemAffinityResult.route.js";
 import { recommendationRoutes } from "./routes/recommendation.route.js";
 import { itemAffinityServingRoutes } from "./routes/itemAffinityServing.route.js";
+import { feedbackRoutes } from "./routes/feedback.route.js";
 import { brandApiKeyRoutes } from "./routes/brandApiKey.route.js";
 import { authRoutes } from "./routes/auth.route.js";
 import { brandChannelRoutes } from "./routes/brandChannel.route.js";
@@ -159,6 +160,7 @@ export function buildApp(): FastifyInstance {
       serving.addHook("onResponse", createServingUsageHook(getPool));
       serving.register(recommendationRoutes);
       serving.register(itemAffinityServingRoutes);
+      serving.register(feedbackRoutes);
     },
     { prefix: "/v1" },
   );

@@ -4,17 +4,6 @@ import { ErrorResponseSchema } from "./error.schema.js";
 // Serving contract (/v1), same compatibility rules as recommendation.schema.ts: unknown request fields are accepted and
 // ignored, breaking changes go to /v2. Descriptions are published.
 
-export const RecommendationFeedbackParamsSchema = Type.Object({
-  recommendationId: Type.String({
-    format: "uuid",
-    description: "The `recommendationId` of the recommendations or item affinity response the item was in.",
-    examples: ["7b1f3c2a-5d4e-4f6a-8b9c-0d1e2f3a4b5c"],
-  }),
-});
-export type RecommendationFeedbackParamsSchemaType = Static<
-  typeof RecommendationFeedbackParamsSchema
->;
-
 export const RecommendationFeedbackTypeSchema = Type.Union(
   [Type.Literal("accepted"), Type.Literal("rejected")],
   {
@@ -30,19 +19,32 @@ export const RecommendationFeedbackBodySchema = Type.Object(
   {
     itemId: Type.String({
       minLength: 1,
-      description: "The recommended item the customer acted on, as returned in `items`.",
+      description:
+        "The item the customer acted on, with the same item id as in the `items` of a recommendations or item " +
+        "affinity response.",
       examples: ["ITEM-3003"],
     }),
     type: RecommendationFeedbackTypeSchema,
     // Required: only identified customers give feedback. Blank is rejected by the service, after trimming.
     customerId: Type.String({
       description:
-        "Required. The same `customerId` you sent with the recommendations or item affinity request, in the same " +
-        "format: a mobile number with its country dial code and no \"+\", or an email address. A missing, blank or " +
-        "malformed value is rejected with 400 and nothing is recorded: only identified customers can give feedback. " +
-        "A rejected item is not recommended to this customer again for a while, and accepting it later lifts that.",
+        "Required. The customer who acted on the item, in the same format as on the recommendations and item " +
+        "affinity requests: a mobile number with its country dial code and no \"+\", or an email address. A missing, " +
+        "blank or malformed value is rejected with 400 and nothing is recorded: only identified customers can give " +
+        "feedback. A rejected item is not recommended to this customer again for a while, and accepting it later " +
+        "lifts that.",
       examples: ["6591234567"],
     }),
+    recommendationId: Type.Optional(
+      Type.Union([Type.String({ format: "uuid" }), Type.Null()], {
+        description:
+          "Optional. The `recommendationId` of the recommendations or item affinity response the item was in, when " +
+          "there was one. It only links the feedback to that response, for reporting, and only when the item was in " +
+          "it and the feedback is sent within the brand's feedback window (2 hours by default); otherwise that link " +
+          "is skipped. The customer's preference is recorded either way.",
+        examples: ["7b1f3c2a-5d4e-4f6a-8b9c-0d1e2f3a4b5c"],
+      }),
+    ),
   },
   {
     description:

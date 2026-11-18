@@ -23,11 +23,11 @@ export async function itemAffinityServingRoutes(app: FastifyInstance) {
           "recently. Apply your own availability and dietary filters before display. Any failure on our side " +
           "returns an empty list, so the order can always continue.\n\n" +
           "**Feedback**\n\n" +
-          "Send `outletId` and the customer's `customerId` to get a `recommendationId` back, then report what the " +
-          "customer did with each item to `POST /v1/recommendations/{recommendationId}/feedback`, with the same " +
-          "`customerId` and within the brand's feedback window, exactly as for recommendations. An item the " +
-          "customer rejects is then not returned to them for a while, here or by `POST /v1/recommendations`. " +
-          "Without `outletId` or `customerId` the response has a null `recommendationId` and nothing is recorded.\n\n" +
+          "Report what the customer did with each item to `POST /v1/feedback`, with the same `customerId`, exactly " +
+          "as for recommendations. An item the customer rejects is then not returned to them for a while, here or " +
+          "by `POST /v1/recommendations`. Send `outletId` and the customer's `customerId` to get a " +
+          "`recommendationId` back, and send it with the feedback so it is counted for this response; without " +
+          "`outletId` or `customerId` the response has a null `recommendationId` and the serve is not recorded.\n\n" +
           "**Reasons**\n\n" +
           "| Reason | When it is used |\n" +
           "|---|---|\n" +

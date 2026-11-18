@@ -122,12 +122,11 @@ async function exposedItemIds(): Promise<string[]> {
   return result.rows.map((row) => row.external_item_id);
 }
 
-function feedback(recommendationId: string, itemId: string, type: "accepted" | "rejected") {
+function feedback(recommendationId: string | undefined, itemId: string, type: "accepted" | "rejected") {
   return recordRecommendationFeedback(
     getTestPool(),
     brandId,
-    recommendationId,
-    { itemId, type, customerId: CUSTOMER_ID },
+    { recommendationId, itemId, type, customerId: CUSTOMER_ID },
     SECRET,
   );
 }
@@ -271,6 +270,22 @@ describe("feedback on item affinity serves (integration)", () => {
     expect(await servedItemIds()).toEqual(["EGG", "KAYA"]);
     expect(await servedItemIds({ customerId: OTHER_CUSTOMER_ID })).toEqual(["TOAST", "EGG", "KAYA"]);
     expect(await servedItemIds({ customerId: undefined })).toEqual(["TOAST", "EGG", "KAYA"]);
+  });
+
+  it("stops serving an item rejected without a recommendation id, to that customer only", async () => {
+    await feedback(undefined, "TOAST", "rejected");
+
+    expect(await servedItemIds()).toEqual(["EGG", "KAYA"]);
+    expect(await servedItemIds({ customerId: OTHER_CUSTOMER_ID })).toEqual(["TOAST", "EGG", "KAYA"]);
+    expect(await servedItemIds({ customerId: undefined })).toEqual(["TOAST", "EGG", "KAYA"]);
+  });
+
+  it("serves an item again once the customer accepts it without a recommendation id", async () => {
+    await feedback(undefined, "TOAST", "rejected");
+
+    await feedback(undefined, "TOAST", "accepted");
+
+    expect(await servedItemIds()).toEqual(["TOAST", "EGG", "KAYA"]);
   });
 
   it("stops recommending an item rejected on an item affinity serve", async () => {

@@ -37,12 +37,10 @@ async function storeServe(overrides: Partial<RecommendationServe> = {}): Promise
   return serve.id;
 }
 
-function feedback(
-  recommendationId: string,
-  body: Parameters<typeof recordRecommendationFeedback>[3],
-  brand = brandId,
-) {
-  return recordRecommendationFeedback(getTestPool(), brand, recommendationId, body, SECRET);
+type FeedbackBody = Omit<Parameters<typeof recordRecommendationFeedback>[2], "recommendationId">;
+
+function feedback(recommendationId: string | null | undefined, body: FeedbackBody, brand = brandId) {
+  return recordRecommendationFeedback(getTestPool(), brand, { ...body, recommendationId }, SECRET);
 }
 
 async function feedbackArrays(recommendationId: string) {
@@ -53,7 +51,7 @@ async function feedbackArrays(recommendationId: string) {
   return { accepted: result.rows[0].accepted_item_ids, rejected: result.rows[0].rejected_item_ids };
 }
 
-async function rejectedItemIds(customerHash = CUSTOMER_HASH): Promise<string[]> {
+async function rejectedItemIds(customerHash = CUSTOMER_HASH, brand = brandId): Promise<string[]> {
   const result = await getTestPool().query(
     `
     SELECT external_item_id
@@ -62,7 +60,7 @@ async function rejectedItemIds(customerHash = CUSTOMER_HASH): Promise<string[]> 
       AND customer_external_id = $2
     ORDER BY external_item_id
     `,
-    [brandId, customerHash],
+    [brand, customerHash],
   );
   return result.rows.map((row) => row.external_item_id);
 }
@@ -106,9 +104,23 @@ describe("recordRecommendationFeedback (integration)", () => {
     await feedback(id, { itemId: "B", type: "rejected", customerId: CUSTOMER_ID });
 
     expect(await feedbackArrays(id)).toStrictEqual({ accepted: ["A"], rejected: ["B"] });
+    expect(await rejectedItemIds()).toEqual(["B"]);
   });
 
-  it("ignores feedback sent with another brand's key", async () => {
+  it("remembers a rejection sent without a recommendation id, for that customer only", async () => {
+    await feedback(undefined, { itemId: "A", type: "rejected", customerId: CUSTOMER_ID });
+
+    expect(await rejectedItemIds()).toEqual(["A"]);
+    expect(await rejectedItemIds(hashCustomerId(SECRET, "6598765432"))).toEqual([]);
+  });
+
+  it("remembers a rejection sent with a null recommendation id", async () => {
+    await feedback(null, { itemId: "A", type: "rejected", customerId: CUSTOMER_ID });
+
+    expect(await rejectedItemIds()).toEqual(["A"]);
+  });
+
+  it("records the preference for the key's brand only, leaving another brand's serve untracked", async () => {
     const id = await storeServe();
 
     await expect(
@@ -117,37 +129,37 @@ describe("recordRecommendationFeedback (integration)", () => {
 
     expect(await feedbackArrays(id)).toStrictEqual({ accepted: [], rejected: [] });
     expect(await rejectedItemIds()).toEqual([]);
+    expect(await rejectedItemIds(CUSTOMER_HASH, otherBrandId)).toEqual(["A"]);
   });
 
-  it("ignores an item that was not served", async () => {
+  it("records the preference for an item that was not served, without tracking it", async () => {
     const id = await storeServe();
 
     await feedback(id, { itemId: "Z", type: "rejected", customerId: CUSTOMER_ID });
 
     expect(await feedbackArrays(id)).toStrictEqual({ accepted: [], rejected: [] });
-    expect(await rejectedItemIds()).toEqual([]);
+    expect(await rejectedItemIds()).toEqual(["Z"]);
   });
 
-  it("ignores an unknown recommendation id", async () => {
+  it("records the preference for an unknown recommendation id", async () => {
     await expect(
-      feedback(randomUUID(), { itemId: "A", type: "accepted", customerId: CUSTOMER_ID }),
+      feedback(randomUUID(), { itemId: "A", type: "rejected", customerId: CUSTOMER_ID }),
     ).resolves.toBeUndefined();
+
+    expect(await rejectedItemIds()).toEqual(["A"]);
   });
 
-  it("ignores feedback on a serve older than the default 2 hour window", async () => {
+  it("records the preference but does not track a serve older than the default 2 hour window", async () => {
     const id = await storeServe();
-    await getTestPool().query(
-      "UPDATE recommendation_serves SET served_at = now() - interval '2 hours 1 minute' WHERE id = $1",
-      [id],
-    );
+    await backdateServe(id, "2 hours 1 minute");
 
     await feedback(id, { itemId: "A", type: "rejected", customerId: CUSTOMER_ID });
 
     expect(await feedbackArrays(id)).toStrictEqual({ accepted: [], rejected: [] });
-    expect(await rejectedItemIds()).toEqual([]);
+    expect(await rejectedItemIds()).toEqual(["A"]);
   });
 
-  it("counts feedback just inside the default 2 hour window", async () => {
+  it("tracks feedback just inside the default 2 hour window", async () => {
     const id = await storeServe();
     await backdateServe(id, "1 hour 59 minutes");
 
@@ -156,7 +168,7 @@ describe("recordRecommendationFeedback (integration)", () => {
     expect(await feedbackArrays(id)).toStrictEqual({ accepted: [], rejected: ["A"] });
   });
 
-  it("uses the brand's latest feedback window", async () => {
+  it("uses the brand's latest feedback window for tracking", async () => {
     await createServingConfigVersion(getTestPool(), brandId, { feedbackWindowMinutes: 30 }, "api");
     const late = await storeServe();
     await backdateServe(late, "31 minutes");
@@ -168,7 +180,7 @@ describe("recordRecommendationFeedback (integration)", () => {
 
     expect(await feedbackArrays(late)).toStrictEqual({ accepted: [], rejected: [] });
     expect(await feedbackArrays(inTime)).toStrictEqual({ accepted: [], rejected: ["B"] });
-    expect(await rejectedItemIds()).toEqual(["B"]);
+    expect(await rejectedItemIds()).toEqual(["A", "B"]);
   });
 
   it("rejects feedback without a customer id, recording nothing", async () => {
@@ -182,12 +194,10 @@ describe("recordRecommendationFeedback (integration)", () => {
   });
 
   it("remembers an identified customer's rejection, a later one moving its time forward", async () => {
-    const first = await storeServe();
-    await feedback(first, { itemId: "A", type: "rejected", customerId: CUSTOMER_ID });
+    await feedback(undefined, { itemId: "A", type: "rejected", customerId: CUSTOMER_ID });
     await getTestPool().query("UPDATE customer_item_rejections SET rejected_at = now() - interval '10 days'");
 
-    const second = await storeServe();
-    await feedback(second, { itemId: "A", type: "rejected", customerId: CUSTOMER_ID });
+    await feedback(undefined, { itemId: "A", type: "rejected", customerId: CUSTOMER_ID });
 
     const result = await getTestPool().query(
       "SELECT brand_id, external_item_id, rejected_at > now() - interval '1 minute' AS recent FROM customer_item_rejections",
@@ -204,6 +214,16 @@ describe("recordRecommendationFeedback (integration)", () => {
     await feedback(second, { itemId: "A", type: "accepted", customerId: CUSTOMER_ID });
 
     expect(await rejectedItemIds()).toEqual(["B"]);
+  });
+
+  it("forgets a rejection and that the item was shown when accepted without a recommendation id", async () => {
+    await storeServe();
+    await feedback(undefined, { itemId: "A", type: "rejected", customerId: CUSTOMER_ID });
+
+    await feedback(undefined, { itemId: "A", type: "accepted", customerId: CUSTOMER_ID });
+
+    expect(await rejectedItemIds()).toEqual([]);
+    expect(await exposedItemIds()).toEqual(["B"]);
   });
 
   it("keeps another customer's rejection when this customer accepts the item", async () => {
@@ -226,11 +246,24 @@ describe("recordRecommendationFeedback (integration)", () => {
     expect(await exposedItemIds()).toEqual(["B"]);
   });
 
-  it("keeps the items shown when feedback is sent with another brand's key", async () => {
+  it("keeps the items shown for the brand when feedback is sent with another brand's key", async () => {
     const id = await storeServe();
 
     await feedback(id, { itemId: "A", type: "accepted", customerId: CUSTOMER_ID }, otherBrandId);
 
     expect(await exposedItemIds()).toEqual(["A", "B"]);
+    expect(await feedbackArrays(id)).toStrictEqual({ accepted: [], rejected: [] });
+  });
+
+  it("changes nothing more when the same feedback is retried", async () => {
+    const id = await storeServe();
+
+    await feedback(id, { itemId: "A", type: "rejected", customerId: CUSTOMER_ID });
+    await feedback(id, { itemId: "A", type: "rejected", customerId: CUSTOMER_ID });
+    await feedback(undefined, { itemId: "A", type: "rejected", customerId: CUSTOMER_ID });
+
+    expect(await feedbackArrays(id)).toStrictEqual({ accepted: [], rejected: ["A"] });
+    const count = await getTestPool().query("SELECT count(*)::int AS n FROM customer_item_rejections");
+    expect(count.rows[0].n).toBe(1);
   });
 });

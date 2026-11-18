@@ -54,7 +54,7 @@ export const ItemAffinityRequestSchema = Type.Object(
         format: "uuid",
         description:
           "The outlet the order is placed at. Must belong to the brand of the API key. Optional: it does not change " +
-          "which items are returned, but without it the response cannot receive feedback.",
+          "which items are returned, but without it feedback cannot be counted for the response.",
         examples: ["3f6c2a9e-8d1b-4c57-9a0e-2b7d4f1e6c35"],
       }),
     ),
@@ -103,10 +103,9 @@ export const ItemAffinityResponseSchema = Type.Object(
   {
     recommendationId: Type.Union([Type.String({ format: "uuid" }), Type.Null()], {
       description:
-        "Identifies this response. Send it back with feedback on the items it returned, to " +
-        "`POST /v1/recommendations/{recommendationId}/feedback`. Null unless both `outletId` and `customerId` were " +
-        "sent, the outlet is an active outlet of your brand, and items are returned: only identified customers can " +
-        "give feedback.",
+        "Identifies this response. Send it with feedback on the items it returned, to `POST /v1/feedback`. Null " +
+        "unless both `outletId` and `customerId` were sent, the outlet is an active outlet of your brand, and items " +
+        "are returned: only identified customers can give feedback.",
       examples: ["7b1f3c2a-5d4e-4f6a-8b9c-0d1e2f3a4b5c"],
     }),
     runId: Type.Union([Type.String({ format: "uuid" }), Type.Null()], {

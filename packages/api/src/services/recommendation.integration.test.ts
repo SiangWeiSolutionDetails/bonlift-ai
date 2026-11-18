@@ -462,6 +462,19 @@ describe("items the customer rejected (integration)", () => {
     expect(await recommendedItemIds(undefined, { customerId: undefined })).toEqual(["TOAST", "RICE"]);
   });
 
+  it("stops serving an item rejected without a recommendation id, to that customer only", async () => {
+    await recordRecommendationFeedback(
+      getTestPool(),
+      brandId,
+      { itemId: "TOAST", type: "rejected", customerId: OTHER_CUSTOMER_ID },
+      SECRET,
+    );
+
+    expect(await recommendedItemIds(undefined, { customerId: OTHER_CUSTOMER_ID })).toEqual(["RICE"]);
+    expect(await recommendedItemIds(undefined, { customerId: "6597777777" })).toEqual(["TOAST", "RICE"]);
+    expect(await recommendedItemIds(undefined, { customerId: undefined })).toEqual(["TOAST", "RICE"]);
+  });
+
   it("stops serving an item once the customer rejects it from a recorded serve", async () => {
     const pool = getTestPool();
     const { response, serve } = await getRecommendations(
@@ -476,8 +489,7 @@ describe("items the customer rejected (integration)", () => {
     await recordRecommendationFeedback(
       pool,
       brandId,
-      response.recommendationId!,
-      { itemId: "KAYA", type: "rejected", customerId: CUSTOMER_ID },
+      { recommendationId: response.recommendationId, itemId: "KAYA", type: "rejected", customerId: CUSTOMER_ID },
       SECRET,
     );
 
@@ -568,8 +580,7 @@ describe("items shown before (integration)", () => {
     await recordRecommendationFeedback(
       getTestPool(),
       brandId,
-      response.recommendationId!,
-      { itemId: "KAYA", type: "accepted", customerId: CUSTOMER_ID },
+      { recommendationId: response.recommendationId, itemId: "KAYA", type: "accepted", customerId: CUSTOMER_ID },
       SECRET,
     );
 
@@ -583,8 +594,7 @@ describe("items shown before (integration)", () => {
     await recordRecommendationFeedback(
       getTestPool(),
       brandId,
-      response.recommendationId!,
-      { itemId: "MILO", type: "accepted", customerId: CUSTOMER_ID },
+      { recommendationId: response.recommendationId, itemId: "MILO", type: "accepted", customerId: CUSTOMER_ID },
       SECRET,
     );
 

@@ -79,7 +79,6 @@ function AccountRow({ account, current, onSwitch }: AccountRowProps) {
         {current ? t("signedIn") : t("signedOut")}
       </span>
       <CurrentMark current={current} />
-      <CurrentMark current={current} />
     </DropdownMenuItem>
   )
 }
@@ -100,6 +99,16 @@ function RemoveAccountItem({ email }: { email: string }) {
   )
 }
 
+// Same width as the Remove item, so the current row's status and mark line up with the rows below
+function RemoveSpacer() {
+  const { t } = useTranslation("auth")
+  return (
+    <span aria-hidden className="invisible px-2 text-xs">
+      {t("removeAccount")}
+    </span>
+  )
+}
+
 function AccountList({ onSwitch }: { onSwitch: (email: string) => void }) {
   const user = useCurrentUser()
   const known = useKnownAccounts()
@@ -107,7 +116,10 @@ function AccountList({ onSwitch }: { onSwitch: (email: string) => void }) {
 
   return (
     <>
-      <AccountRow account={user} current onSwitch={() => {}} />
+      <div className="flex items-center gap-1">
+        <AccountRow account={user} current onSwitch={() => {}} />
+        <RemoveSpacer />
+      </div>
       {others.map((account) => (
         <div key={account.email} className="flex items-center gap-1">
           <AccountRow account={account} current={false} onSwitch={() => onSwitch(account.email)} />

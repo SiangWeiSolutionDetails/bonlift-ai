@@ -8,6 +8,7 @@ import {
   OutletQuerySchema,
   OutletQuerySchemaType,
   OutletRecordSchemaType,
+  providerBrandActions,
   UpdateOutletBodySchema,
   UpdateOutletBodySchemaType,
 } from "@bonlift-ai/contracts";
@@ -62,7 +63,7 @@ export async function getOutlet(
 export async function getOutlets(
   pool: Pool,
   options: OutletQuerySchemaType,
-  scope: { userId: string },
+  scope: { userId: string; consoleActions: readonly string[] },
 ): Promise<OutletRecordSchemaType[]> {
   const tenantId = options?.tenantId;
   const brandId = options?.brandId;
@@ -82,8 +83,10 @@ export async function getOutlets(
     conditions.push(`o.brand_id = $${values.length}`);
   }
 
-  values.push(scope.userId);
-  conditions.push(`o.brand_id IN (SELECT brand_id FROM user_brand_roles WHERE user_id = $${values.length})`);
+  if (!providerBrandActions(scope.consoleActions).includes("outlets.view")) {
+    values.push(scope.userId);
+    conditions.push(`o.brand_id IN (SELECT brand_id FROM user_brand_roles WHERE user_id = $${values.length})`);
+  }
 
   const result = await pool.query(
     `

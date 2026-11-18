@@ -17,7 +17,7 @@ const BRAND_ID = "33333333-3333-3333-3333-333333333333";
 const TENANT_ID = "44444444-4444-4444-4444-444444444444";
 const INVALID_ID = "invalid-id";
 const USER_ID = "55555555-5555-5555-5555-555555555555";
-const SCOPE = { userId: USER_ID };
+const SCOPE = { userId: USER_ID, consoleActions: ["brands.view"] };
 const ROLE_FILTER = "o.brand_id IN (SELECT brand_id FROM user_brand_roles WHERE user_id = ";
 
 const DEFAULT_OUTLET: OutletRecordSchemaType = {
@@ -129,6 +129,24 @@ describe("getOutlets", () => {
       [TENANT_ID, BRAND_ID, USER_ID],
     );
   });
+
+  it.each(["provider.view", "provider.support"])(
+    "lists outlets of every brand for %s, keeping the filters",
+    async (providerAction) => {
+      queryMock.mockResolvedValueOnce(pgResult([fakeOutletRow()]));
+
+      await getOutlets(
+        fakePool,
+        { tenantId: TENANT_ID, brandId: BRAND_ID },
+        { userId: USER_ID, consoleActions: [providerAction] },
+      );
+
+      const [sql, params] = queryMock.mock.calls[0];
+      expect(sql).toContain("WHERE o.deleted_at IS NULL AND o.tenant_id = $1 AND o.brand_id = $2\n");
+      expect(sql).not.toContain("user_brand_roles");
+      expect(params).toEqual([TENANT_ID, BRAND_ID]);
+    },
+  );
 
   it("orders outlets by name, then id", async () => {
     queryMock.mockResolvedValueOnce(pgResult([]));

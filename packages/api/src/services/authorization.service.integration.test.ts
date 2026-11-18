@@ -1,6 +1,7 @@
+import type { BrandAction } from "@bonlift-ai/contracts";
 import { describe, expect, it } from "vitest";
 import { getTestPool } from "../testing/testDb.js";
-import { authorizeRequest } from "./authorization.service.js";
+import { authorizeRequest, type AccessCheck, type BrandRef } from "./authorization.service.js";
 import { createBrand, deleteBrand } from "./brand.service.js";
 import { createOutlet } from "./outlet.service.js";
 import { createSession, SESSION_IDLE_MS } from "./session.service.js";
@@ -135,21 +136,111 @@ describe("authorization.service (integration)", () => {
     });
   });
 
-  it("gives an Admin every console action but returns notFound for a brand action", async () => {
+  it("gives an Admin every console action and provider access to a brand without personal data", async () => {
     const brandId = await createTestBrand();
     const { userId, token } = await createSignedInUser();
     await assignConsoleRole(userId, await createRole("console", "Admin", [], true));
+    const onBrand = (action: BrandAction) =>
+      authorizeRequest(getTestPool(), token, { brand: action, from: "params.brandId" }, { "params.brandId": brandId });
 
     const consoleResult = await authorizeRequest(getTestPool(), token, { console: "roles.manage" }, {});
-    const brandResult = await authorizeRequest(
-      getTestPool(),
-      token,
-      { brand: "apiKeys.view", from: "params.brandId" },
-      { "params.brandId": brandId },
-    );
 
     expect(consoleResult).toMatchObject({ decision: "allow", access: { isAdmin: true } });
-    expect(brandResult).toMatchObject({ decision: "notFound", access: { isAdmin: true } });
+    expect(await onBrand("apiKeys.view")).toMatchObject({ decision: "allow", brandActions: null });
+    expect(await onBrand("customerScores.view")).toMatchObject({ decision: "forbidden" });
+  });
+
+  describe("provider access", () => {
+    async function createProvider(actions: string[]) {
+      const { userId, token } = await createSignedInUser("provider@x.com");
+      await assignConsoleRole(userId, await createRole("console", "Provider", actions));
+      return token;
+    }
+
+    async function createBrandWithRunAndOutlet() {
+      const brandId = await createTestBrand();
+      const outletId = (await createOutlet(getTestPool(), { brandId, name: "Orchard" })).id;
+      return { brandId, outletId, runId: await insertRun(brandId) };
+    }
+
+    it("lets provider.view reach an operational route but not edit or see personal data", async () => {
+      const { brandId, outletId, runId } = await createBrandWithRunAndOutlet();
+      const token = await createProvider(["provider.view"]);
+      const decisionOf = async (access: AccessCheck, refs: Partial<Record<BrandRef, string>>) =>
+        (await authorizeRequest(getTestPool(), token, access, refs))?.decision;
+
+      expect(await decisionOf({ brand: "outlets.view", from: "params.outletId" }, { "params.outletId": outletId })).toBe(
+        "allow",
+      );
+      expect(await decisionOf({ brandMember: "params.brandId" }, { "params.brandId": brandId })).toBe("allow");
+      expect(await decisionOf({ brand: "outlets.edit", from: "params.outletId" }, { "params.outletId": outletId })).toBe(
+        "forbidden",
+      );
+      expect(
+        await decisionOf({ brand: "customerScores.view", from: "params.runId" }, { "params.runId": runId }),
+      ).toBe("forbidden");
+      expect(
+        await decisionOf({ brand: "snapshots.viewCustomerIds", from: "params.outletId" }, { "params.outletId": outletId }),
+      ).toBe("forbidden");
+    });
+
+    it("lets provider.support edit but still not see personal data", async () => {
+      const { outletId, runId } = await createBrandWithRunAndOutlet();
+      const token = await createProvider(["provider.support"]);
+      const decisionOf = async (access: AccessCheck, refs: Partial<Record<BrandRef, string>>) =>
+        (await authorizeRequest(getTestPool(), token, access, refs))?.decision;
+
+      expect(await decisionOf({ brand: "outlets.edit", from: "params.outletId" }, { "params.outletId": outletId })).toBe(
+        "allow",
+      );
+      expect(
+        await decisionOf({ brand: "calculations.trigger", from: "params.runId" }, { "params.runId": runId }),
+      ).toBe("allow");
+      expect(
+        await decisionOf({ brand: "customerScores.view", from: "params.runId" }, { "params.runId": runId }),
+      ).toBe("forbidden");
+    });
+
+    it("returns notFound to a provider for a brand that does not exist", async () => {
+      const token = await createProvider(["provider.support"]);
+
+      const result = await authorizeRequest(
+        getTestPool(),
+        token,
+        { brand: "outlets.view", from: "params.brandId" },
+        { "params.brandId": "99999999-9999-4999-8999-999999999999" },
+      );
+
+      expect(result?.decision).toBe("notFound");
+    });
+
+    it("gives no access to a brand of a deleted tenant, through a provider action or a brand role", async () => {
+      const { brandId, outletId } = await createBrandWithRunAndOutlet();
+      const token = await createProvider(["provider.support"]);
+      const member = await createSignedInUser("member@x.com");
+      await assignBrandRole(member.userId, brandId, await createBrandRole(brandId, "Viewer", ["outlets.view"]));
+      // Only the tenant row, so the brand-resolution tenant check is what refuses.
+      await getTestPool().query(
+        `UPDATE tenants SET deleted_at = now() WHERE id = (SELECT tenant_id FROM brands WHERE id = $1)`,
+        [brandId],
+      );
+
+      const provider = await authorizeRequest(
+        getTestPool(),
+        token,
+        { brand: "outlets.view", from: "params.outletId" },
+        { "params.outletId": outletId },
+      );
+      const viaRole = await authorizeRequest(
+        getTestPool(),
+        member.token,
+        { brandMember: "params.brandId" },
+        { "params.brandId": brandId },
+      );
+
+      expect(provider?.decision).toBe("notFound");
+      expect(viaRole).toMatchObject({ decision: "notFound", brandActions: null });
+    });
   });
 
   it("resolves the brand through an outlet", async () => {

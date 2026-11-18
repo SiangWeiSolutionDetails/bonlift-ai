@@ -16,8 +16,8 @@ const OTHER_BRAND_ID = "22222222-2222-2222-2222-222222222222";
 const TENANT_ID = "44444444-4444-4444-4444-444444444444";
 const INVALID_ID = "invalid-id";
 const USER_ID = "55555555-5555-5555-5555-555555555555";
-const ALL_BRANDS = { userId: USER_ID, all: true };
-const MEMBER_BRANDS = { userId: USER_ID, all: false };
+const ALL_BRANDS = { userId: USER_ID, consoleActions: ["brands.view"] };
+const MEMBER_BRANDS = { userId: USER_ID, consoleActions: ["tenants.view"] };
 
 const DEFAULT_BRAND: BrandRecordSchemaType = {
   id: BRAND_ID,
@@ -101,7 +101,15 @@ describe("getBrands", () => {
     expect(result).toStrictEqual([DEFAULT_BRAND]);
   });
 
-  it("limits the list to brands where the user holds a role when all is false", async () => {
+  it.each(["provider.view", "provider.support"])("lists every brand for %s", async (providerAction) => {
+    queryMock.mockResolvedValueOnce(pgResult([]));
+
+    await getBrands(fakePool, { tenantId: TENANT_ID }, { userId: USER_ID, consoleActions: [providerAction] });
+
+    expect(queryMock).toHaveBeenCalledWith(expect.not.stringContaining("user_brand_roles"), [TENANT_ID]);
+  });
+
+  it("limits the list to brands where the user holds a role without brands.view or provider access", async () => {
     queryMock.mockResolvedValueOnce(pgResult([fakeBrandRow()]));
 
     await getBrands(fakePool, { tenantId: TENANT_ID }, MEMBER_BRANDS);
@@ -114,7 +122,7 @@ describe("getBrands", () => {
     );
   });
 
-  it("omits the role filter when all is true", async () => {
+  it("omits the role filter with brands.view", async () => {
     queryMock.mockResolvedValueOnce(pgResult([]));
 
     await getBrands(fakePool, {}, ALL_BRANDS);
@@ -167,12 +175,22 @@ describe("getBrand", () => {
     );
   });
 
-  it("returns the brand", async () => {
-    queryMock.mockResolvedValueOnce(pgResult([fakeBrandRow()]));
+  it("looks up the brand on a live tenant", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([{ ...fakeBrandRow(), tenant_name: "Kopi Group" }]));
+
+    await getBrand(fakePool, BRAND_ID);
+
+    const [sql] = queryMock.mock.calls[0];
+    expect(sql).toContain("JOIN tenants t");
+    expect(sql).toContain("t.deleted_at IS NULL");
+  });
+
+  it("returns the brand with its tenant name", async () => {
+    queryMock.mockResolvedValueOnce(pgResult([{ ...fakeBrandRow(), tenant_name: "Kopi Group" }]));
 
     const result = await getBrand(fakePool, BRAND_ID);
 
-    expect(result).toStrictEqual(DEFAULT_BRAND);
+    expect(result).toStrictEqual({ ...DEFAULT_BRAND, tenantName: "Kopi Group" });
   });
 });
 

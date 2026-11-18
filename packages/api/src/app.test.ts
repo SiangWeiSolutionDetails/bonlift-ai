@@ -2,7 +2,14 @@ import type { FastifyInstance } from "fastify";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildApp } from "./app.js";
 import { resetAuthConfigCache } from "./config/env.js";
-import { authorizeRequest } from "./services/authorization.service.js";
+import { PERSONAL_DATA_ACTIONS } from "@bonlift-ai/contracts";
+import {
+  authorizeRequest,
+  checksOf,
+  decide,
+  type AuthorizationRow,
+  type RouteAccess,
+} from "./services/authorization.service.js";
 
 vi.mock("./services/authorization.service.js", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./services/authorization.service.js")>()),
@@ -95,6 +102,36 @@ describe("admin route inventory", () => {
       .filter((route) => route.access === undefined)
       .map((route) => `${route.method} ${route.url}`);
     expect(undeclared).toEqual([]);
+  });
+
+  it.each([
+    ["provider.view", { console_is_builtin: false, console_actions: ["provider.view"] }],
+    ["provider.support", { console_is_builtin: false, console_actions: ["provider.support"] }],
+    ["Admin", { console_is_builtin: true, console_actions: [] }],
+  ])("never allows %s onto a personal-data route without a brand role", (_, consoleRole) => {
+    const providerRow: AuthorizationRow = {
+      id: PLACEHOLDER_ID,
+      email: "alice@x.com",
+      display_name: null,
+      ...consoleRole,
+      brand_exists: true,
+      has_brand_role: false,
+      brand_actions: null,
+    };
+    const personalRoutes = adminRoutes().filter((route) =>
+      checksOf(route.access as RouteAccess).some(
+        (check) => "brand" in check && PERSONAL_DATA_ACTIONS.includes(check.brand),
+      ),
+    );
+
+    const allowed = personalRoutes
+      .filter((route) => decide(providerRow, route.access as RouteAccess) === "allow")
+      .map((route) => `${route.method} ${route.url}`);
+
+    expect(personalRoutes.map((route) => route.url)).toEqual(
+      expect.arrayContaining(["/runs/:runId/customer-item-scores", "/outlets/:outletId/order-snapshots/:date"]),
+    );
+    expect(allowed).toEqual([]);
   });
 
   it("lets a valid session through to validation", async () => {

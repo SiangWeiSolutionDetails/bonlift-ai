@@ -1,4 +1,4 @@
-import { CONSOLE_ACTIONS } from "@bonlift-ai/contracts";
+import { CONSOLE_ACTIONS, type BrandAction } from "@bonlift-ai/contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { pgResult } from "../utils/pg.test-helpers.js";
 import { authorizeRequest, decide, type AuthorizationRow, type RouteAccess } from "./authorization.service.js";
@@ -21,6 +21,7 @@ function row(overrides: Partial<AuthorizationRow> = {}): AuthorizationRow {
     display_name: "Alice",
     console_is_builtin: null,
     console_actions: null,
+    brand_exists: true,
     has_brand_role: false,
     brand_actions: null,
     ...overrides,
@@ -30,6 +31,9 @@ function row(overrides: Partial<AuthorizationRow> = {}): AuthorizationRow {
 const consoleRole = (actions: string[]) => row({ console_is_builtin: false, console_actions: actions });
 const adminRole = () => row({ console_is_builtin: true, console_actions: [] });
 const brandRole = (actions: string[]) => row({ has_brand_role: true, brand_actions: actions });
+const providerView = () => consoleRole(["provider.view"]);
+const providerSupport = () => consoleRole(["provider.support"]);
+const brandAccess = (action: BrandAction): RouteAccess => ({ brand: action, from: "params.brandId" });
 
 describe("decide", () => {
   it("allows any session for signedIn", () => {
@@ -49,11 +53,56 @@ describe("decide", () => {
     expect(decide(adminRole(), { console: "roles.manage" })).toBe("allow");
   });
 
-  it("returns notFound for a brand action without a brand role, even for an Admin", () => {
-    const access = { brand: "apiKeys.view", from: "params.brandId" } as const;
+  it("returns notFound for a brand action without a brand role or provider access", () => {
+    expect(decide(row(), brandAccess("apiKeys.view"))).toBe("notFound");
+    expect(decide(consoleRole(["brands.view", "tenants.edit"]), brandAccess("apiKeys.view"))).toBe("notFound");
+  });
 
-    expect(decide(row(), access)).toBe("notFound");
-    expect(decide(adminRole(), access)).toBe("notFound");
+  it("gives an Admin provider access to a brand without a brand role", () => {
+    expect(decide(adminRole(), brandAccess("apiKeys.view"))).toBe("allow");
+    expect(decide(adminRole(), brandAccess("outlets.edit"))).toBe("allow");
+  });
+
+  it("lets provider.view read operational data but not edit it", () => {
+    expect(decide(providerView(), brandAccess("outlets.view"))).toBe("allow");
+    expect(decide(providerView(), brandAccess("members.view"))).toBe("allow");
+    expect(decide(providerView(), brandAccess("outlets.edit"))).toBe("forbidden");
+  });
+
+  it("lets provider.support edit operational data", () => {
+    expect(decide(providerSupport(), brandAccess("outlets.view"))).toBe("allow");
+    expect(decide(providerSupport(), brandAccess("calculations.publish"))).toBe("allow");
+  });
+
+  it.each([
+    ["provider.view", providerView],
+    ["provider.support", providerSupport],
+    ["Admin", adminRole],
+  ] as const)("never gives %s personal data or members.manage through provider access", (_, provider) => {
+    expect(decide(provider(), brandAccess("customerScores.view"))).toBe("forbidden");
+    expect(decide(provider(), brandAccess("snapshots.viewCustomerIds"))).toBe("forbidden");
+    expect(decide(provider(), brandAccess("members.manage"))).toBe("forbidden");
+  });
+
+  it("still gives personal data through a brand role held alongside provider access", () => {
+    const both = row({
+      console_is_builtin: false,
+      console_actions: ["provider.support"],
+      has_brand_role: true,
+      brand_actions: ["customerScores.view"],
+    });
+
+    expect(decide(both, brandAccess("customerScores.view"))).toBe("allow");
+    expect(decide(both, brandAccess("outlets.edit"))).toBe("allow");
+    expect(decide(both, brandAccess("snapshots.viewCustomerIds"))).toBe("forbidden");
+  });
+
+  it("returns notFound to a provider when the brand or its tenant is not live", () => {
+    const gone = (provider: AuthorizationRow) => ({ ...provider, brand_exists: false });
+
+    expect(decide(gone(providerSupport()), brandAccess("outlets.view"))).toBe("notFound");
+    expect(decide(gone(adminRole()), brandAccess("outlets.view"))).toBe("notFound");
+    expect(decide(gone(providerView()), { brandMember: "params.brandId" })).toBe("notFound");
   });
 
   it("forbids a brand action the brand role lacks", () => {
@@ -73,6 +122,12 @@ describe("decide", () => {
     expect(decide(row(), { brandMember: "params.brandId" })).toBe("notFound");
   });
 
+  it("allows brandMember for provider access", () => {
+    expect(decide(providerView(), { brandMember: "params.brandId" })).toBe("allow");
+    expect(decide(providerSupport(), { brandMember: "params.brandId" })).toBe("allow");
+    expect(decide(adminRole(), { brandMember: "params.brandId" })).toBe("allow");
+  });
+
   it("allows anyOf when one branch allows", () => {
     const access: RouteAccess = {
       anyOf: [{ console: "brands.view" }, { brandMember: "params.brandId" }],
@@ -89,6 +144,16 @@ describe("decide", () => {
 
     expect(decide(brandRole(["outlets.view"]), access)).toBe("forbidden");
     expect(decide(consoleRole(["tenants.view"]), access)).toBe("notFound");
+  });
+
+  it("returns forbidden over notFound from anyOf when the user has provider access to the brand", () => {
+    const access: RouteAccess = {
+      anyOf: [{ console: "brands.edit" }, { brand: "outlets.edit", from: "params.brandId" }],
+    };
+
+    expect(decide(providerView(), access)).toBe("forbidden");
+    expect(decide(providerSupport(), access)).toBe("allow");
+    expect(decide({ ...providerView(), brand_exists: false }, access)).toBe("notFound");
   });
 
   it("forbids an anyOf of console checks only when none passes", () => {
@@ -198,6 +263,9 @@ describe("authorizeRequest", () => {
     expect(sql).toContain("target AS");
     expect(sql).toContain(source);
     expect(sql).toContain("deleted_at IS NULL");
+    expect(sql).toContain("JOIN tenants tn");
+    expect(sql).toContain("tn.deleted_at IS NULL");
+    expect(sql).toContain("AS brand_exists");
     expect(params[3]).toBe(ref);
   });
 

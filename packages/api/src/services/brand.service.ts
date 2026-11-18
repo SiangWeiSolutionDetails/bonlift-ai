@@ -5,12 +5,14 @@ import { isForeignKeyViolation, isUniqueViolation } from "../utils/pgErrors.js";
 import { withTransaction } from "../utils/transaction.js";
 import { assertValid } from "../utils/validate.js";
 import {
+  BrandDetailSchemaType,
   BrandParamsSchema,
   BrandQuerySchema,
   BrandQuerySchemaType,
   BrandRecordSchemaType,
   CreateBrandBodySchema,
   CreateBrandBodySchemaType,
+  providerBrandActions,
   UpdateBrandBodySchema,
   UpdateBrandBodySchemaType,
 } from "@bonlift-ai/contracts";
@@ -38,13 +40,16 @@ function toConflictError(error: unknown, data: { name?: string }) {
 export async function getBrand(
   pool: Pool,
   brandId: string,
-): Promise<BrandRecordSchemaType> {
+): Promise<BrandDetailSchemaType> {
   assertValid(BrandParamsSchema, { brandId });
 
   const result = await pool.query(
     `
-    SELECT ${BRAND_COLUMNS}
+    SELECT b.id, b.tenant_id, b.name, b.is_active, t.name AS tenant_name
     FROM brands b
+    JOIN tenants t
+      ON t.id = b.tenant_id
+     AND t.deleted_at IS NULL
     WHERE b.id = $1
       AND b.deleted_at IS NULL
     LIMIT 1;`,
@@ -55,13 +60,16 @@ export async function getBrand(
     throw new NotFoundError("Brand does not exist.");
   }
 
-  return mapBrandRow(result.rows[0]);
+  return { ...mapBrandRow(result.rows[0]), tenantName: result.rows[0].tenant_name };
 }
+
+const seesAllBrands = (consoleActions: readonly string[]) =>
+  consoleActions.includes("brands.view") || providerBrandActions(consoleActions).length > 0;
 
 export async function getBrands(
   pool: Pool,
   options: BrandQuerySchemaType,
-  scope: { userId: string; all: boolean },
+  scope: { userId: string; consoleActions: readonly string[] },
 ): Promise<BrandRecordSchemaType[]> {
   const tenantId = options?.tenantId;
 
@@ -75,7 +83,7 @@ export async function getBrands(
     conditions.push(`b.tenant_id = $${values.length}`);
   }
 
-  if (!scope.all) {
+  if (!seesAllBrands(scope.consoleActions)) {
     values.push(scope.userId);
     conditions.push(`b.id IN (SELECT brand_id FROM user_brand_roles WHERE user_id = $${values.length})`);
   }

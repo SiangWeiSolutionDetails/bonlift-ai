@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getTestPool } from "../testing/testDb.js";
-import { createBrand } from "./brand.service.js";
+import { createBrand, getBrand } from "./brand.service.js";
 import { createTenant } from "./tenant.service.js";
 
 describe("brand.service (integration)", () => {
@@ -26,5 +26,13 @@ describe("brand.service (integration)", () => {
         best_seller_min_list_size: 10,
       },
     ]);
+  });
+
+  it("returns the brand with its tenant name", async () => {
+    const pool = getTestPool();
+    const tenant = await createTenant(pool, { name: "Acme Foods" });
+    const brand = await createBrand(pool, { tenantId: tenant.id, name: "Kopi House" });
+
+    expect(await getBrand(pool, brand.id)).toEqual({ ...brand, tenantName: "Acme Foods" });
   });
 });

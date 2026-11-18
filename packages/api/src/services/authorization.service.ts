@@ -2,6 +2,8 @@ import {
   CONSOLE_ACTIONS,
   isBrandAction,
   isConsoleAction,
+  PERSONAL_DATA_ACTIONS,
+  providerBrandActions,
   type BrandAction,
   type ConsoleAction,
 } from "@bonlift-ai/contracts";
@@ -27,6 +29,7 @@ export interface AuthorizationRow {
   display_name: string | null;
   console_is_builtin: boolean | null;
   console_actions: string[] | null;
+  brand_exists: boolean;
   has_brand_role: boolean;
   brand_actions: string[] | null;
 }
@@ -37,9 +40,14 @@ export interface Authorization {
   decision: Decision;
 }
 
+const LIVE_TENANT_JOIN = `
+      JOIN tenants tn
+        ON tn.id = b.tenant_id
+       AND tn.deleted_at IS NULL`;
+
 const BRAND_ID_TARGET = `
       SELECT b.id
-      FROM brands b
+      FROM brands b${LIVE_TENANT_JOIN}
       WHERE b.id = $4::uuid
         AND b.deleted_at IS NULL`;
 
@@ -50,7 +58,7 @@ const TARGETS: Record<BrandRef, string> = {
       SELECT o.brand_id AS id
       FROM outlets o
       JOIN brands b
-        ON b.id = o.brand_id
+        ON b.id = o.brand_id${LIVE_TENANT_JOIN}
       WHERE o.id = $4::uuid
         AND o.deleted_at IS NULL
         AND b.deleted_at IS NULL`,
@@ -58,7 +66,7 @@ const TARGETS: Record<BrandRef, string> = {
       SELECT r.brand_id AS id
       FROM computation_runs r
       JOIN brands b
-        ON b.id = r.brand_id
+        ON b.id = r.brand_id${LIVE_TENANT_JOIN}
       WHERE r.id = $4::uuid
         AND b.deleted_at IS NULL`,
 };
@@ -97,7 +105,7 @@ function buildSql(ref: BrandRef | null): string {
     ${CONSOLE_ROLE_CTE}
     SELECT s.id, s.email, s.display_name,
            cr.is_builtin AS console_is_builtin, cr.actions AS console_actions,
-           false AS has_brand_role, NULL::text[] AS brand_actions
+           false AS brand_exists, false AS has_brand_role, NULL::text[] AS brand_actions
     FROM s
     LEFT JOIN console_role cr ON true
     `;
@@ -110,6 +118,7 @@ function buildSql(ref: BrandRef | null): string {
     ${BRAND_ROLE_CTE}
     SELECT s.id, s.email, s.display_name,
            cr.is_builtin AS console_is_builtin, cr.actions AS console_actions,
+           EXISTS (SELECT 1 FROM target) AS brand_exists,
            br.actions IS NOT NULL AS has_brand_role, br.actions AS brand_actions
     FROM s
     LEFT JOIN console_role cr ON true
@@ -145,26 +154,36 @@ function brandActionsOf(row: AuthorizationRow): BrandAction[] | null {
   return row.has_brand_role ? (row.brand_actions ?? []).filter(isBrandAction) : null;
 }
 
-function decideCheck(
-  check: AccessCheck,
-  consoleActions: ConsoleAction[],
-  brandActions: BrandAction[] | null,
-): Decision {
+// Provider access needs a live brand on a live tenant, and never carries personal data.
+function providerActionsOf(row: AuthorizationRow, consoleActions: ConsoleAction[]): BrandAction[] | null {
+  if (!row.brand_exists) return null;
+  const actions = providerBrandActions(consoleActions).filter((action) => !PERSONAL_DATA_ACTIONS.includes(action));
+  return actions.length > 0 ? actions : null;
+}
+
+type BrandAccess = { roleActions: BrandAction[] | null; providerActions: BrandAction[] | null };
+
+const hasBrandAccess = (brand: BrandAccess) => brand.roleActions !== null || brand.providerActions !== null;
+
+const brandAllows = (brand: BrandAccess, action: BrandAction) =>
+  (brand.roleActions?.includes(action) ?? false) || (brand.providerActions?.includes(action) ?? false);
+
+function decideCheck(check: AccessCheck, consoleActions: ConsoleAction[], brand: BrandAccess): Decision {
   if ("console" in check) return consoleActions.includes(check.console) ? "allow" : "forbidden";
-  if (!brandActions) return "notFound";
+  if (!hasBrandAccess(brand)) return "notFound";
   if ("brandMember" in check) return "allow";
-  return brandActions.includes(check.brand) ? "allow" : "forbidden";
+  return brandAllows(brand, check.brand) ? "allow" : "forbidden";
 }
 
 export function decide(row: AuthorizationRow, access: RouteAccess): Decision {
   if (access === "signedIn") return "allow";
 
   const consoleActions = consoleActionsOf(row);
-  const brandActions = brandActionsOf(row);
-  if (!("anyOf" in access)) return decideCheck(access, consoleActions, brandActions);
+  const brand = { roleActions: brandActionsOf(row), providerActions: providerActionsOf(row, consoleActions) };
+  if (!("anyOf" in access)) return decideCheck(access, consoleActions, brand);
 
-  if (access.anyOf.some((check) => decideCheck(check, consoleActions, brandActions) === "allow")) return "allow";
-  if (!resolveBrandRef(access) || brandActions) return "forbidden";
+  if (access.anyOf.some((check) => decideCheck(check, consoleActions, brand) === "allow")) return "allow";
+  if (!resolveBrandRef(access) || hasBrandAccess(brand)) return "forbidden";
   return "notFound";
 }
 

@@ -13,6 +13,7 @@ import {
   updateBrand,
 } from "../services/brand.service.js";
 import {
+  BrandDetailSchema,
   BrandListSchema,
   BrandParamsSchema,
   BrandParamsSchemaType,
@@ -43,7 +44,7 @@ export async function brandRoutes(app: FastifyInstance) {
       const brands = await getBrands(
         pool,
         { tenantId: request.query.tenantId },
-        { userId: access.user.id, all: access.consoleActions.includes("brands.view") },
+        { userId: access.user.id, consoleActions: access.consoleActions },
       );
       return {
         brands,
@@ -57,7 +58,7 @@ export async function brandRoutes(app: FastifyInstance) {
       config: { access: { anyOf: [{ console: "brands.view" }, { brandMember: "params.brandId" }] } },
       schema: {
         params: BrandParamsSchema,
-        response: { 200: BrandRecordSchema },
+        response: { 200: BrandDetailSchema },
       },
     },
     (request) => {

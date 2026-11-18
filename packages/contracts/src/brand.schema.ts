@@ -14,6 +14,15 @@ export const BrandRecordSchema = Type.Object(
 );
 export type BrandRecordSchemaType = Static<typeof BrandRecordSchema>;
 
+export const BrandDetailSchema = Type.Object(
+  {
+    ...BrandRecordSchema.properties,
+    tenantName: Type.String(),
+  },
+  { additionalProperties: false },
+);
+export type BrandDetailSchemaType = Static<typeof BrandDetailSchema>;
+
 export const BrandListSchema = Type.Object({
   brands: Type.Array(BrandRecordSchema),
 });

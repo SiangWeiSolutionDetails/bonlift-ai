@@ -6,6 +6,13 @@ export async function fetchMe(signal?: AbortSignal) {
   return apiRequest<AuthMeResponseSchemaType>("/auth/me", { signal });
 }
 
+// A full-page navigation, not a fetch: sign-in is a redirect to Google and back
+export function signInHref(returnTo: string, { selectAccount = false } = {}) {
+  const params = new URLSearchParams({ returnTo });
+  if (selectAccount) params.set("selectAccount", "1");
+  return `/api/auth/login/google?${params}`;
+}
+
 export async function logout() {
   return apiRequest<void>("/auth/logout", { method: "POST" });
 }

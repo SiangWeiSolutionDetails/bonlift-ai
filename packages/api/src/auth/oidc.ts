@@ -34,9 +34,15 @@ function discover(provider: AuthProvider): Promise<client.Configuration> {
   return pending;
 }
 
+// Google skips its account chooser when one account is signed in, unless asked
+export function promptParams(selectAccount: boolean): { prompt?: string } {
+  return selectAccount ? { prompt: "select_account" } : {};
+}
+
 export async function startSignIn(
   provider: AuthProvider,
   returnTo: string,
+  selectAccount = false,
 ): Promise<{ url: URL; tx: OAuthTransaction }> {
   const oidcConfig = await discover(provider);
   const tx: OAuthTransaction = {
@@ -52,6 +58,7 @@ export async function startSignIn(
     nonce: tx.nonce,
     code_challenge: await client.calculatePKCECodeChallenge(tx.codeVerifier),
     code_challenge_method: "S256",
+    ...promptParams(selectAccount),
   });
   return { url, tx };
 }

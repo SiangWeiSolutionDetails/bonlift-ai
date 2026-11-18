@@ -135,7 +135,11 @@ export async function authRoutes(app: FastifyInstance) {
         throw new NotFoundError("Unknown sign-in provider");
       }
       try {
-        const { url, tx } = await startSignIn(request.params.provider, safeReturnTo(request.query.returnTo));
+        const { url, tx } = await startSignIn(
+          request.params.provider,
+          safeReturnTo(request.query.returnTo),
+          request.query.selectAccount === "1",
+        );
         reply.setCookie(TX_COOKIE, JSON.stringify(tx), {
           ...txCookieOptions(),
           signed: true,

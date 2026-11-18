@@ -6,6 +6,7 @@ import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { signInHref } from "@/features/auth/api";
 
 const KNOWN_ERROR_CODES = ["ACCOUNT_NOT_APPROVED", "SIGN_IN_FAILED"] as const;
 
@@ -69,7 +70,7 @@ function ModuleBadges() {
 function SignInCard() {
   const { t } = useTranslation("auth");
   const { error, returnTo } = useSearch({ from: "/login" });
-  const loginHref = `/api/auth/login/google?returnTo=${encodeURIComponent(returnTo ?? "/")}`;
+  const loginHref = signInHref(returnTo ?? "/");
 
   return (
     <section className="grid w-full max-w-sm gap-6 rounded-2xl bg-card p-6 text-card-foreground shadow-panel">

@@ -7,6 +7,7 @@ export type AuthProviderParamsSchemaType = Static<typeof AuthProviderParamsSchem
 
 export const AuthLoginQuerySchema = Type.Object({
   returnTo: Type.Optional(Type.String()),
+  selectAccount: Type.Optional(Type.Literal("1")),
 });
 export type AuthLoginQuerySchemaType = Static<typeof AuthLoginQuerySchema>;
 

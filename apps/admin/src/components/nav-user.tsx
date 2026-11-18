@@ -11,15 +11,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { logout } from "@/features/auth/api"
+import { logout, signInHref } from "@/features/auth/api"
 import { useCurrentUser } from "@/features/auth/queries"
 import { WorkspaceSwitcher } from "@/features/workspaces/components/workspace-switcher"
 import { getErrorMessage } from "@/lib/error-message"
-import { ChevronDownIcon, LogOutIcon } from "lucide-react"
+import { ArrowLeftRightIcon, ChevronDownIcon, LogOutIcon } from "lucide-react"
 
-function useLogOut() {
+function useEndSession() {
   const queryClient = useQueryClient()
-  const navigate = useNavigate()
   const { t } = useTranslation()
 
   return async () => {
@@ -27,10 +26,26 @@ function useLogOut() {
       await logout()
     } catch (error) {
       toast.error(getErrorMessage(error, t))
-      return
+      return false
     }
     queryClient.clear()
-    await navigate({ to: "/login" })
+    return true
+  }
+}
+
+function useLogOut() {
+  const endSession = useEndSession()
+  const navigate = useNavigate()
+  return async () => {
+    if (await endSession()) await navigate({ to: "/login" })
+  }
+}
+
+function useSwitchAccount() {
+  const endSession = useEndSession()
+  return async () => {
+    const returnTo = `${window.location.pathname}${window.location.search}`
+    if (await endSession()) window.location.assign(signInHref(returnTo, { selectAccount: true }))
   }
 }
 
@@ -38,6 +53,7 @@ export function NavUser() {
   const { t } = useTranslation("auth")
   const user = useCurrentUser()
   const logOut = useLogOut()
+  const switchAccount = useSwitchAccount()
   const name = user.displayName ?? user.email
 
   return (
@@ -56,6 +72,10 @@ export function NavUser() {
         <DropdownMenuSeparator />
         <WorkspaceSwitcher />
         <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => void switchAccount()}>
+          <ArrowLeftRightIcon />
+          {t("switchAccount")}
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => void logOut()}>
           <LogOutIcon />
           {t("logOut")}

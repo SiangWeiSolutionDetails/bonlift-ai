@@ -1,7 +1,7 @@
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { useTranslation } from "react-i18next"
-import { CheckIcon, SearchIcon } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenuGroup,
   DropdownMenuItem,
@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
 import { useCurrentUser } from "@/features/auth/queries"
 import { filterTenants } from "../filter-tenants"
 import { useCurrentWorkspace } from "../use-workspace"
@@ -16,7 +17,6 @@ import {
   buildWorkspaces,
   CONSOLE_KEY,
   writeLastWorkspace,
-  type BrandWorkspace,
 } from "../workspaces"
 
 const SEARCH_THRESHOLD = 8
@@ -29,25 +29,77 @@ function useSwitchWorkspace() {
   }
 }
 
-function Tick({ visible }: { visible: boolean }) {
-  return <CheckIcon className={visible ? "ml-auto" : "ml-auto invisible"} />
+type WorkspaceRowProps = {
+  title: string
+  subtitle?: string
+  badge?: string
+  current: boolean
+  onSwitch: () => void
 }
 
-function BrandRow({ brand, current, onSwitch }: { brand: BrandWorkspace; current: boolean; onSwitch: () => void }) {
+// The current workspace keeps the primary colours on hover and focus too
+const CURRENT_ROW =
+  "bg-primary text-primary-foreground focus:bg-primary/90 focus:text-primary-foreground focus:**:text-primary-foreground"
+
+function WorkspaceRow({ title, subtitle, badge, current, onSwitch }: WorkspaceRowProps) {
   return (
-    <DropdownMenuItem onSelect={onSwitch} title={`${brand.brandName} · ${brand.roleName}`}>
-      <span className="min-w-0 flex-1 truncate">{brand.brandName}</span>
-      <span className="max-w-24 shrink-0 truncate text-xs text-muted-foreground">{brand.roleName}</span>
-      <Tick visible={current} />
+    <DropdownMenuItem
+      onSelect={onSwitch}
+      title={[title, subtitle, badge].filter(Boolean).join(" · ")}
+      aria-current={current ? "true" : undefined}
+      className={cn("gap-2.5 py-1.5", current && CURRENT_ROW)}
+    >
+      <span className="grid min-w-0 flex-1 leading-tight">
+        <span className={cn("truncate", current && "font-medium")}>{title}</span>
+        {subtitle && (
+          <span className={cn("truncate text-xs", current ? "text-primary-foreground/80" : "text-muted-foreground")}>
+            {subtitle}
+          </span>
+        )}
+      </span>
+      {badge && (
+        <Badge
+          variant="outline"
+          className={cn(
+            "max-w-24 shrink-0 truncate font-normal",
+            current ? "border-primary-foreground/40 text-primary-foreground" : "text-muted-foreground",
+          )}
+        >
+          {badge}
+        </Badge>
+      )}
     </DropdownMenuItem>
+  )
+}
+
+function SectionLabel({ children, count }: { children: ReactNode; count?: number }) {
+  return (
+    <DropdownMenuLabel className="flex items-center gap-2 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+      <span className="flex-1">{children}</span>
+      {count !== undefined && (
+        <Badge variant="secondary" className="h-4 px-1.5 text-[10px] tabular-nums">
+          {count}
+        </Badge>
+      )}
+    </DropdownMenuLabel>
+  )
+}
+
+function TenantLabel({ name }: { name: string }) {
+  return (
+    <DropdownMenuLabel
+      className="truncate pt-2 text-[11px] font-medium tracking-wide text-muted-foreground uppercase"
+      title={name}
+    >
+      {name}
+    </DropdownMenuLabel>
   )
 }
 
 function SearchBox({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const { t } = useTranslation("auth")
   return (
-    <div className="relative px-1 pb-1">
-      <SearchIcon className="pointer-events-none absolute top-2 left-3.5 size-3.5 text-muted-foreground" />
+    <div className="px-1 pb-1">
       <Input
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -56,7 +108,7 @@ function SearchBox({ value, onChange }: { value: string; onChange: (value: strin
         }}
         placeholder={t("workspaces.search")}
         aria-label={t("workspaces.search")}
-        className="h-7 pl-7 text-sm"
+        className="h-7 text-sm"
       />
     </div>
   )
@@ -76,27 +128,26 @@ export function WorkspaceSwitcher() {
 
   return (
     <DropdownMenuGroup>
-      <DropdownMenuLabel className="text-xs text-muted-foreground">
-        {t("workspaces.title", { count: workspaces.count })}
-      </DropdownMenuLabel>
+      <SectionLabel count={workspaces.count}>{t("workspaces.heading")}</SectionLabel>
       {searchable && <SearchBox value={query} onChange={setQuery} />}
       <div className={searchable ? "max-h-72 overflow-y-auto" : undefined}>
         {workspaces.console && (
-          <DropdownMenuItem onSelect={() => switchTo(CONSOLE_KEY)}>
-            <span className="min-w-0 flex-1 truncate">{t("workspaces.console")}</span>
-            <Tick visible={current?.kind === "console"} />
-          </DropdownMenuItem>
+          <WorkspaceRow
+            title={t("workspaces.console")}
+            subtitle={t("workspaces.consoleHint")}
+            current={current?.kind === "console"}
+            onSwitch={() => switchTo(CONSOLE_KEY)}
+          />
         )}
         {tenants.map((tenant, index) => (
           <DropdownMenuGroup key={tenant.tenantId}>
             {(index > 0 || workspaces.console) && <DropdownMenuSeparator />}
-            <DropdownMenuLabel className="truncate text-xs font-normal text-muted-foreground" title={tenant.tenantName}>
-              {tenant.tenantName}
-            </DropdownMenuLabel>
+            <TenantLabel name={tenant.tenantName} />
             {tenant.brands.map((brand) => (
-              <BrandRow
+              <WorkspaceRow
                 key={brand.brandId}
-                brand={brand}
+                title={brand.brandName}
+                badge={brand.roleName ?? undefined}
                 current={brand.brandId === currentBrandId}
                 onSwitch={() => switchTo(brand.brandId)}
               />

@@ -2,7 +2,6 @@ import { useNavigate } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
-import { CurrentMark } from "@/components/current-mark"
 import { MenuBand } from "@/components/menu-band"
 import { Button } from "@/components/ui/button"
 import {
@@ -64,15 +63,13 @@ function useAddAccount() {
   }
 }
 
-// Right end of every account row: the current mark, or the Remove item laid over the row
-const SLOT = "w-14 shrink-0"
-
 type AccountRowProps = {
   account: Pick<KnownAccount, "email" | "displayName">
   current: boolean
   onSwitch: () => void
 }
 
+// Other accounts leave room on the right for the Remove button laid over the row
 function AccountRow({ account, current, onSwitch }: AccountRowProps) {
   const { t } = useTranslation("auth")
   const name = account.displayName ?? account.email
@@ -83,14 +80,13 @@ function AccountRow({ account, current, onSwitch }: AccountRowProps) {
       title={account.email}
       aria-current={current ? "true" : undefined}
       aria-label={current ? undefined : t("switchToAccount", { email: account.email })}
-      className="cursor-pointer gap-3 py-1.5 pr-0 pl-2"
+      className={cn("cursor-pointer gap-3 px-2 py-1.5", !current && "pr-18")}
     >
       <span className="grid min-w-0 flex-1 leading-tight">
         <span className={cn("truncate", current && "font-semibold")}>{name}</span>
         {name !== account.email && <span className="truncate text-xs text-muted-foreground">{account.email}</span>}
       </span>
       {current && <span className="shrink-0 text-xs text-muted-foreground">{t("signedIn")}</span>}
-      <span className={cn(SLOT, "flex justify-center")}>{current && <CurrentMark current />}</span>
     </DropdownMenuItem>
   )
 }
@@ -99,8 +95,9 @@ function RemoveAccountItem({ email }: { email: string }) {
   const { t } = useTranslation("auth")
   return (
     <DropdownMenuItem
+      variant="destructive"
       aria-label={t("removeAccountLabel", { email })}
-      className={cn(SLOT, "absolute inset-y-0 right-0 cursor-pointer justify-center px-0 text-xs text-muted-foreground")}
+      className="absolute top-1/2 right-1 h-7 -translate-y-1/2 cursor-pointer px-2 text-xs"
       onSelect={(event) => {
         event.preventDefault()
         forgetAccount(email)

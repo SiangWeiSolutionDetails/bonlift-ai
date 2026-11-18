@@ -22,7 +22,8 @@ const MAX_BASED_ON = 3;
 // affinity run says are often ordered with a favourite but are not favourites themselves. Popular items at the outlet
 // are served only when no personal item is left after the threshold and the cart, exclude and include filters. All
 // are read for the requested daypart only, matched exactly: every run also stores an all_day list, and an unknown
-// daypart matches nothing. A favourite in the cart, excluded or rejected still finds related items.
+// daypart matches nothing. A favourite in the cart or excluded still finds related items; a rejected one does not, so
+// based_on never names an item the customer rejected.
 // Within each group, items shown to the customer within the brand's repeat cooldown go after the ones not shown;
 // accepting an item forgets that it was shown, and a cooldown of 0 hours moves nothing. A showing only counts once the
 // brand's feedback window has closed, so items shown during a visit keep their place and the list stays stable.
@@ -145,6 +146,7 @@ related AS (
   JOIN customer_favourites f
     ON f.external_item_id = a.item_a
   WHERE NOT EXISTS (SELECT 1 FROM customer_favourites cf WHERE cf.external_item_id = a.item_b)
+    AND NOT EXISTS (SELECT 1 FROM rejected_items ri WHERE ri.external_item_id = a.item_a)
     AND a.item_b <> ALL($3)
     AND (cardinality($8::text[]) = 0 OR a.item_b = ANY($8))
     AND NOT EXISTS (SELECT 1 FROM rejected_items ri WHERE ri.external_item_id = a.item_b)

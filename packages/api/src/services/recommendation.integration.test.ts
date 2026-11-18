@@ -780,6 +780,19 @@ describe("items related to the customer's favourites (integration)", () => {
     expect((await servedItems()).map((item) => item.itemId)).toEqual(["KAYA", "MILO", "ROTI", "EGG"]);
   });
 
+  it("finds no related items through a favourite the customer rejected", async () => {
+    await getTestPool().query(
+      "INSERT INTO customer_item_rejections (brand_id, customer_external_id, external_item_id) VALUES ($1, $2, 'KAYA')",
+      [brandId, CUSTOMER_HASH],
+    );
+
+    expect(await servedItems()).toStrictEqual([
+      { itemId: "MILO", rank: 1, reason: "frequently_ordered" },
+      { itemId: "ROTI", rank: 2, reason: "related_to_favourite", detail: { basedOn: ["MILO"] } },
+      { itemId: "TEA", rank: 3, reason: "related_to_favourite", detail: { basedOn: ["MILO"] } },
+    ]);
+  });
+
   it("serves related items instead of popular ones when every favourite is in the cart", async () => {
     expect(await servedItems({ cart: cartOf("KAYA", "MILO") })).toStrictEqual([
       { itemId: "TEA", rank: 1, reason: "related_to_favourite", detail: { basedOn: ["KAYA", "MILO"] } },

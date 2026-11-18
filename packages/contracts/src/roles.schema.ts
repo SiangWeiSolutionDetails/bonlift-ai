@@ -24,9 +24,10 @@ export const RoleListSchema = Type.Object({
 });
 export type RoleListSchemaType = Static<typeof RoleListSchema>;
 
+// Console roles only; brand roles live under /brands/:brandId/roles.
 export const RoleQuerySchema = Type.Object(
   {
-    kind: Type.Optional(RoleKindSchema),
+    kind: Type.Optional(Type.Literal("console")),
   },
   { additionalProperties: false },
 );
@@ -40,7 +41,6 @@ export type RoleParamsSchemaType = Static<typeof RoleParamsSchema>;
 export const CreateRoleBodySchema = Type.Object(
   {
     name: NameSchema,
-    kind: RoleKindSchema,
     actions: ActionListSchema,
   },
   { additionalProperties: false },
@@ -55,6 +55,12 @@ export const UpdateRoleBodySchema = Type.Object(
   { additionalProperties: false, minProperties: 1 },
 );
 export type UpdateRoleBodySchemaType = Static<typeof UpdateRoleBodySchema>;
+
+export const BrandRoleParamsSchema = Type.Object({
+  brandId: Type.String({ format: "uuid" }),
+  roleId: Type.String({ format: "uuid" }),
+});
+export type BrandRoleParamsSchemaType = Static<typeof BrandRoleParamsSchema>;
 
 export const RoleAssignmentRecordSchema = Type.Object(
   {

@@ -8,7 +8,7 @@ import {
   OutletQuerySchema,
   OutletQuerySchemaType,
   OutletRecordSchemaType,
-  providerBrandActions,
+  hasProviderAccess,
   UpdateOutletBodySchema,
   UpdateOutletBodySchemaType,
 } from "@bonlift-ai/contracts";
@@ -83,7 +83,7 @@ export async function getOutlets(
     conditions.push(`o.brand_id = $${values.length}`);
   }
 
-  if (!providerBrandActions(scope.consoleActions).includes("outlets.view")) {
+  if (!hasProviderAccess(scope.consoleActions)) {
     values.push(scope.userId);
     conditions.push(`o.brand_id IN (SELECT brand_id FROM user_brand_roles WHERE user_id = $${values.length})`);
   }

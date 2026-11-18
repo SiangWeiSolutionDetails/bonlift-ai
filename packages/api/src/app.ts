@@ -29,6 +29,7 @@ import { recommendationFeedbackReportRoutes } from "./routes/recommendationFeedb
 import { roleRoutes } from "./routes/role.route.js";
 import { userRoutes } from "./routes/user.route.js";
 import { brandMemberRoutes } from "./routes/brandMember.route.js";
+import { brandRoleRoutes } from "./routes/brandRole.route.js";
 import { getPool } from "@bonlift-ai/db";
 import {
   createServingAuthHook,
@@ -120,6 +121,7 @@ export function buildApp(): FastifyInstance {
     admin.register(roleRoutes);
     admin.register(userRoutes);
     admin.register(brandMemberRoutes);
+    admin.register(brandRoleRoutes);
 
     if (areDevRoutesEnabled()) {
       admin.register(mockDatasetRoutes);

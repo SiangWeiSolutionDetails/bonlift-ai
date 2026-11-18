@@ -125,3 +125,6 @@ export const providerBrandActions = (consoleActions: readonly string[]): BrandAc
     .flatMap((key) => PROVIDER_GRANTS[key]);
   return [...new Set(granted)];
 };
+
+export const hasProviderAccess = (consoleActions: readonly string[]): boolean =>
+  providerBrandActions(consoleActions).length > 0;

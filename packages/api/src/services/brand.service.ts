@@ -12,7 +12,7 @@ import {
   BrandRecordSchemaType,
   CreateBrandBodySchema,
   CreateBrandBodySchemaType,
-  providerBrandActions,
+  hasProviderAccess,
   UpdateBrandBodySchema,
   UpdateBrandBodySchemaType,
 } from "@bonlift-ai/contracts";
@@ -64,7 +64,7 @@ export async function getBrand(
 }
 
 const seesAllBrands = (consoleActions: readonly string[]) =>
-  consoleActions.includes("brands.view") || providerBrandActions(consoleActions).length > 0;
+  consoleActions.includes("brands.view") || hasProviderAccess(consoleActions);
 
 export async function getBrands(
   pool: Pool,

@@ -1,10 +1,10 @@
 import { CONSOLE_ACTIONS } from "@bonlift-ai/contracts";
 import { describe, expect, it } from "vitest";
-import { ConflictError, ForbiddenError, NotFoundError } from "../errors.js";
+import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from "../errors.js";
 import { getTestPool } from "../testing/testDb.js";
 import type { RequestAccess } from "./authorization.service.js";
 import { createBrand } from "./brand.service.js";
-import { deleteRole, listRoleAssignments, updateRole } from "./role.service.js";
+import { createRole, deleteRole, listRoleAssignments, listRoles, updateRole } from "./role.service.js";
 import { createTenant } from "./tenant.service.js";
 
 async function userNamed(email: string): Promise<string> {
@@ -58,10 +58,6 @@ async function storedRole(roleId: string) {
 
 async function tenantNamed(name: string): Promise<string> {
   return (await createTenant(getTestPool(), { name })).id;
-}
-
-async function brandIn(tenantId: string, name: string): Promise<string> {
-  return (await createBrand(getTestPool(), { tenantId, name })).id;
 }
 
 async function assignBrandRole(userId: string, brandId: string, roleId: string) {
@@ -120,38 +116,75 @@ describe("console roles broader than a non-Admin actor (integration)", () => {
     await deleteRole(getTestPool(), actor, roleId);
     expect(await storedRole(roleId)).toBeNull();
   });
+});
 
-  it("leaves brand roles to the actor's roles.manage", async () => {
-    const actor = await roleManagerFor("lead@x.com");
-    const roleId = await insertBrandRole(await tenantNamed("Alpha Group"), "Owner", ["outlets.view", "customerScores.view"]);
+describe("console /roles refusing brand roles (integration)", () => {
+  it("lists console roles only", async () => {
+    await insertRole("console", "Support", ["users.view"]);
+    await insertBrandRole(await tenantNamed("Alpha Group"), "Viewer", ["outlets.view"]);
 
-    await updateRole(getTestPool(), actor, roleId, { actions: [] });
+    const roles = await listRoles(getTestPool());
 
-    expect(await storedRole(roleId)).toEqual({ name: "Owner", actions: [] });
+    expect(roles.map((role) => role.kind)).not.toContain("brand");
+    expect(roles.map((role) => role.name)).toContain("Support");
+  });
+
+  it("treats a brand role id as missing on edit, delete and assignments, and writes nothing", async () => {
+    const actor = await actorFor("admin@x.com");
+    const roleId = await insertBrandRole(await tenantNamed("Alpha Group"), "Viewer", ["outlets.view"]);
+
+    await expect(updateRole(getTestPool(), actor, roleId, { name: "Hijacked" })).rejects.toBeInstanceOf(NotFoundError);
+    await expect(updateRole(getTestPool(), actor, roleId, { actions: [] })).rejects.toBeInstanceOf(NotFoundError);
+    await expect(deleteRole(getTestPool(), actor, roleId)).rejects.toBeInstanceOf(NotFoundError);
+    await expect(listRoleAssignments(getTestPool(), actor, roleId)).rejects.toBeInstanceOf(NotFoundError);
+
+    expect(await storedRole(roleId)).toEqual({ name: "Viewer", actions: ["outlets.view"] });
+  });
+
+  it("refuses brand actions in a create or edit body", async () => {
+    const actor = await actorFor("admin@x.com");
+    const roleId = await insertRole("console", "Support", ["users.view"]);
+
+    await expect(
+      createRole(getTestPool(), actor, { name: "Brandish", actions: ["outlets.view"] }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(updateRole(getTestPool(), actor, roleId, { actions: ["outlets.view"] })).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+
+    expect(await storedRole(roleId)).toEqual({ name: "Support", actions: ["users.view"] });
+  });
+
+  it("creates a console role", async () => {
+    const actor = await actorFor("admin@x.com");
+
+    const role = await createRole(getTestPool(), actor, { name: "Support", actions: ["users.view"] });
+
+    expect(role).toMatchObject({ kind: "console", actions: ["users.view"] });
+    expect(await storedRole(role.id)).toEqual({ name: "Support", actions: ["users.view"] });
   });
 });
 
 describe("updateRole (integration)", () => {
   it("replaces the actions exactly and renames", async () => {
     const actor = await actorFor("admin@x.com");
-    const roleId = await insertBrandRole(await tenantNamed("Alpha Group"), "Viewer", ["outlets.view", "results.view", "usage.view"]);
+    const roleId = await insertRole("console", "Viewer", ["tenants.view", "brands.view", "users.view"]);
 
     const role = await updateRole(getTestPool(), actor, roleId, {
       name: "Reader",
-      actions: ["results.view", "usage.view", "feedback.view"],
+      actions: ["brands.view", "users.view", "roles.view"],
     });
 
-    expect(role).toMatchObject({ name: "Reader", actions: ["results.view", "usage.view", "feedback.view"] });
+    expect(role).toMatchObject({ name: "Reader", actions: ["brands.view", "users.view", "roles.view"] });
     expect(await storedRole(roleId)).toEqual({
       name: "Reader",
-      actions: ["feedback.view", "results.view", "usage.view"],
+      actions: ["brands.view", "roles.view", "users.view"],
     });
   });
 
   it("clears the actions with an empty list", async () => {
     const actor = await actorFor("admin@x.com");
-    const tenantId = await tenantNamed("Alpha Group");
-    const roleId = await insertBrandRole(tenantId, "Viewer", ["outlets.view"]);
+    const roleId = await insertRole("console", "Viewer", ["tenants.view"]);
 
     await updateRole(getTestPool(), actor, roleId, { actions: [] });
 
@@ -160,13 +193,12 @@ describe("updateRole (integration)", () => {
 
   it("leaves the actions alone on a rename only", async () => {
     const actor = await actorFor("admin@x.com");
-    const tenantId = await tenantNamed("Alpha Group");
-    const roleId = await insertBrandRole(tenantId, "Viewer", ["outlets.view"]);
+    const roleId = await insertRole("console", "Viewer", ["tenants.view"]);
 
     const role = await updateRole(getTestPool(), actor, roleId, { name: "Reader" });
 
-    expect(role).toMatchObject({ name: "Reader", actions: ["outlets.view"], assignmentCount: 0 });
-    expect(await storedRole(roleId)).toEqual({ name: "Reader", actions: ["outlets.view"] });
+    expect(role).toMatchObject({ name: "Reader", actions: ["tenants.view"], assignmentCount: 0 });
+    expect(await storedRole(roleId)).toEqual({ name: "Reader", actions: ["tenants.view"] });
   });
 
   it("leaves a built-in role untouched", async () => {
@@ -178,19 +210,6 @@ describe("updateRole (integration)", () => {
     ).rejects.toBeInstanceOf(ForbiddenError);
 
     expect(await storedRole(adminRoleId)).toEqual({ name: "Admin", actions: [] });
-  });
-
-  it("refuses a brand role the actor holds on any brand and writes nothing", async () => {
-    const actor = await actorFor("lead@x.com");
-    const tenantId = await tenantNamed("Alpha Group");
-    const roleId = await insertBrandRole(tenantId, "Viewer", ["outlets.view"]);
-    await assignBrandRole(actor.user.id, await brandIn(tenantId, "Alpha"), roleId);
-
-    await expect(
-      updateRole(getTestPool(), actor, roleId, { name: "Viewer Plus", actions: ["outlets.view", "customerScores.view"] }),
-    ).rejects.toBeInstanceOf(ForbiddenError);
-
-    expect(await storedRole(roleId)).toEqual({ name: "Viewer", actions: ["outlets.view"] });
   });
 
   it("refuses the actor's own console role and writes nothing", async () => {
@@ -207,11 +226,9 @@ describe("updateRole (integration)", () => {
 
   it("counts the role's assignments", async () => {
     const actor = await actorFor("admin@x.com");
-    const tenantId = await tenantNamed("Alpha Group");
-    const roleId = await insertBrandRole(tenantId, "Viewer", ["outlets.view"]);
-    const other = await userNamed("bob@x.com");
-    await assignBrandRole(other, await brandIn(tenantId, "Alpha"), roleId);
-    await assignBrandRole(other, await brandIn(tenantId, "Beta"), roleId);
+    const roleId = await insertRole("console", "Viewer", ["tenants.view"]);
+    await assignConsoleRole(await userNamed("bob@x.com"), roleId);
+    await assignConsoleRole(await userNamed("cat@x.com"), roleId);
 
     const role = await updateRole(getTestPool(), actor, roleId, { name: "Reader" });
 
@@ -222,8 +239,7 @@ describe("updateRole (integration)", () => {
 describe("deleteRole (integration)", () => {
   it("deletes an unused role and its permissions", async () => {
     const actor = await actorFor("admin@x.com");
-    const tenantId = await tenantNamed("Alpha Group");
-    const roleId = await insertBrandRole(tenantId, "Viewer", ["outlets.view"]);
+    const roleId = await insertRole("console", "Viewer", ["tenants.view"]);
 
     await deleteRole(getTestPool(), actor, roleId);
 
@@ -234,13 +250,12 @@ describe("deleteRole (integration)", () => {
 
   it("refuses a role in use", async () => {
     const actor = await actorFor("admin@x.com");
-    const tenantId = await tenantNamed("Alpha Group");
-    const roleId = await insertBrandRole(tenantId, "Viewer", ["outlets.view"]);
-    await assignBrandRole(await userNamed("bob@x.com"), await brandIn(tenantId, "Alpha"), roleId);
+    const roleId = await insertRole("console", "Viewer", ["tenants.view"]);
+    await assignConsoleRole(await userNamed("bob@x.com"), roleId);
 
     await expect(deleteRole(getTestPool(), actor, roleId)).rejects.toBeInstanceOf(ConflictError);
 
-    expect(await storedRole(roleId)).toEqual({ name: "Viewer", actions: ["outlets.view"] });
+    expect(await storedRole(roleId)).toEqual({ name: "Viewer", actions: ["tenants.view"] });
   });
 
   it("refuses a built-in role", async () => {
@@ -254,21 +269,21 @@ describe("deleteRole (integration)", () => {
 
   it("refuses a role the actor holds", async () => {
     const actor = await actorFor("lead@x.com");
-    const tenantId = await tenantNamed("Alpha Group");
-    const roleId = await insertBrandRole(tenantId, "Viewer", ["outlets.view"]);
-    await assignBrandRole(actor.user.id, await brandIn(tenantId, "Alpha"), roleId);
+    const roleId = await insertRole("console", "Viewer", ["tenants.view"]);
+    await assignConsoleRole(actor.user.id, roleId);
 
     await expect(deleteRole(getTestPool(), actor, roleId)).rejects.toBeInstanceOf(ForbiddenError);
 
-    expect(await storedRole(roleId)).toEqual({ name: "Viewer", actions: ["outlets.view"] });
+    expect(await storedRole(roleId)).toEqual({ name: "Viewer", actions: ["tenants.view"] });
   });
 });
 
 describe("listRoleAssignments (integration)", () => {
-  it("lists only the holders of a console role", async () => {
+  it("lists only the holders of a console role, ordered by email", async () => {
     const actor = await actorFor("admin@x.com");
     const roleId = await insertRole("console", "Support", ["users.view"]);
     const otherRoleId = await insertRole("console", "Other", ["users.view"]);
+    await assignConsoleRole(await userNamed("zed@x.com"), roleId);
     await assignConsoleRole(await userNamed("bob@x.com"), roleId);
     await assignConsoleRole(await userNamed("cat@x.com"), otherRoleId);
 
@@ -276,72 +291,13 @@ describe("listRoleAssignments (integration)", () => {
 
     expect(rows).toEqual([
       expect.objectContaining({ email: "bob@x.com", status: "active", brandId: null, brandName: null, tenantName: null }),
-    ]);
-  });
-
-  it("lists one row per brand and leaves out a soft-deleted brand", async () => {
-    const actor = await actorFor("admin@x.com");
-    const tenantId = await tenantNamed("Alpha Group");
-    const roleId = await insertBrandRole(tenantId, "Viewer", ["outlets.view"]);
-    const userId = await userNamed("bob@x.com");
-    const alphaId = await brandIn(tenantId, "Alpha");
-    const betaId = await brandIn(tenantId, "Beta");
-    const goneId = await brandIn(tenantId, "Gone");
-    for (const brandId of [alphaId, betaId, goneId]) await assignBrandRole(userId, brandId, roleId);
-    await getTestPool().query(`UPDATE brands SET deleted_at = now() WHERE id = $1`, [goneId]);
-
-    const rows = await listRoleAssignments(getTestPool(), actor, roleId);
-
-    expect(rows.map((row) => [row.brandName, row.tenantName])).toEqual([
-      ["Alpha", "Alpha Group"],
-      ["Beta", "Alpha Group"],
-    ]);
-    expect(rows[0]).toMatchObject({ userId, email: "bob@x.com", brandId: alphaId });
-  });
-
-  it("leaves out a brand whose tenant is soft-deleted", async () => {
-    const actor = await actorFor("admin@x.com");
-    const tenantId = await tenantNamed("Alpha Group");
-    const roleId = await insertBrandRole(tenantId, "Viewer", ["outlets.view"]);
-    const userId = await userNamed("bob@x.com");
-    const alphaId = await brandIn(tenantId, "Alpha");
-    await assignBrandRole(userId, alphaId, roleId);
-
-    const before = await listRoleAssignments(getTestPool(), actor, roleId);
-    expect(before.map((row) => [row.userId, row.brandId])).toEqual([[userId, alphaId]]);
-
-    await getTestPool().query(`UPDATE tenants SET deleted_at = now() WHERE id = $1`, [tenantId]);
-
-    const rows = await listRoleAssignments(getTestPool(), actor, roleId);
-
-    expect(rows).toEqual([]);
-  });
-
-  it("orders by email, then brand", async () => {
-    const actor = await actorFor("admin@x.com");
-    const tenantId = await tenantNamed("Zeta Group");
-    const roleId = await insertBrandRole(tenantId, "Viewer", ["outlets.view"]);
-    const zed = await userNamed("zed@x.com");
-    const amy = await userNamed("amy@x.com");
-    const zulu = await brandIn(tenantId, "Zulu");
-    const alpha = await brandIn(tenantId, "Alpha");
-    await assignBrandRole(zed, alpha, roleId);
-    await assignBrandRole(amy, zulu, roleId);
-    await assignBrandRole(amy, alpha, roleId);
-
-    const rows = await listRoleAssignments(getTestPool(), actor, roleId);
-
-    expect(rows.map((row) => [row.email, row.tenantName, row.brandName])).toEqual([
-      ["amy@x.com", "Zeta Group", "Alpha"],
-      ["amy@x.com", "Zeta Group", "Zulu"],
-      ["zed@x.com", "Zeta Group", "Alpha"],
+      expect.objectContaining({ email: "zed@x.com" }),
     ]);
   });
 
   it("returns an empty list for an unused role", async () => {
     const actor = await actorFor("admin@x.com");
-    const tenantId = await tenantNamed("Alpha Group");
-    const roleId = await insertBrandRole(tenantId, "Viewer", ["outlets.view"]);
+    const roleId = await insertRole("console", "Support", ["users.view"]);
 
     expect(await listRoleAssignments(getTestPool(), actor, roleId)).toEqual([]);
   });
@@ -352,5 +308,15 @@ describe("listRoleAssignments (integration)", () => {
     await expect(
       listRoleAssignments(getTestPool(), actor, "99999999-9999-9999-9999-999999999999"),
     ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("never lists brand holders", async () => {
+    const actor = await actorFor("admin@x.com");
+    const tenantId = await tenantNamed("Alpha Group");
+    const brandRoleId = await insertBrandRole(tenantId, "Viewer", ["outlets.view"]);
+    const brandId = (await createBrand(getTestPool(), { tenantId, name: "Alpha" })).id;
+    await assignBrandRole(await userNamed("bob@x.com"), brandId, brandRoleId);
+
+    await expect(listRoleAssignments(getTestPool(), actor, brandRoleId)).rejects.toBeInstanceOf(NotFoundError);
   });
 });

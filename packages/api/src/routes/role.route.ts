@@ -26,7 +26,7 @@ export async function roleRoutes(app: FastifyInstance) {
       },
     },
     async (request) => {
-      const roles = await listRoles(getPool(), request.query.kind);
+      const roles = await listRoles(getPool());
       return { roles };
     },
   );

@@ -238,7 +238,7 @@ function RoleForm({ target, onDone }: { target: RoleDialogTarget; onDone: () => 
       );
       return;
     }
-    createMutation.mutate({ name: trimmedName, kind, actions }, { onSuccess: onDone });
+    createMutation.mutate({ name: trimmedName, actions }, { onSuccess: onDone });
   }
 
   return (

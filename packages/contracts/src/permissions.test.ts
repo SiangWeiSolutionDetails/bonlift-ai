@@ -6,6 +6,7 @@ import {
   PERSONAL_DATA_ACTIONS,
   PROVIDER_GRANTS,
   PERMISSION_KEY_PATTERN,
+  hasProviderAccess,
   isBrandAction,
   isConsoleAction,
   providerBrandActions,
@@ -75,5 +76,12 @@ describe("provider grants", () => {
     expect(new Set(providerBrandActions(["provider.view", "provider.support"]))).toEqual(
       new Set(support),
     );
+  });
+
+  it("has provider access with either provider action", () => {
+    expect(hasProviderAccess([])).toBe(false);
+    expect(hasProviderAccess(["brands.view", "users.view"])).toBe(false);
+    expect(hasProviderAccess(["provider.view"])).toBe(true);
+    expect(hasProviderAccess(["provider.support"])).toBe(true);
   });
 });

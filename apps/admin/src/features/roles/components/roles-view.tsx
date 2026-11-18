@@ -56,10 +56,6 @@ export function RolesView({ scope, canManage }: RolesViewProps) {
         }
       />
 
-      <p className="-mt-3 text-sm text-muted-foreground">
-        {t(isConsole ? "page.consoleHint" : "page.brandHint")}
-      </p>
-
       <Input
         type="search"
         className="w-72"

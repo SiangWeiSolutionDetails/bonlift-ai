@@ -46,7 +46,6 @@
     "channels": "渠道"
   },
   "users": {
-    "description": "可以处理此品牌的人员及其在该品牌上的角色。",
     "empty": "暂无用户。",
     "remove": "移除",
     "removeNamed": "移除 {{name}}",

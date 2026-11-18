@@ -2,9 +2,7 @@
   "page": {
     "title": "Roles",
     "newConsoleRole": "New Console Role",
-    "newBrandRole": "New Brand Role",
-    "consoleHint": "Console roles apply across the whole console: tenants, the brand list, users and roles. Each user has at most one. Brand roles are managed inside each brand, on its Roles page.",
-    "brandHint": "These roles belong to this brand’s tenant. You can assign them on any of the tenant’s brands, and a change applies on all of them."
+    "newBrandRole": "New Brand Role"
   },
   "search": {
     "placeholder": "Search roles by name",

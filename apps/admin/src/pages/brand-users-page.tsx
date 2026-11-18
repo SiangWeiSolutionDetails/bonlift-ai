@@ -29,7 +29,6 @@ export function BrandUsersPage() {
           )
         }
       />
-      <p className="text-sm text-muted-foreground">{tBrands("users.description")}</p>
       <BrandUsersSection brandId={brandId} readOnly={!canManage} />
       {canManage && <AddBrandUserDialog brandId={brandId} open={addOpen} onOpenChange={setAddOpen} />}
     </div>

@@ -2,9 +2,7 @@
   "page": {
     "title": "角色",
     "newConsoleRole": "新建后台角色",
-    "newBrandRole": "新建品牌角色",
-    "consoleHint": "后台角色作用于整个后台：租户、品牌列表、用户和角色。每位用户最多一个。品牌角色在各品牌内的“角色”页面中管理。",
-    "brandHint": "这些角色属于该品牌所在的租户。可在该租户的任意品牌上分配，修改会同时作用于所有这些品牌。"
+    "newBrandRole": "新建品牌角色"
   },
   "search": {
     "placeholder": "按名称搜索角色",
